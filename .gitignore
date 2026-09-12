@@ -1,0 +1,7 @@
+build/
+.dart_tool/
+.packages
+*.iso
+*.qcow2
+*.img
+os_image/rootfs/
