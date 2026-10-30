@@ -9,13 +9,16 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `lib/widgets/`: `top_bar`, `psito_dock`, `desktop_background`
   - `lib/apps/`: "apps" de exemplo; hoje são widgets dentro do mesmo processo
   - `lib/models/psito_app_item.dart`: um item da dock/app
+- `docs/ROADMAP.md`: roteiro por fases (local, fora do git). Consulte só quando a tarefa envolver planejamento.
+- `vm/`: arquivos instalados na VM pelo `provision.sh` (serviço, script do guest)
 - `patches/`: patches aplicados em dependências da VM (ex.: flutter-pi pro virtio-gpu)
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
 - `./check.sh`: `flutter analyze` mostrando só os problemas. Rode depois de editar Dart.
-- `./build.sh`: `flutter build bundle` + copia `icudtl.dat`
-- `./deploy.sh`: rsync para `/opt/psito-app` na VM e reinicia `psito-os.service`
+- `./build.sh [release|profile|debug]`: `flutterpi_tool build --arch=x64` (padrão release/AOT). O bundle fica em `system_shell/build/flutter-pi/x64-generic`.
+- `./deploy.sh`: rsync do bundle para `/opt/psito-app`, grava o modo em `/etc/default/psito-os` e reinicia `psito-os.service`
+- `./provision.sh`: prepara a VM (deps, flutter-pi fixo + `patches/`, serviço de `vm/`). Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`)
 - `./logs.sh [n]`: últimas n linhas (padrão 40) do `journalctl -u psito-os` na VM
 - `./create-disk.sh`, `./install-os.sh`: só na primeira configuração

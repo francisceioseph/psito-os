@@ -1,26 +1,36 @@
 #!/bin/bash
 set -e
 
-echo "🔨 [Psito OS] Iniciando compilação do bundle Flutter..."
+# Uso: ./build.sh [release|profile|debug]   (padrão: release)
+MODE="${1:-release}"
+
+echo "🔨 [Psito OS] Compilando o shell em modo $MODE..."
 
 # Garantir que estamos no diretório do script (raiz do repositório)
 cd "$(dirname "$0")"
 
-# Entrar no diretório onde está a aplicação Flutter
+export PATH="$PATH:$HOME/.pub-cache/bin"
+if ! command -v flutterpi_tool >/dev/null; then
+    echo "❌ flutterpi_tool não encontrado. Instale com:"
+    echo "   flutter pub global activate --source git https://github.com/ardera/flutterpi_tool"
+    exit 1
+fi
+
 cd ./system_shell
+flutter pub get >/dev/null
 
-# Limpar build anterior e buscar dependências
-flutter pub get
+# Gera o bundle (assets + app.so AOT + engine do mesmo modo) para o flutter-pi
+flutterpi_tool build --arch=x64 "--$MODE"
 
-# Compilar os assets para o formato suportado pelo flutter-pi
-flutter build bundle
+BUNDLE_DIR=$(find build/flutter-pi -mindepth 1 -maxdepth 1 -type d | head -n 1)
+if [ -z "$BUNDLE_DIR" ]; then
+    echo "❌ [Psito OS] Bundle do flutter-pi não encontrado em system_shell/build/flutter-pi"
+    exit 1
+fi
 
-echo "📦 Copiando icudtl.dat para o bundle de assets..."
-FLUTTER_BIN=$(which flutter)
-FLUTTER_DIR=$(dirname "$FLUTTER_BIN")
+# O deploy.sh lê isto para saber o que enviar e com qual modo iniciar o flutter-pi
+printf 'BUNDLE_DIR=%s\nMODE=%s\n' "$BUNDLE_DIR" "$MODE" > build/psito-build.env
 
-# Busca o icudtl.dat no cache do SDK do Flutter e copia para dentro de build/flutter_assets
-cp "$FLUTTER_DIR/cache/artifacts/engine/linux-x64/icudtl.dat" build/flutter_assets/ 2>/dev/null || \
-find ~/ -name "icudtl.dat" 2>/dev/null | head -n 1 | xargs -I {} cp {} build/flutter_assets/
-
+echo "📦 Bundle em system_shell/$BUNDLE_DIR:"
+ls -1 "$BUNDLE_DIR" | sed 's/^/   /'
 echo "✅ [Psito OS] Build concluído com sucesso!"

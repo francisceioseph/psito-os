@@ -1,215 +1,82 @@
 # 🦜 Psito OS — Embedded Kiosk Development Environment
 
-Este repositório contém as instruções e scripts para compilar, implantar e executar a interface gráfica do **Psito OS** em modo kiosk de alto desempenho usando `flutter-pi` sobre DRM/KMS e aceleração por hardware VirGL em uma VM Debian minimalista via QEMU.
+Este repositório contém os scripts para compilar, implantar e executar a interface gráfica do **Psito OS** em modo kiosk usando `flutter-pi` sobre DRM/KMS e aceleração por hardware VirGL em uma VM Debian minimalista via QEMU.
 
 ---
 
 ## 🛠️ Requisitos do Sistema
 
-* **Host:** Linux (ex: Linux Mint / Ubuntu) com QEMU, KVM e SDK do Flutter instalado.
-* **Target:** VM Debian 13 (Trixie) Minimal/CLI.
-* **Embedder:** `flutter-pi` compilado na VM target (`/usr/local/bin/flutter-pi`) com o patch `patches/flutter-pi-virtio-gpu-modifiers.patch` (sem ele o virtio-gpu recusa os framebuffers e a tela fica preta).
+* **Host:** Linux (ex: Linux Mint / Ubuntu) com QEMU, KVM, `rsync` e SDK do Flutter instalado.
+* **flutterpi_tool** no host, instalado do git (a versão do pub.dev não compila com Flutter 3.47+):
+
+  ```bash
+  flutter pub global activate --source git https://github.com/ardera/flutterpi_tool
+  ```
+
+* **Target:** VM Debian 13 (Trixie) Minimal/CLI, com servidor SSH e um usuário `psito` com sudo.
 
 ---
 
 ## 📐 Arquitetura da Solução
 
-* **Aceleração 3D:** QEMU configurado com `-display gtk,gl=on` e `-device virtio-vga-gl` repassando DRM/KMS para o driver VirGL no Debian.
-* **Engine & Assets:** Execução do bundle gerado por `flutter build bundle` carregado via `flutter-pi` no framebuffer sem dependência de X11 ou Wayland.
-* **Boot Autônomo:** Gerenciado pelo `systemd`, assumindo o `/dev/tty1` diretamente na inicialização do sistema (sem tela de login ou gerenciador de sessão).
+* **Aceleração 3D:** QEMU com `-device virtio-vga-gl` e `-display gtk,gl=on`, repassando DRM/KMS para o driver VirGL no Debian.
+* **Embedder:** `flutter-pi` compilado na VM (`/usr/local/bin/flutter-pi`) com o patch `patches/flutter-pi-virtio-gpu-modifiers.patch`. Sem ele o virtio-gpu recusa os framebuffers e a tela fica preta.
+* **App:** bundle gerado pelo `flutterpi_tool` (AOT em release), com o `app.so` e o `libflutter_engine.so` do mesmo modo. O serviço carrega o engine do próprio bundle.
+* **Boot Autônomo:** `systemd` assume o `/dev/tty1` na inicialização, sem tela de login nem gerenciador de sessão.
 
 ---
 
 ## 🚀 Guia Passo a Passo
 
-### 1. Preparação da VM Debian (Target)
-
-Na VM Debian, instale os artefatos de renderização 3D, suporte a DRM e `libseat`:
+### 1. Criar e instalar a VM (uma vez)
 
 ```bash
-sudo apt update && sudo apt install -y \
-  libgl1-mesa-dri \
-  mesa-vulkan-drivers \
-  virglserver \
-  libseat-dev \
-  libsystemd-dev
-
+./create-disk.sh     # cria qemu/psito-disk.qcow2 (20G)
+./install-os.sh      # boota a ISO em debian/debian-netinst.iso
 ```
 
-Crie o diretório de destino e ajuste as permissões para o usuário `psito`:
+Na instalação, marque **SSH server** e crie o usuário `psito`. Depois, com a VM ligada, copie sua chave:
 
 ```bash
-sudo mkdir -p /opt/psito-app
-sudo chown -R psito:psito /opt/psito-app
-sudo chmod -R 755 /opt/psito-app
+ssh-copy-id -p 2222 psito@localhost
+```
 
+### 2. Provisionar a VM
+
+Instala as dependências, compila o `flutter-pi` (commit fixo + patches de `patches/`) e instala o serviço `psito-os`. Pode ser rodado de novo sem problemas.
+
+```bash
+./run.sh             # em outro terminal
+./provision.sh
+```
+
+### 3. Build e deploy
+
+```bash
+./build.sh           # release (padrão); também aceita: profile, debug
+./deploy.sh          # envia o bundle para /opt/psito-app e reinicia o serviço
+```
+
+O modo do build é repassado ao `flutter-pi` pelo `/etc/default/psito-os`.
+
+### 4. Depuração
+
+```bash
+./check.sh           # flutter analyze, só os problemas
+./logs.sh 100        # últimas 100 linhas do journal do serviço na VM
+```
+
+Para rodar manualmente na VM:
+
+```bash
+sudo systemctl stop psito-os
+sudo LD_LIBRARY_PATH=/opt/psito-app /usr/local/bin/flutter-pi --release /opt/psito-app
 ```
 
 ---
 
-### 2. Inicialização da VM (Host Script)
+## 📁 Estrutura
 
-Para subir a VM no Host com aceleração de hardware completa e repasse SSH na porta `2222`:
-
-```bash
-#!/bin/bash
-set -e
-
-echo "🦜 Subindo o Psito OS (Debian + QEMU)..."
-
-DISK="qemu/psito-disk.qcow2"
-
-QEMU_ARGS=(
-    -m 2048
-    -smp 2
-    -drive "file=$DISK,format=qcow2"
-    -device virtio-vga-gl
-    -display gtk,gl=on
-    -netdev user,id=net0,hostfwd=tcp::2222-:22
-    -device virtio-net-pci,netdev=net0
-)
-
-if [ -e /dev/kvm ]; then
-    QEMU_ARGS+=(-enable-kvm -cpu host)
-    echo "-> Aceleração KVM e repasse de CPU ativados!"
-fi
-
-qemu-system-x86_64 "${QEMU_ARGS[@]}"
-
-```
-
----
-
-### 3. Automação de Build e Deploy
-
-#### `build.sh` (Host)
-
-Entra no subdiretório `system_shell`, compila os assets e copia o arquivo `icudtl.dat` exigido pelo runtime do `flutter-pi`:
-
-```bash
-#!/bin/bash
-set -e
-
-echo "🔨 [Psito OS] Iniciando compilação do bundle Flutter..."
-
-# Garantir execução na raiz do projeto
-cd "$(dirname "$0")"
-
-# Entrar no diretório da aplicação Flutter
-cd ./system_shell
-
-# Buscar dependências e compilar o bundle
-flutter pub get
-flutter build bundle
-
-echo "📦 Copiando icudtl.dat para o bundle de assets..."
-FLUTTER_BIN=$(which flutter)
-FLUTTER_DIR=$(dirname "$FLUTTER_BIN")
-
-cp "$FLUTTER_DIR/cache/artifacts/engine/linux-x64/icudtl.dat" build/flutter_assets/ 2>/dev/null || \
-find ~/ -name "icudtl.dat" 2>/dev/null | head -n 1 | xargs -I {} cp {} build/flutter_assets/
-
-echo "✅ [Psito OS] Build concluído com sucesso!"
-
-```
-
-#### `deploy.sh` (Host)
-
-Sincroniza os assets compilados diretamente para a VM Debian e reinicia o serviço do sistema:
-
-```bash
-#!/bin/bash
-set -e
-
-echo "🚀 [Psito OS] Iniciando deploy para a VM Debian..."
-
-# Garantir execução na raiz do projeto
-cd "$(dirname "$0")"
-
-VM_USER="psito"
-VM_HOST="localhost"
-VM_PORT="2222"
-DEST_DIR="/opt/psito-app"
-
-# Verificar se o bundle existe
-if [ ! -d "system_shell/build/flutter_assets" ]; then
-    echo "⚠️  [Psito OS] Bundle não encontrado! Rodando build.sh..."
-    ./build.sh
-fi
-
-echo "📦 Sincronizando assets via rsync..."
-rsync -avz --delete -e "ssh -p $VM_PORT" system_shell/build/flutter_assets/ "$VM_USER@$VM_HOST:$DEST_DIR/"
-
-echo "🔄 Reiniciando o serviço Psito OS..."
-ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" "sudo systemctl restart psito-os.service 2>/dev/null || true"
-
-echo "✨ [Psito OS] Deploy finalizado com sucesso!"
-
-```
-
-Torne os scripts executáveis:
-
-```bash
-chmod +x build.sh deploy.sh
-
-```
-
----
-
-### 4. Execução Manual (VM)
-
-Para rodar a aplicação manualmente via SSH no terminal da VM Debian (útil para depuração):
-
-```bash
-sudo /usr/local/bin/flutter-pi /opt/psito-app
-
-```
-
----
-
-### 5. Configuração do Boot Autônomo (Systemd)
-
-Para fazer o **Psito OS** iniciar automaticamente na VM como um appliance kiosk sem interface desktop:
-
-1. Crie o arquivo `/etc/systemd/system/psito-os.service` na VM Debian:
-
-```ini
-[Unit]
-Description=Psito OS Kiosk Engine
-After=systemd-user-sessions.service multi-user.target
-Conflicts=getty@tty1.service
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/psito-app
-ExecStart=/usr/local/bin/flutter-pi /opt/psito-app
-Restart=always
-RestartSec=2
-TTYPath=/dev/tty1
-StandardInput=tty
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-
-```
-
-2. Recarregue o daemon e ative o serviço:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable psito-os.service
-sudo systemctl start psito-os.service
-
-```
-
-3. Para verificar os logs da aplicação em tempo real na VM:
-
-```bash
-sudo journalctl -u psito-os -f
-
-```
-
-```
+* `system_shell/`: o shell em Flutter
+* `vm/`: arquivos instalados na VM pelo `provision.sh` (`psito-os.service`, `provision-guest.sh`)
+* `patches/`: patches aplicados em dependências da VM

@@ -10,18 +10,22 @@ VM_USER="psito"
 VM_HOST="localhost"
 VM_PORT="2222"
 DEST_DIR="/opt/psito-app"
+BUILD_ENV="system_shell/build/psito-build.env"
 
-# Verificar se o bundle existe no caminho correto dentro de system_shell
-if [ ! -d "system_shell/build/flutter_assets" ]; then
+# Verificar se existe um build do flutterpi_tool
+if [ ! -f "$BUILD_ENV" ]; then
     echo "⚠️  [Psito OS] Bundle não encontrado! Rodando build.sh..."
     ./build.sh
 fi
+source "$BUILD_ENV"
 
-echo "📦 Transferindo assets para $DEST_DIR na VM..."
-rsync -avz --delete -e "ssh -p $VM_PORT" system_shell/build/flutter_assets/ "$VM_USER@$VM_HOST:$DEST_DIR/"
+# O flutter-pi do bundle não tem nosso patch: a VM usa o de /usr/local/bin
+echo "📦 Transferindo bundle ($MODE) para $DEST_DIR na VM..."
+rsync -az --delete --exclude /flutter-pi -e "ssh -p $VM_PORT" \
+    "system_shell/$BUNDLE_DIR/" "$VM_USER@$VM_HOST:$DEST_DIR/"
 
 echo "🔄 Reiniciando o serviço do Psito OS na VM..."
-ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" "sudo chown -R psito:psito /opt/psito-app && sudo chmod -R 755 /opt/psito-app"
-ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" "sudo systemctl restart psito-os.service 2>/dev/null || true"
+ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" \
+    "echo 'FLUTTER_PI_ARGS=--$MODE' | sudo tee /etc/default/psito-os >/dev/null && sudo systemctl restart psito-os.service"
 
 echo "✨ [Psito OS] Deploy finalizado com sucesso!"

@@ -1,0 +1,23 @@
+[Unit]
+Description=Psito OS Kiosk Engine
+After=systemd-user-sessions.service multi-user.target
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/psito-app
+# FLUTTER_PI_ARGS (ex.: --release) é escrito pelo deploy.sh conforme o modo do build
+EnvironmentFile=-/etc/default/psito-os
+# Carrega o libflutter_engine.so do bundle, que é do mesmo modo e versão do app.so
+Environment=LD_LIBRARY_PATH=/opt/psito-app
+ExecStart=/usr/local/bin/flutter-pi $FLUTTER_PI_ARGS /opt/psito-app
+Restart=always
+RestartSec=2
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

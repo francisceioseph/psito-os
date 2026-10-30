@@ -13,3 +13,6 @@ system_shell/linux/flutter/ephemeral/
 
 # Saídas locais dos scripts
 *.log
+
+# Documentação local (fora do git)
+docs/
