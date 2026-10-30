@@ -1,26 +1,29 @@
 // system_shell/lib/apps/browser_app.dart
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:http/http.dart' as http;
 
-class BrowserApp extends StatefulWidget {
-  const BrowserApp({super.key});
+class BrowserView extends StatefulWidget {
+  const BrowserView({super.key});
 
   @override
-  State<BrowserApp> createState() => _BrowserAppState();
+  State<BrowserView> createState() => _BrowserViewState();
 }
 
-class _BrowserAppState extends State<BrowserApp> {
+class _BrowserViewState extends State<BrowserView> {
   final TextEditingController _urlController = TextEditingController(
     text: 'https://example.com',
   );
   String _currentUrl = 'https://example.com';
-  String _pageContent = 'Digite uma URL e clique em carregar para buscar o conteúdo.';
+  String _pageContent =
+      'Digite uma URL e clique em carregar para buscar o conteúdo.';
   bool _isLoading = false;
   int _statusCode = 0;
 
   Future<void> _fetchPage(String url) async {
     String formattedUrl = url.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+    if (!formattedUrl.startsWith('http://') &&
+        !formattedUrl.startsWith('https://')) {
       formattedUrl = 'https://$formattedUrl';
     }
 
@@ -32,16 +35,16 @@ class _BrowserAppState extends State<BrowserApp> {
     });
 
     try {
-      final response = await http.get(Uri.parse(formattedUrl)).timeout(
-        const Duration(seconds: 10),
-      );
+      final response = await http
+          .get(Uri.parse(formattedUrl))
+          .timeout(const Duration(seconds: 10));
 
       if (mounted) {
         setState(() {
           _statusCode = response.statusCode;
           // Mostra o corpo da resposta (HTML bruto ou texto limpo)
-          _pageContent = response.body.isNotEmpty 
-              ? response.body 
+          _pageContent = response.body.isNotEmpty
+              ? response.body
               : '[Página vazia ou sem conteúdo textual]';
           _isLoading = false;
         });
@@ -50,7 +53,8 @@ class _BrowserAppState extends State<BrowserApp> {
       if (mounted) {
         setState(() {
           _statusCode = 500;
-          _pageContent = 'Erro ao carregar a página:\n$e\n\n(Verifique se a VM possui acesso à internet ou se o site bloqueia requisições diretas via HTTP).';
+          _pageContent =
+              'Erro ao carregar a página:\n$e\n\n(Verifique se a VM possui acesso à internet ou se o site bloqueia requisições diretas via HTTP).';
           _isLoading = false;
         });
       }
@@ -100,16 +104,23 @@ class _BrowserAppState extends State<BrowserApp> {
                   child: Row(
                     children: [
                       Icon(
-                        _statusCode == 200 ? Icons.lock_rounded : Icons.warning_rounded,
+                        _statusCode == 200
+                            ? Icons.lock_rounded
+                            : Icons.warning_rounded,
                         size: 12,
-                        color: _statusCode == 200 ? const Color(0xFF4CAF50) : Colors.orangeAccent,
+                        color: _statusCode == 200
+                            ? const Color(0xFF4CAF50)
+                            : Colors.orangeAccent,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: TextField(
                           controller: _urlController,
                           onSubmitted: _fetchPage,
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             isDense: true,
@@ -164,4 +175,23 @@ class _BrowserAppState extends State<BrowserApp> {
       ],
     );
   }
+}
+
+class BrowserApp extends PsitoApp {
+  const BrowserApp();
+
+  @override
+  String get id => 'browser';
+
+  @override
+  String get name => 'Browser';
+
+  @override
+  IconData get icon => Icons.language_rounded;
+
+  @override
+  Color get color => const Color(0xFF00BCD4);
+
+  @override
+  Widget build(PsitoAppContext context) => const BrowserView();
 }

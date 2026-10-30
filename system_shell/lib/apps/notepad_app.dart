@@ -1,15 +1,16 @@
 // system_shell/lib/apps/notepad_app.dart
 
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
-class NotepadApp extends StatefulWidget {
-  const NotepadApp({super.key});
+class NotepadView extends StatefulWidget {
+  const NotepadView({super.key});
 
   @override
-  State<NotepadApp> createState() => _NotepadAppState();
+  State<NotepadView> createState() => _NotepadViewState();
 }
 
-class _NotepadAppState extends State<NotepadApp> {
+class _NotepadViewState extends State<NotepadView> {
   final TextEditingController _controller = TextEditingController(
     text: '🦜 Bem-vindo ao Psito Notepad!\n\nEscreva suas anotações aqui...',
   );
@@ -34,8 +35,15 @@ class _NotepadAppState extends State<NotepadApp> {
                 onPressed: () {
                   _controller.clear();
                 },
-                icon: const Icon(Icons.cleaning_services_rounded, size: 16, color: Color(0xFF4CAF50)),
-                label: const Text('Limpar', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                icon: const Icon(
+                  Icons.cleaning_services_rounded,
+                  size: 16,
+                  color: Color(0xFF4CAF50),
+                ),
+                label: const Text(
+                  'Limpar',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ),
               const Spacer(),
               const Text(
@@ -69,4 +77,23 @@ class _NotepadAppState extends State<NotepadApp> {
       ],
     );
   }
+}
+
+class NotepadApp extends PsitoApp {
+  const NotepadApp();
+
+  @override
+  String get id => 'notepad';
+
+  @override
+  String get name => 'Notepad';
+
+  @override
+  IconData get icon => Icons.edit_note_rounded;
+
+  @override
+  Color get color => const Color(0xFF4CAF50);
+
+  @override
+  Widget build(PsitoAppContext context) => const NotepadView();
 }

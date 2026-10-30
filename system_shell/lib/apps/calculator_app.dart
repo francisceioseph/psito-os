@@ -1,14 +1,15 @@
 // system_shell/lib/apps/calculator_app.dart
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
-class CalculatorApp extends StatefulWidget {
-  const CalculatorApp({super.key});
+class CalculatorView extends StatefulWidget {
+  const CalculatorView({super.key});
 
   @override
-  State<CalculatorApp> createState() => _CalculatorAppState();
+  State<CalculatorView> createState() => _CalculatorViewState();
 }
 
-class _CalculatorAppState extends State<CalculatorApp> {
+class _CalculatorViewState extends State<CalculatorView> {
   String _output = '0';
   String _currentOperand = '';
   double _num1 = 0;
@@ -23,7 +24,10 @@ class _CalculatorAppState extends State<CalculatorApp> {
         _num1 = 0;
         _num2 = 0;
         _operator = '';
-      } else if (buttonText == '+' || buttonText == '-' || buttonText == '×' || buttonText == '÷') {
+      } else if (buttonText == '+' ||
+          buttonText == '-' ||
+          buttonText == '×' ||
+          buttonText == '÷') {
         _num1 = double.tryParse(_output) ?? 0;
         _operator = buttonText;
         _currentOperand = '';
@@ -114,7 +118,11 @@ class _CalculatorAppState extends State<CalculatorApp> {
                 Expanded(
                   child: Row(
                     children: [
-                      _buildButton('C', color: Colors.red.withValues(alpha: 0.3), textColor: Colors.redAccent),
+                      _buildButton(
+                        'C',
+                        color: Colors.red.withValues(alpha: 0.3),
+                        textColor: Colors.redAccent,
+                      ),
                       _buildButton('÷', color: const Color(0xFF37474F)),
                       _buildButton('×', color: const Color(0xFF37474F)),
                       _buildButton('-', color: const Color(0xFF37474F)),
@@ -137,7 +145,11 @@ class _CalculatorAppState extends State<CalculatorApp> {
                       _buildButton('4'),
                       _buildButton('5'),
                       _buildButton('6'),
-                      _buildButton('=', color: const Color(0xFFFFC107), textColor: Colors.black),
+                      _buildButton(
+                        '=',
+                        color: const Color(0xFFFFC107),
+                        textColor: Colors.black,
+                      ),
                     ],
                   ),
                 ),
@@ -158,4 +170,23 @@ class _CalculatorAppState extends State<CalculatorApp> {
       ],
     );
   }
+}
+
+class CalculatorApp extends PsitoApp {
+  const CalculatorApp();
+
+  @override
+  String get id => 'calculator';
+
+  @override
+  String get name => 'Calculator';
+
+  @override
+  IconData get icon => Icons.calculate_outlined;
+
+  @override
+  Color get color => const Color(0xFF2196F3);
+
+  @override
+  Widget build(PsitoAppContext context) => const CalculatorView();
 }

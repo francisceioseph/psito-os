@@ -2,15 +2,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
-class FilesApp extends StatefulWidget {
-  const FilesApp({super.key});
+class FilesView extends StatefulWidget {
+  const FilesView({super.key});
 
   @override
-  State<FilesApp> createState() => _FilesAppState();
+  State<FilesView> createState() => _FilesViewState();
 }
 
-class _FilesAppState extends State<FilesApp> {
+class _FilesViewState extends State<FilesView> {
   String _currentPath = '/opt/psito-app'; // Começa na pasta raiz do app na VM
   List<FileSystemEntity> _contents = [];
   bool _isLoading = true;
@@ -172,4 +173,23 @@ class _FilesAppState extends State<FilesApp> {
       ],
     );
   }
+}
+
+class FilesApp extends PsitoApp {
+  const FilesApp();
+
+  @override
+  String get id => 'files';
+
+  @override
+  String get name => 'Files';
+
+  @override
+  IconData get icon => Icons.folder_open_rounded;
+
+  @override
+  Color get color => const Color(0xFFFFC107);
+
+  @override
+  Widget build(PsitoAppContext context) => const FilesView();
 }

@@ -1,5 +1,6 @@
 // system_shell/lib/apps/buddy_app.dart
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 class ChatMessage {
   final String text;
@@ -13,14 +14,14 @@ class ChatMessage {
   }) : timestamp = timestamp ?? DateTime.now();
 }
 
-class BuddyApp extends StatefulWidget {
-  const BuddyApp({super.key});
+class BuddyView extends StatefulWidget {
+  const BuddyView({super.key});
 
   @override
-  State<BuddyApp> createState() => _BuddyAppState();
+  State<BuddyView> createState() => _BuddyViewState();
 }
 
-class _BuddyAppState extends State<BuddyApp> {
+class _BuddyViewState extends State<BuddyView> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -37,7 +38,9 @@ class _BuddyAppState extends State<BuddyApp> {
 
     _textController.clear();
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true, timestamp: DateTime.now()));
+      _messages.add(
+        ChatMessage(text: text, isUser: true, timestamp: DateTime.now()),
+      );
     });
 
     _scrollToBottom();
@@ -45,11 +48,17 @@ class _BuddyAppState extends State<BuddyApp> {
     // Resposta simulada inteligente do Psito Buddy
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
-      
+
       String botResponse = _generateBuddyResponse(text);
 
       setState(() {
-        _messages.add(ChatMessage(text: botResponse, isUser: false, timestamp: DateTime.now()));
+        _messages.add(
+          ChatMessage(
+            text: botResponse,
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        );
       });
       _scrollToBottom();
     });
@@ -57,9 +66,13 @@ class _BuddyAppState extends State<BuddyApp> {
 
   String _generateBuddyResponse(String query) {
     final lower = query.toLowerCase();
-    if (lower.contains('olá') || lower.contains('oi') || lower.contains('e aí')) {
+    if (lower.contains('olá') ||
+        lower.contains('oi') ||
+        lower.contains('e aí')) {
       return 'Fiiu! Tudo ótimo por aqui na VM Debian. E com você? Pronto para programar mais em Flutter? 🦜✨';
-    } else if (lower.contains('código') || lower.contains('flutter') || lower.contains('dart')) {
+    } else if (lower.contains('código') ||
+        lower.contains('flutter') ||
+        lower.contains('dart')) {
       return '💻 Código limpo e multitarefa rodando liso! Se precisar ajustar alguma janela ou app no Psito OS, é só mandar.';
     } else if (lower.contains('piada') || lower.contains('engraçado')) {
       return 'Sabe qual é o pássaro que voa de noite? O calops-noite! (Ok, essa foi fraca, mas dou o meu melhor piado 🎶).';
@@ -101,18 +114,25 @@ class _BuddyAppState extends State<BuddyApp> {
             itemBuilder: (context, index) {
               final message = _messages[index];
               return Align(
-                alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: message.isUser
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   constraints: const BoxConstraints(maxWidth: 320),
                   decoration: BoxDecoration(
-                    color: message.isUser 
-                        ? const Color(0xFFFFC107).withValues(alpha: 0.2) 
+                    color: message.isUser
+                        ? const Color(0xFFFFC107).withValues(alpha: 0.2)
                         : Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: message.isUser ? const Color(0xFFFFC107) : Colors.white12,
+                      color: message.isUser
+                          ? const Color(0xFFFFC107)
+                          : Colors.white12,
                       width: 1,
                     ),
                   ),
@@ -121,13 +141,20 @@ class _BuddyAppState extends State<BuddyApp> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (!message.isUser) ...[
-                        const Icon(Icons.flutter_dash, size: 16, color: Color(0xFFFFC107)),
+                        const Icon(
+                          Icons.flutter_dash,
+                          size: 16,
+                          color: Color(0xFFFFC107),
+                        ),
                         const SizedBox(width: 8),
                       ],
                       Flexible(
                         child: Text(
                           message.text,
-                          style: const TextStyle(fontSize: 13, color: Colors.white),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
@@ -154,12 +181,19 @@ class _BuddyAppState extends State<BuddyApp> {
                     hintStyle: TextStyle(color: Colors.white38),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send_rounded, size: 18, color: Color(0xFFFFC107)),
+                icon: const Icon(
+                  Icons.send_rounded,
+                  size: 18,
+                  color: Color(0xFFFFC107),
+                ),
                 onPressed: () => _handleSubmitted(_textController.text),
                 splashRadius: 16,
               ),
@@ -169,4 +203,23 @@ class _BuddyAppState extends State<BuddyApp> {
       ],
     );
   }
+}
+
+class BuddyApp extends PsitoApp {
+  const BuddyApp();
+
+  @override
+  String get id => 'buddy';
+
+  @override
+  String get name => 'Psito Buddy';
+
+  @override
+  IconData get icon => Icons.smart_toy_rounded;
+
+  @override
+  Color get color => const Color(0xFFFF5722);
+
+  @override
+  Widget build(PsitoAppContext context) => const BuddyView();
 }

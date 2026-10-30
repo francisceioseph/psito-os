@@ -1,22 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:system_shell/apps/browser_app.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
+import '../shell/app_registry.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
 import '../widgets/psito_dock.dart';
-import '../models/psito_app_item.dart';
-import '../apps/notepad_app.dart';
-import '../apps/calculator_app.dart';
-import '../apps/clock_app.dart';
-import '../apps/files_app.dart';
-import '../apps/buddy_app.dart';
 
 class WindowInstance {
   final String id;
-  final PsitoAppItem app;
+  final PsitoApp app;
+  String title;
   Offset position;
+  late final PsitoAppContext context;
 
-  WindowInstance({required this.id, required this.app, required this.position});
+  WindowInstance({required this.id, required this.app, required this.position})
+    : title = app.name;
+}
+
+/// O que um app enxerga do shell, para uma janela.
+class _ShellAppContext implements PsitoAppContext {
+  final _DesktopScreenState _shell;
+
+  @override
+  final String windowId;
+
+  _ShellAppContext(this._shell, this.windowId);
+
+  @override
+  void setTitle(String title) => _shell._setTitle(windowId, title);
+
+  @override
+  void close() => _shell._closeWindow(windowId);
+
+  @override
+  void notify(PsitoNotification notification) {
+    // A central de notificações chega na etapa 4 da fase 1
+    debugPrint('🦜 Notificação de $windowId: ${notification.title}');
+  }
 }
 
 class DesktopScreen extends StatefulWidget {
@@ -30,24 +50,31 @@ class _DesktopScreenState extends State<DesktopScreen> {
   Offset? _mousePosition;
   final List<WindowInstance> _openedWindows = [];
 
-  void _openApp(PsitoAppItem app) {
-    setState(() {
-      double offset = (_openedWindows.length * 30.0) % 150.0;
-      _openedWindows.add(
-        WindowInstance(
-          id: '${app.id}_${DateTime.now().millisecondsSinceEpoch}',
-          app: app,
-          position: Offset(150.0 + offset, 80.0 + offset),
-        ),
-      );
-    });
+  void _openApp(PsitoApp app) {
+    double offset = (_openedWindows.length * 30.0) % 150.0;
+    final window = WindowInstance(
+      id: '${app.id}_${DateTime.now().millisecondsSinceEpoch}',
+      app: app,
+      position: Offset(150.0 + offset, 80.0 + offset),
+    );
+    window.context = _ShellAppContext(this, window.id);
+    setState(() => _openedWindows.add(window));
+    app.onOpen(window.context);
     debugPrint('🦜 Abrindo app em multitarefa: ${app.name}');
   }
 
   void _closeWindow(String windowId) {
-    setState(() {
-      _openedWindows.removeWhere((w) => w.id == windowId);
-    });
+    final index = _openedWindows.indexWhere((w) => w.id == windowId);
+    if (index < 0) return;
+    final window = _openedWindows[index];
+    setState(() => _openedWindows.removeAt(index));
+    window.app.onClose(window.context);
+  }
+
+  void _setTitle(String windowId, String title) {
+    final index = _openedWindows.indexWhere((w) => w.id == windowId);
+    if (index < 0) return;
+    setState(() => _openedWindows[index].title = title);
   }
 
   @override
@@ -77,8 +104,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     });
                   },
                   child: Container(
-                    width: 480,
-                    height: 360,
+                    width: window.app.defaultSize.width,
+                    height: window.app.defaultSize.height,
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E252B),
                       borderRadius: BorderRadius.circular(16),
@@ -115,7 +142,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    window.app.name,
+                                    window.title,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
@@ -133,7 +160,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                           ),
                         ),
                         // Conteúdo interno do app
-                        Expanded(child: _buildAppContent(window.app.id)),
+                        Expanded(child: window.app.build(window.context)),
                       ],
                     ),
                   ),
@@ -148,7 +175,9 @@ class _DesktopScreenState extends State<DesktopScreen> {
               bottom: 20,
               left: 0,
               right: 0,
-              child: Center(child: PsitoDock(onAppTap: _openApp)),
+              child: Center(
+                child: PsitoDock(apps: registeredApps, onAppTap: _openApp),
+              ),
             ),
 
             // Ponteiro do Mouse Customizado e Alinhado
@@ -171,29 +200,5 @@ class _DesktopScreenState extends State<DesktopScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildAppContent(String appId) {
-    switch (appId) {
-      case 'notepad':
-        return const NotepadApp();
-      case 'calculator':
-        return const CalculatorApp();
-      case 'clock':
-        return const ClockApp();
-      case 'files':
-        return const FilesApp();
-      case 'buddy':
-        return const BuddyApp();
-      case 'browser':
-        return const BrowserApp();
-      default:
-        return const Center(
-          child: Text(
-            'App desconhecido',
-            style: TextStyle(color: Colors.white60),
-          ),
-        );
-    }
   }
 }

@@ -1,15 +1,17 @@
 // system_shell/lib/apps/clock_app.dart
 import 'dart:async';
-import 'package:flutter/material.dart';
 
-class ClockApp extends StatefulWidget {
-  const ClockApp({super.key});
+import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
+
+class ClockView extends StatefulWidget {
+  const ClockView({super.key});
 
   @override
-  State<ClockApp> createState() => _ClockAppState();
+  State<ClockView> createState() => _ClockViewState();
 }
 
-class _ClockAppState extends State<ClockApp> {
+class _ClockViewState extends State<ClockView> {
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
 
@@ -37,8 +39,29 @@ class _ClockAppState extends State<ClockApp> {
     final minute = _currentTime.minute.toString().padLeft(2, '0');
     final second = _currentTime.second.toString().padLeft(2, '0');
 
-    const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-    const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const weekdays = [
+      'Domingo',
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+    ];
+    const months = [
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro',
+    ];
 
     final weekDayStr = weekdays[_currentTime.weekday % 7];
     final day = _currentTime.day;
@@ -71,10 +94,7 @@ class _ClockAppState extends State<ClockApp> {
           // Data Completa
           Text(
             '$weekDayStr, $day de $monthStr de $year',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white60,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.white60),
           ),
           const SizedBox(height: 24),
           const Divider(color: Colors.white24),
@@ -91,12 +111,26 @@ class _ClockAppState extends State<ClockApp> {
               children: const [
                 Row(
                   children: [
-                    Icon(Icons.alarm_rounded, size: 18, color: Color(0xFFFFC107)),
+                    Icon(
+                      Icons.alarm_rounded,
+                      size: 18,
+                      color: Color(0xFFFFC107),
+                    ),
                     SizedBox(width: 8),
-                    Text('Próximo alarme', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text(
+                      'Próximo alarme',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
                   ],
                 ),
-                Text('07:00 (Acordar os passarinhos)', style: TextStyle(color: Color(0xFFFFC107), fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(
+                  '07:00 (Acordar os passarinhos)',
+                  style: TextStyle(
+                    color: Color(0xFFFFC107),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -104,4 +138,23 @@ class _ClockAppState extends State<ClockApp> {
       ),
     );
   }
+}
+
+class ClockApp extends PsitoApp {
+  const ClockApp();
+
+  @override
+  String get id => 'clock';
+
+  @override
+  String get name => 'Clock';
+
+  @override
+  IconData get icon => Icons.access_time_rounded;
+
+  @override
+  Color get color => const Color(0xFFFF9800);
+
+  @override
+  Widget build(PsitoAppContext context) => const ClockView();
 }

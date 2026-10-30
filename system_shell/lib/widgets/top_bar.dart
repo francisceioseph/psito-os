@@ -31,10 +31,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   borderRadius: BorderRadius.circular(6),
                   hoverColor: Colors.white12,
                   child: const Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Row(
                       children: [
                         Icon(

@@ -19,9 +19,10 @@ if [ ! -f "$BUILD_ENV" ]; then
 fi
 source "$BUILD_ENV"
 
-# O flutter-pi do bundle não tem nosso patch: a VM usa o de /usr/local/bin
+# O flutter-pi do bundle não tem nosso patch: a VM usa o de /usr/local/bin.
+# flutter_engine/ é o cache de shaders que o engine grava na pasta do app.
 echo "📦 Transferindo bundle ($MODE) para $DEST_DIR na VM..."
-rsync -az --delete --exclude /flutter-pi -e "ssh -p $VM_PORT" \
+rsync -az --delete --exclude /flutter-pi --exclude /flutter_engine -e "ssh -p $VM_PORT" \
     "system_shell/$BUNDLE_DIR/" "$VM_USER@$VM_HOST:$DEST_DIR/"
 
 echo "🔄 Reiniciando o serviço do Psito OS na VM..."

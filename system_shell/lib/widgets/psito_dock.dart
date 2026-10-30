@@ -1,12 +1,13 @@
 // system_shell/lib/widgets/psito_dock.dart
 import 'package:flutter/material.dart';
 
-import '../models/psito_app_item.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 class PsitoDock extends StatefulWidget {
-  final Function(PsitoAppItem app) onAppTap;
+  final List<PsitoApp> apps;
+  final void Function(PsitoApp app) onAppTap;
 
-  const PsitoDock({super.key, required this.onAppTap});
+  const PsitoDock({super.key, required this.apps, required this.onAppTap});
 
   @override
   State<PsitoDock> createState() => _PsitoDockState();
@@ -15,45 +16,6 @@ class PsitoDock extends StatefulWidget {
 class _PsitoDockState extends State<PsitoDock> {
   // Índice do item com foco do mouse (-1 se nenhum)
   int? _hoveredIndex;
-
-  final List<PsitoAppItem> _apps = const [
-    PsitoAppItem(
-      id: 'buddy',
-      name: 'Psito Buddy',
-      icon: Icons.smart_toy_rounded,
-      color: Color(0xFFFF5722), // Laranja bochecha
-    ),
-    PsitoAppItem(
-      id: 'calculator',
-      name: 'Calculator',
-      icon: Icons.calculate_outlined,
-      color: Color(0xFF2196F3), // Azul
-    ),
-    PsitoAppItem(
-      id: 'clock',
-      name: 'Clock',
-      icon: Icons.access_time_rounded,
-      color: Color(0xFFFF9800), // Laranja
-    ),
-    PsitoAppItem(
-      id: 'notepad',
-      name: 'Notepad',
-      icon: Icons.edit_note_rounded,
-      color: Color(0xFF4CAF50), // Verde
-    ),
-    PsitoAppItem(
-      id: 'files',
-      name: 'Files',
-      icon: Icons.folder_open_rounded,
-      color: Color(0xFFFFC107), // Amarelo Calopsita
-    ),
-    PsitoAppItem(
-      id: 'browser',
-      name: 'Browser',
-      icon: Icons.language_rounded,
-      color: Color(0xFF00BCD4), // Ciano moderno
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +39,8 @@ class _PsitoDockState extends State<PsitoDock> {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: List.generate(_apps.length, (index) {
-          final app = _apps[index];
+        children: List.generate(widget.apps.length, (index) {
+          final app = widget.apps[index];
           final isHovered = _hoveredIndex == index;
 
           // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
