@@ -5,9 +5,17 @@ import 'package:psito_sdk/psito_sdk.dart';
 
 class PsitoDock extends StatefulWidget {
   final List<PsitoApp> apps;
+
+  /// Apps com pelo menos uma janela aberta: ganham um ponto embaixo do ícone.
+  final Set<String> runningAppIds;
   final void Function(PsitoApp app) onAppTap;
 
-  const PsitoDock({super.key, required this.apps, required this.onAppTap});
+  const PsitoDock({
+    super.key,
+    required this.apps,
+    this.runningAppIds = const {},
+    required this.onAppTap,
+  });
 
   @override
   State<PsitoDock> createState() => _PsitoDockState();
@@ -75,12 +83,24 @@ class _PsitoDockState extends State<PsitoDock> {
                         ]
                       : [],
                 ),
-                child: Center(
-                  child: Icon(
-                    app.icon,
-                    size: iconSize * 0.75,
-                    color: app.color,
-                  ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(app.icon, size: iconSize * 0.75, color: app.color),
+                    if (widget.runningAppIds.contains(app.id))
+                      Positioned(
+                        bottom: 3,
+                        child: Container(
+                          key: ValueKey('running-${app.id}'),
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: app.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
