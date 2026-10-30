@@ -25,8 +25,12 @@ echo "📦 Transferindo bundle ($MODE) para $DEST_DIR na VM..."
 rsync -az --delete --exclude /flutter-pi --exclude /flutter_engine -e "ssh -p $VM_PORT" \
     "system_shell/$BUNDLE_DIR/" "$VM_USER@$VM_HOST:$DEST_DIR/"
 
+# Debug é o padrão do flutter-pi, que não aceita --debug
+FLUTTER_PI_ARGS="--$MODE"
+[ "$MODE" = debug ] && FLUTTER_PI_ARGS=""
+
 echo "🔄 Reiniciando o serviço do Psito OS na VM..."
 ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" \
-    "echo 'FLUTTER_PI_ARGS=--$MODE' | sudo tee /etc/default/psito-os >/dev/null && sudo systemctl restart psito-os.service"
+    "echo 'FLUTTER_PI_ARGS=$FLUTTER_PI_ARGS' | sudo tee /etc/default/psito-os >/dev/null && sudo systemctl restart psito-os.service"
 
 echo "✨ [Psito OS] Deploy finalizado com sucesso!"
