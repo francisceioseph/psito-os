@@ -36,7 +36,7 @@ class _ClockViewState extends State<ClockView> {
       widget.appContext?.notify(
         const PsitoNotification(
           title: 'Timer concluído',
-          body: '10 segundos se passaram 🦜',
+          body: '10 segundos se passaram.',
         ),
       );
     });

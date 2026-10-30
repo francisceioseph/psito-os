@@ -145,25 +145,6 @@ void main() {
     expect(w.bounds.right, greaterThanOrEqualTo(_area.left + 80));
   });
 
-  test('cycleFocus percorre todas as janelas, inclusive minimizadas', () {
-    final wm = _manager();
-    final a = wm.open(const _FakeApp('a'));
-    final b = wm.open(const _FakeApp('b'));
-    final c = wm.open(const _FakeApp('c'));
-    wm.minimize(a.id);
-
-    final seen = <String?>[];
-    for (var i = 0; i < 3; i++) {
-      wm.cycleFocus();
-      seen.add(wm.focusedId);
-    }
-    expect(seen, [a.id, b.id, c.id]);
-    expect(a.minimized, isFalse);
-
-    wm.cycleFocus(reverse: true);
-    expect(wm.focusedId, b.id);
-  });
-
   test('setTitle pelo contexto do app', () {
     final wm = _manager();
     final w = wm.open(const _FakeApp('a'));

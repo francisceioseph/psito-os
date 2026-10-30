@@ -112,15 +112,12 @@ class PsitoShortcut {
 
 const psitoShortcuts = [
   PsitoShortcut('Abrir e fechar o launcher', 'Super', 'Ctrl+Espaço'),
-  PsitoShortcut('Alternar janelas', 'Alt+Tab', 'Alt+` ou Ctrl+Tab'),
+  PsitoShortcut('Alternar janelas', 'Alt+Tab', 'Ctrl+Tab'),
   PsitoShortcut('Fechar a janela', 'Alt+F4 / Super+Q', 'Ctrl+Alt+W'),
-  PsitoShortcut(
-    'Maximizar ou snap',
-    'Super+↑ / ← / →',
-    'Ctrl+Alt+Shift+↑ / ← / →',
-  ),
-  PsitoShortcut('Minimizar', 'Super+↓', 'Ctrl+Alt+Shift+↓'),
-  PsitoShortcut('Fechar launcher ou painel', 'Esc', 'Esc'),
+  PsitoShortcut('Maximizar', 'Super+↑', 'Alt+Shift+↑'),
+  PsitoShortcut('Snap à esquerda / direita', 'Super+← / →', 'Alt+Shift+← / →'),
+  PsitoShortcut('Minimizar', 'Super+↓', 'Alt+Shift+↓'),
+  PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
 ];
 
 /// Preferências do sistema. O JSON de [toJson] é o formato do arquivo de

@@ -198,8 +198,9 @@ class _SettingsViewState extends State<SettingsView> {
     const SizedBox(height: 12),
     const _Note(
       'Super e Alt+Tab ficam com o sistema do computador e não chegam à VM; '
-      'por isso cada ação tem uma combinação alternativa. Os atalhos passam '
-      'a funcionar na etapa 6 da fase 1.',
+      'por isso cada ação tem uma combinação alternativa. As duas valem ao '
+      'mesmo tempo. Em Alternar janelas, segure o modificador e aperte Tab '
+      'para escolher; Shift volta.',
     ),
   ];
 

@@ -12,7 +12,7 @@ class NotepadView extends StatefulWidget {
 
 class _NotepadViewState extends State<NotepadView> {
   final TextEditingController _controller = TextEditingController(
-    text: '🦜 Bem-vindo ao Psito Notepad!\n\nEscreva suas anotações aqui...',
+    text: 'Bem-vindo ao Psito Notepad!\n\nEscreva suas anotações aqui...',
   );
 
   @override

@@ -278,23 +278,6 @@ class WindowManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Traz para frente a janela de baixo (incluindo minimizadas); repetir
-  /// percorre todas. O overlay de Alt+Tab da etapa 6 usa isso.
-  void cycleFocus({bool reverse = false}) {
-    if (_windows.isEmpty) return;
-    if (_windows.length == 1) {
-      focus(_windows.first.id);
-      return;
-    }
-    if (reverse) {
-      final top = _windows.removeLast();
-      _windows.insert(0, top);
-      focus(_windows.last.id);
-    } else {
-      focus(_windows.first.id);
-    }
-  }
-
   void setTitle(String id, String title) {
     final window = _byId(id);
     if (window == null || window.title == title) return;

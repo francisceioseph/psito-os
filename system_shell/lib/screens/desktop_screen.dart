@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';
 import '../shell/settings_store.dart';
+import '../shell/shortcuts.dart';
 import '../shell/window_manager.dart';
+import '../shell/window_switcher.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
 import '../widgets/launcher.dart';
@@ -12,6 +14,7 @@ import '../widgets/notification_panel.dart';
 import '../widgets/notification_toasts.dart';
 import '../widgets/psito_dock.dart';
 import '../widgets/psito_window.dart';
+import '../widgets/window_switcher_overlay.dart';
 
 class DesktopScreen extends StatefulWidget {
   /// Sem store, as configurações ficam só em memória (testes).
@@ -45,9 +48,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
 
   final _launcherOpen = ValueNotifier(false);
   final _panelOpen = ValueNotifier(false);
-
-  /// Super foi pressionado e nenhuma outra tecla veio antes de soltar.
-  bool _superAlone = false;
+  final _switcher = WindowSwitcher();
+  final _superTap = SuperTapDetector();
 
   @override
   void initState() {
@@ -64,6 +66,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     _mousePosition.dispose();
     _launcherOpen.dispose();
     _panelOpen.dispose();
+    _switcher.dispose();
     super.dispose();
   }
 
@@ -92,19 +95,79 @@ class _DesktopScreenState extends State<DesktopScreen> {
     }
   }
 
-  // Super sozinho alterna o launcher; Super+tecla fica para os atalhos da
-  // etapa 6, que vão assumir este handler.
+  /// Atalhos globais. Devolve true quando consome a tecla, que então não
+  /// chega ao app em foco.
   bool _onKey(KeyEvent event) {
-    final isSuper =
-        event.logicalKey == LogicalKeyboardKey.metaLeft ||
-        event.logicalKey == LogicalKeyboardKey.metaRight;
-    if (event is KeyDownEvent) {
-      _superAlone = isSuper;
-    } else if (event is KeyUpEvent && isSuper) {
-      if (_superAlone) _toggleLauncher();
-      _superAlone = false;
+    final keyboard = HardwareKeyboard.instance;
+    if (_switcher.isOpen) {
+      if (event is KeyUpEvent) {
+        if (_switcher.releases(event.logicalKey)) _commitSwitcher();
+        return false;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        _switcher.cancel();
+      } else {
+        final action = resolveShortcut(event, keyboard);
+        if (action == ShellAction.switchNext) _switcher.step();
+        if (action == ShellAction.switchPrev) _switcher.step(reverse: true);
+      }
+      // Com o seletor aberto, nenhuma tecla vai para o app
+      return true;
     }
-    return false;
+
+    if (_superTap.handle(event)) {
+      _toggleLauncher();
+      return true;
+    }
+    final action = resolveShortcut(event, keyboard);
+    if (action == null) return false;
+    _run(action, keyboard);
+    return true;
+  }
+
+  void _run(ShellAction action, HardwareKeyboard keyboard) {
+    final focused = _windows.focused;
+    switch (action) {
+      case ShellAction.launcher:
+        _toggleLauncher();
+      case ShellAction.switchNext || ShellAction.switchPrev:
+        _launcherOpen.value = false;
+        _panelOpen.value = false;
+        _switcher.start(
+          _windows.windows,
+          holdKeys: keyboard.isAltPressed
+              ? {LogicalKeyboardKey.altLeft, LogicalKeyboardKey.altRight}
+              : {
+                  LogicalKeyboardKey.controlLeft,
+                  LogicalKeyboardKey.controlRight,
+                },
+          reverse: action == ShellAction.switchPrev,
+        );
+      case ShellAction.closeWindow:
+        if (focused != null) _windows.close(focused.id);
+      case ShellAction.maximize:
+        if (focused != null) _windows.toggleMaximize(focused.id);
+      case ShellAction.snapLeft:
+        if (focused != null) _toggleSnap(focused, SnapMode.left);
+      case ShellAction.snapRight:
+        if (focused != null) _toggleSnap(focused, SnapMode.right);
+      case ShellAction.minimize:
+        if (focused != null) _windows.minimize(focused.id);
+    }
+  }
+
+  /// Repetir o snap do mesmo lado devolve a janela ao tamanho de antes.
+  void _toggleSnap(ShellWindow window, SnapMode mode) {
+    if (window.snap == mode) {
+      _windows.restore(window.id);
+    } else {
+      _windows.snap(window.id, mode);
+    }
+  }
+
+  void _commitSwitcher() {
+    final id = _switcher.commit();
+    if (id != null) _windows.focus(id);
   }
 
   @override
@@ -254,6 +317,23 @@ class _DesktopScreenState extends State<DesktopScreen> {
                           _windows.open(app);
                         },
                         onClose: () => _launcherOpen.value = false,
+                      ),
+                    );
+                  },
+                ),
+
+                // Seletor de janelas (Alt+Tab / Ctrl+Tab)
+                ListenableBuilder(
+                  listenable: _switcher,
+                  builder: (context, _) {
+                    if (!_switcher.isOpen) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: WindowSwitcherOverlay(
+                        switcher: _switcher,
+                        onPick: (id) {
+                          _switcher.cancel();
+                          _windows.focus(id);
+                        },
                       ),
                     );
                   },

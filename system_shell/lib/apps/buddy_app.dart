@@ -27,7 +27,7 @@ class _BuddyViewState extends State<BuddyView> {
 
   final List<ChatMessage> _messages = [
     ChatMessage(
-      text: 'Olá, Francisco! 🦜 Sou o Psito Buddy, seu assistente pessoal neste sistema operacional penoso. Como posso ajudar nas tarefas ou códigos hoje?',
+      text: 'Olá, Francisco! Sou o Psito Buddy, seu assistente pessoal neste sistema operacional penoso. Como posso ajudar nas tarefas ou códigos hoje?',
       isUser: false,
       timestamp: DateTime.now(),
     ),
@@ -69,17 +69,17 @@ class _BuddyViewState extends State<BuddyView> {
     if (lower.contains('olá') ||
         lower.contains('oi') ||
         lower.contains('e aí')) {
-      return 'Fiiu! Tudo ótimo por aqui na VM Debian. E com você? Pronto para programar mais em Flutter? 🦜✨';
+      return 'Fiiu! Tudo ótimo por aqui na VM Debian. E com você? Pronto para programar mais em Flutter?';
     } else if (lower.contains('código') ||
         lower.contains('flutter') ||
         lower.contains('dart')) {
-      return '💻 Código limpo e multitarefa rodando liso! Se precisar ajustar alguma janela ou app no Psito OS, é só mandar.';
+      return 'Código limpo e multitarefa rodando liso! Se precisar ajustar alguma janela ou app no Psito OS, é só mandar.';
     } else if (lower.contains('piada') || lower.contains('engraçado')) {
-      return 'Sabe qual é o pássaro que voa de noite? O calops-noite! (Ok, essa foi fraca, mas dou o meu melhor piado 🎶).';
+      return 'Sabe qual é o pássaro que voa de noite? O calops-noite! (Ok, essa foi fraca, mas dou o meu melhor piado.)';
     } else if (lower.contains('sistema') || lower.contains('status')) {
-      return '📊 Sistema estável! `flutter-pi` rodando no DRM/KMS, sem perdas de pacotes e com as pálpebras abertas!';
+      return 'Sistema estável! `flutter-pi` rodando no DRM/KMS, sem perdas de pacotes e com as pálpebras abertas!';
     }
-    return 'Fiiu-fiil! Entendi perfeitamente. Como um bom assistente penoso, estou anotando isso no meu bico! 🦜';
+    return 'Fiiu-fiil! Entendi perfeitamente. Como um bom assistente penoso, estou anotando isso no meu bico!';
   }
 
   void _scrollToBottom() {
