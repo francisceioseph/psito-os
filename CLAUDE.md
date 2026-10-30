@@ -7,15 +7,17 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `lib/app.dart`: tema (amarelo `#FFC107`, laranja `#FF5722`, fundo `#12181B`)
   - `lib/screens/desktop_screen.dart`: desktop
   - `lib/widgets/`: `top_bar`, `psito_dock`, `desktop_background`
-  - `lib/apps/`: "apps" de exemplo; hoje são widgets dentro do mesmo processo
-  - `lib/models/psito_app_item.dart`: um item da dock/app
-- `docs/ROADMAP.md`: roteiro por fases (local, fora do git). Consulte só quando a tarefa envolver planejamento.
+  - `lib/apps/`: apps de exemplo, ainda no mesmo processo. Cada arquivo tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`.
+  - `lib/shell/`: lógica do shell sem UI (`app_registry.dart`: lista de apps da dock)
+  - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`)
+- `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`). Os apps só podem importar Flutter, pacotes externos e o `psito_sdk`. `test/app_boundary_test.dart` garante isso.
+- `docs/ROADMAP.md`: roteiro por fases (local, fora do git). `docs/FASE-1.md` detalha a fase atual. Consulte só quando a tarefa envolver planejamento.
 - `vm/`: arquivos instalados na VM pelo `provision.sh` (serviço, script do guest)
 - `patches/`: patches aplicados em dependências da VM (ex.: flutter-pi pro virtio-gpu)
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
-- `./check.sh`: `flutter analyze` mostrando só os problemas. Rode depois de editar Dart.
+- `./check.sh`: `flutter analyze` mostrando só os problemas. Rode depois de editar Dart, junto com `flutter test` (em `system_shell/`).
 - `./build.sh [release|profile|debug]`: `flutterpi_tool build --arch=x64` (padrão release/AOT). O bundle fica em `system_shell/build/flutter-pi/x64-generic`.
 - `./deploy.sh`: rsync do bundle para `/opt/psito-app`, grava o modo em `/etc/default/psito-os` e reinicia `psito-os.service`
 - `./provision.sh`: prepara a VM (deps, flutter-pi fixo + `patches/`, serviço de `vm/`). Pode ser rodado de novo.
