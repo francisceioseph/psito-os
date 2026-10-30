@@ -4,6 +4,7 @@
 // A moldura (widgets/psito_window.dart) só chama estes métodos.
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
@@ -52,10 +53,20 @@ class WindowManager extends ChangeNotifier {
   /// Distância da borda que ativa o snap ao arrastar.
   static const _snapThreshold = 8.0;
 
-  WindowManager({this.onNotify});
+  WindowManager({
+    this.onNotify,
+    ValueListenable<PsitoSettings>? settings,
+    this.onUpdateSettings,
+  }) : settings = settings ?? ValueNotifier(PsitoSettings.defaults);
 
   final void Function(ShellWindow window, PsitoNotification notification)?
   onNotify;
+
+  /// O que os apps leem por [PsitoAppContext.settings].
+  final ValueListenable<PsitoSettings> settings;
+
+  /// Pedido de mudança vindo de um app com [PsitoApp.canChangeSettings].
+  final void Function(PsitoSettings settings)? onUpdateSettings;
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -348,8 +359,21 @@ class _WindowContext implements PsitoAppContext {
     if (handler != null) {
       handler(window, notification);
     } else {
-      // A central de notificações chega na etapa 4 da fase 1
       debugPrint('🦜 Notificação de $windowId: ${notification.title}');
     }
+  }
+
+  @override
+  ValueListenable<PsitoSettings> get settings => _manager.settings;
+
+  @override
+  void updateSettings(PsitoSettings settings) {
+    final window = _manager._byId(windowId);
+    if (window == null) return;
+    if (!window.app.canChangeSettings) {
+      debugPrint('🦜 ${window.app.id} não pode alterar as configurações');
+      return;
+    }
+    _manager.onUpdateSettings?.call(settings);
   }
 }

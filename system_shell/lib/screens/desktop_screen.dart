@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';
+import '../shell/settings_store.dart';
 import '../shell/window_manager.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
@@ -13,7 +14,10 @@ import '../widgets/psito_dock.dart';
 import '../widgets/psito_window.dart';
 
 class DesktopScreen extends StatefulWidget {
-  const DesktopScreen({super.key});
+  /// Sem store, as configurações ficam só em memória (testes).
+  final SettingsStore? settings;
+
+  const DesktopScreen({super.key, this.settings});
 
   @override
   State<DesktopScreen> createState() => _DesktopScreenState();
@@ -25,8 +29,16 @@ class _DesktopScreenState extends State<DesktopScreen> {
   /// Espaço reservado para a dock (com o zoom do hover).
   static const _dockReserve = 100.0;
 
-  final _notifications = NotificationCenter();
-  late final _windows = WindowManager(onNotify: _notifications.post);
+  late final SettingsStore _settings =
+      widget.settings ?? SettingsStore.memory();
+  late final _notifications = NotificationCenter(
+    silent: () => _settings.value.doNotDisturb,
+  );
+  late final _windows = WindowManager(
+    onNotify: _notifications.post,
+    settings: _settings,
+    onUpdateSettings: _settings.update,
+  );
 
   // Fora do setState: mover o mouse só redesenha o cursor
   final _mousePosition = ValueNotifier<Offset?>(null);
@@ -48,6 +60,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     HardwareKeyboard.instance.removeHandler(_onKey);
     _windows.dispose();
     _notifications.dispose();
+    if (widget.settings == null) _settings.dispose();
     _mousePosition.dispose();
     _launcherOpen.dispose();
     _panelOpen.dispose();
@@ -110,10 +123,20 @@ class _DesktopScreenState extends State<DesktopScreen> {
               constraints.maxWidth,
               constraints.maxHeight - _dockReserve,
             );
+            final accent = Theme.of(context).colorScheme.primary;
+            // expand: todos os filhos são posicionados, e sem isso o Stack
+            // encolheria a zero
             return Stack(
+              fit: StackFit.expand,
               children: [
                 // Área de Trabalho / Wallpaper
-                const DesktopBackground(),
+                Positioned.fill(
+                  child: ValueListenableBuilder(
+                    valueListenable: _settings,
+                    builder: (context, settings, _) =>
+                        DesktopBackground(wallpaper: settings.wallpaper),
+                  ),
+                ),
 
                 // Janelas em z-order e prévia do snap
                 Positioned.fill(
@@ -144,13 +167,9 @@ class _DesktopScreenState extends State<DesktopScreen> {
                             child: IgnorePointer(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFC107)
-                                      .withValues(alpha: 0.12),
+                                  color: accent.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFFFFC107),
-                                    width: 1.5,
-                                  ),
+                                  border: Border.all(color: accent, width: 1.5),
                                 ),
                               ),
                             ),
@@ -166,11 +185,14 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   left: 0,
                   right: 0,
                   child: ListenableBuilder(
-                    listenable: _notifications,
+                    listenable: Listenable.merge([_notifications, _settings]),
                     builder: (context, _) => TopBar(
                       onMenuTap: _toggleLauncher,
                       onNotificationsTap: _togglePanel,
                       unreadCount: _notifications.unreadCount,
+                      use24h: _settings.value.use24h,
+                      showSeconds: _settings.value.showSeconds,
+                      doNotDisturb: _settings.value.doNotDisturb,
                     ),
                   ),
                 ),
@@ -248,9 +270,10 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       child: IgnorePointer(
                         child: Transform.rotate(
                           angle: -0.60, // -45 graus (-π/4)
-                          child: const Icon(
+                          child: Icon(
                             Icons.navigation_rounded, // Ícone de seta pontiaguda de navegação
-                            color: Color(0xFFFFC107), // Amarelo Calopsita
+                            color:
+                                accent, // Cor de destaque (amarelo calopsita)
                             size: 22,
                           ),
                         ),

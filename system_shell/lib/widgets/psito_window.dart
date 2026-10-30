@@ -48,7 +48,14 @@ class PsitoWindow extends StatelessWidget {
         child: Column(
           children: [
             _TitleBar(window: window, manager: manager, focused: focused),
-            Expanded(child: app.build(window.context)),
+            // Material transparente: realces e ink dos apps pintam dentro da
+            // janela, não no Scaffold por baixo dela
+            Expanded(
+              child: Material(
+                type: MaterialType.transparency,
+                child: app.build(window.context),
+              ),
+            ),
           ],
         ),
       ),

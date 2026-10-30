@@ -1,44 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 class DesktopBackground extends StatelessWidget {
-  const DesktopBackground({super.key});
+  final PsitoWallpaper wallpaper;
+
+  const DesktopBackground({super.key, required this.wallpaper});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          InkWell(
-            onTap: () {
-              debugPrint('🦜 O Psito foi clicado!');
-            },
-            borderRadius: BorderRadius.circular(16),
-            hoverColor: Colors.white12,
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Icon(
-                Icons.flutter_dash,
-                size: 120,
-                color: Color(0xFFFFC107),
+    final accent = Theme.of(context).colorScheme.primary;
+    final colors = wallpaper.colors;
+
+    return DecoratedBox(
+      key: ValueKey('wallpaper-${wallpaper.id}'),
+      decoration: BoxDecoration(
+        color: colors.first,
+        gradient: colors.length > 1
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors,
+              )
+            : null,
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            InkWell(
+              onTap: () {
+                debugPrint('🦜 O Psito foi clicado!');
+              },
+              borderRadius: BorderRadius.circular(16),
+              hoverColor: Colors.white12,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Icon(Icons.flutter_dash, size: 120, color: accent),
               ),
             ),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Psito OS v0.0.1',
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2.0,
+            const SizedBox(height: 20),
+            const Text(
+              'Psito OS v0.0.1',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2.0,
+              ),
             ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'O Sistema Operacional Penoso',
-            style: TextStyle(fontSize: 16, color: Colors.white54),
-          ),
-        ],
+            const SizedBox(height: 8),
+            const Text(
+              'O Sistema Operacional Penoso',
+              style: TextStyle(fontSize: 16, color: Colors.white54),
+            ),
+          ],
+        ),
       ),
     );
   }

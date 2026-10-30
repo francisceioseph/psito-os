@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'shell/settings_store.dart';
 
-void main() {
-  runApp(const PsitoOSApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final settings = await SettingsStore.load(defaultSettingsFile());
+  runApp(PsitoOSApp(settings: settings));
 }

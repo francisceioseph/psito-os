@@ -1,0 +1,122 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:system_shell/app.dart';
+import 'package:system_shell/shell/settings_store.dart';
+import 'package:system_shell/widgets/launcher.dart';
+import 'package:system_shell/widgets/top_bar.dart';
+
+Future<SettingsStore> _pumpOS(WidgetTester tester) async {
+  tester.view.physicalSize = const Size(1280, 800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final store = SettingsStore.memory();
+  addTearDown(store.dispose);
+  await tester.pumpWidget(PsitoOSApp(settings: store));
+  return store;
+}
+
+/// Abre Configurações pela busca do launcher, sem acento.
+Future<void> _openSettings(WidgetTester tester) async {
+  await tester.tap(find.text('Menu'));
+  await tester.pump();
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(Launcher),
+      matching: find.byType(TextField),
+    ),
+    'configuracoes',
+  );
+  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await tester.pump();
+}
+
+final _topBarClock = find.descendant(
+  of: find.byType(TopBar),
+  matching: find.textContaining(RegExp(r' (AM|PM)$')),
+);
+
+void main() {
+  testWidgets('desligar 24 horas muda o relógio da top bar', (tester) async {
+    final store = await _pumpOS(tester);
+    await _openSettings(tester);
+    expect(find.text('Configurações'), findsOneWidget);
+
+    await tester.tap(find.text('Data e hora').first);
+    await tester.pump();
+    expect(_topBarClock, findsNothing);
+
+    await tester.tap(find.text('Formato 24 horas'));
+    await tester.pump();
+    expect(store.value.use24h, isFalse);
+    expect(_topBarClock, findsOneWidget);
+  });
+
+  testWidgets('a cor de destaque muda o tema', (tester) async {
+    final store = await _pumpOS(tester);
+    await _openSettings(tester);
+
+    const blue = Color(0xFF2196F3);
+    await tester.tap(find.byKey(ValueKey('accent-${blue.toARGB32()}')));
+    expect(store.value.accent, blue);
+    // O MaterialApp anima a troca de tema: um frame inicia, outro termina
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final theme = Theme.of(tester.element(find.byType(TopBar)));
+    expect(theme.colorScheme.primary, blue);
+  });
+
+  testWidgets('o papel de parede muda o fundo', (tester) async {
+    await _pumpOS(tester);
+    await _openSettings(tester);
+
+    await tester.tap(find.byKey(const ValueKey('wallpaper-card-oceano')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('wallpaper-oceano')), findsOneWidget);
+  });
+
+  testWidgets('Não perturbe guarda a notificação sem toast', (tester) async {
+    await _pumpOS(tester);
+    await _openSettings(tester);
+
+    await tester.tap(find.text('Notificações').first);
+    await tester.pump();
+    await tester.tap(find.text('Não perturbe'));
+    await tester.pump();
+
+    await tester.tap(find.byIcon(Icons.access_time_rounded).first);
+    await tester.pump();
+    await tester.tap(find.text('Iniciar timer'));
+    for (var i = 0; i < 11; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    expect(find.text('Timer concluído'), findsNothing);
+    final bell = find.byKey(const ValueKey('notifications-bell'));
+    expect(find.descendant(of: bell, matching: find.text('1')), findsOneWidget);
+    expect(
+      find.descendant(of: bell, matching: find.byIcon(Icons.notifications_off)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Configurações abre uma janela só', (tester) async {
+    await _pumpOS(tester);
+    await _openSettings(tester);
+    await _openSettings(tester);
+    expect(find.text('Configurações'), findsOneWidget);
+  });
+
+  test('formatClock em 12h e com segundos', () {
+    final t = DateTime(2026, 10, 30, 16, 41, 7);
+    expect(TopBar.formatClock(t), 'Sex, 30 de out, 16:41');
+    expect(
+      TopBar.formatClock(t, use24h: false, showSeconds: true),
+      'Sex, 30 de out, 4:41:07 PM',
+    );
+    expect(
+      TopBar.formatClock(DateTime(2026, 10, 30, 0, 5), use24h: false),
+      'Sex, 30 de out, 12:05 AM',
+    );
+  });
+}

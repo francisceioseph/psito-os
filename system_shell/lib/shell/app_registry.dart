@@ -7,6 +7,7 @@ import '../apps/calculator_app.dart';
 import '../apps/clock_app.dart';
 import '../apps/files_app.dart';
 import '../apps/notepad_app.dart';
+import '../apps/settings_app.dart';
 
 /// Apps instalados, na ordem em que aparecem na dock.
 const List<PsitoApp> registeredApps = [
@@ -16,4 +17,5 @@ const List<PsitoApp> registeredApps = [
   NotepadApp(),
   FilesApp(),
   BrowserApp(),
+  SettingsApp(),
 ];

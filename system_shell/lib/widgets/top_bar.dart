@@ -8,11 +8,19 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationsTap;
   final int unreadCount;
 
+  /// Formato do relógio e "Não perturbe", das Configurações.
+  final bool use24h;
+  final bool showSeconds;
+  final bool doNotDisturb;
+
   const TopBar({
     super.key,
     this.onMenuTap,
     this.onNotificationsTap,
     this.unreadCount = 0,
+    this.use24h = true,
+    this.showSeconds = false,
+    this.doNotDisturb = false,
   });
 
   @override
@@ -20,6 +28,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -39,22 +48,21 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   onTap: onMenuTap,
                   borderRadius: BorderRadius.circular(6),
                   hoverColor: Colors.white12,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.flutter_dash,
-                          size: 20,
-                          color: Color(0xFFFFC107), // Amarelo Calopsita
-                        ),
-                        SizedBox(width: 6),
+                        Icon(Icons.flutter_dash, size: 20, color: accent),
+                        const SizedBox(width: 6),
                         Text(
                           'Menu',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFFFC107),
+                            color: accent,
                           ),
                         ),
                       ],
@@ -79,14 +87,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
               // Indicador de Bateria / Energia do Psito Device
               Row(
-                children: const [
-                  Icon(
-                    Icons.battery_charging_full,
-                    size: 16,
-                    color: Color(0xFFFFC107),
-                  ),
-                  SizedBox(width: 4),
-                  Text(
+                children: [
+                  Icon(Icons.battery_charging_full, size: 16, color: accent),
+                  const SizedBox(width: 4),
+                  const Text(
                     '100%',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                   ),
@@ -98,7 +102,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Text('|', style: TextStyle(color: Colors.white24)),
               ),
 
-              _buildBell(),
+              _buildBell(accent),
               const SizedBox(width: 8),
 
               // Relógio / Data completa estilo Cinnamon
@@ -111,7 +115,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   final now = snapshot.data ?? DateTime.now();
 
                   // Formatação amigável da data em português (ex: Sáb, 12 de set, 16:41)
-                  final formattedDateTime = _formatCinnamonDate(now);
+                  final formattedDateTime = formatClock(
+                    now,
+                    use24h: use24h,
+                    showSeconds: showSeconds,
+                  );
 
                   return GestureDetector(
                     onTap: onNotificationsTap,
@@ -133,7 +141,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildBell() {
+  Widget _buildBell(Color accent) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -148,11 +156,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             label: Text('$unreadCount'),
             backgroundColor: const Color(0xFFFF5722),
             child: Icon(
-              unreadCount > 0
+              doNotDisturb
+                  ? Icons.notifications_off
+                  : unreadCount > 0
                   ? Icons.notifications_active
                   : Icons.notifications_none,
               size: 16,
-              color: unreadCount > 0 ? const Color(0xFFFFC107) : Colors.white70,
+              color: unreadCount > 0 ? accent : Colors.white70,
             ),
           ),
         ),
@@ -167,7 +177,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  String _formatCinnamonDate(DateTime dt) {
+  /// Ex.: "Sáb, 12 de set, 16:41" ou, em 12h com segundos,
+  /// "Sáb, 12 de set, 4:41:07 PM".
+  static String formatClock(
+    DateTime dt, {
+    bool use24h = true,
+    bool showSeconds = false,
+  }) {
     const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const months = [
       'jan',
@@ -187,9 +203,17 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     final weekDay = weekdays[dt.weekday % 7];
     final day = dt.day;
     final month = months[dt.month - 1];
-    final hour = dt.hour.toString().padLeft(2, '0');
     final minute = dt.minute.toString().padLeft(2, '0');
+    final seconds = showSeconds
+        ? ':${dt.second.toString().padLeft(2, '0')}'
+        : '';
 
-    return '$weekDay, $day de $month, $hour:$minute';
+    if (use24h) {
+      final hour = dt.hour.toString().padLeft(2, '0');
+      return '$weekDay, $day de $month, $hour:$minute$seconds';
+    }
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final period = dt.hour < 12 ? 'AM' : 'PM';
+    return '$weekDay, $day de $month, $hour:$minute$seconds $period';
   }
 }

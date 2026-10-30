@@ -8,8 +8,14 @@ class _FakeApp extends PsitoApp {
   final String id;
   @override
   final bool singleInstance;
+  @override
+  final bool canChangeSettings;
 
-  const _FakeApp(this.id, {this.singleInstance = false});
+  const _FakeApp(
+    this.id, {
+    this.singleInstance = false,
+    this.canChangeSettings = false,
+  });
 
   @override
   String get name => id;
@@ -165,5 +171,20 @@ void main() {
     expect(w.title, 'novo');
     w.context.close();
     expect(wm.windows, isEmpty);
+  });
+
+  test('só apps com permissão alteram as configurações', () {
+    final received = <PsitoSettings>[];
+    final wm = WindowManager(onUpdateSettings: received.add)..workArea = _area;
+    final normal = wm.open(const _FakeApp('a'));
+    final settings = wm.open(const _FakeApp('s', canChangeSettings: true));
+    const changed = PsitoSettings(use24h: false);
+
+    normal.context.updateSettings(changed);
+    expect(received, isEmpty);
+
+    settings.context.updateSettings(changed);
+    expect(received, [changed]);
+    expect(normal.context.settings.value, PsitoSettings.defaults);
   });
 }

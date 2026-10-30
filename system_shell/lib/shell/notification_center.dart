@@ -38,9 +38,15 @@ class NotificationCenter extends ChangeNotifier {
   static const historyLimit = 50;
   static const maxToasts = 3;
 
-  NotificationCenter({this.toastDuration = const Duration(seconds: 5)});
+  NotificationCenter({
+    this.toastDuration = const Duration(seconds: 5),
+    this.silent,
+  });
 
   final Duration toastDuration;
+
+  /// "Não perturbe": se true, a notificação só vai para o histórico.
+  final bool Function()? silent;
 
   final List<ShellNotification> _history = [];
   final List<ShellNotification> _toasts = [];
@@ -73,11 +79,13 @@ class NotificationCenter extends ChangeNotifier {
     if (_history.length > historyLimit) _history.removeLast();
     _unread = (_unread + 1).clamp(0, _history.length);
 
-    _toasts.insert(0, item);
-    while (_toasts.length > maxToasts) {
-      _toastTimers.remove(_toasts.removeLast().id)?.cancel();
+    if (silent?.call() != true) {
+      _toasts.insert(0, item);
+      while (_toasts.length > maxToasts) {
+        _toastTimers.remove(_toasts.removeLast().id)?.cancel();
+      }
+      _toastTimers[item.id] = Timer(toastDuration, () => dismissToast(item.id));
     }
-    _toastTimers[item.id] = Timer(toastDuration, () => dismissToast(item.id));
     notifyListeners();
   }
 
