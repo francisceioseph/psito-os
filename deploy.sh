@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 
 VM_USER="psito"
 VM_HOST="localhost"
-VM_PORT="2222"
+VM_PORT="${VM_PORT:-2222}"
 DEST_DIR="/opt/psito-app"
 BUILD_ENV="system_shell/build/psito-build.env"
 

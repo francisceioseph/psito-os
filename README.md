@@ -22,7 +22,7 @@ Este repositório contém os scripts para compilar, implantar e executar a inter
 * **Aceleração 3D:** QEMU com `-device virtio-vga-gl` e `-display gtk,gl=on`, repassando DRM/KMS para o driver VirGL no Debian.
 * **Embedder:** `flutter-pi` compilado na VM (`/usr/local/bin/flutter-pi`) com o patch `patches/flutter-pi-virtio-gpu-modifiers.patch`. Sem ele o virtio-gpu recusa os framebuffers e a tela fica preta.
 * **App:** bundle gerado pelo `flutterpi_tool` (AOT em release), com o `app.so` e o `libflutter_engine.so` do mesmo modo. O serviço carrega o engine do próprio bundle.
-* **Boot Autônomo:** `systemd` assume o `/dev/tty1` na inicialização, sem tela de login nem gerenciador de sessão.
+* **Boot Autônomo:** `systemd` assume o `/dev/tty1` na inicialização, sem tela de login nem gerenciador de sessão. O `flutter-pi` roda como o usuário `psito`, numa sessão do logind (`PAMName=login`) que dá acesso à GPU e ao input sem root.
 
 ---
 
@@ -32,14 +32,21 @@ Este repositório contém os scripts para compilar, implantar e executar a inter
 
 ```bash
 ./create-disk.sh     # cria qemu/psito-disk.qcow2 (20G)
-./install-os.sh      # boota a ISO em debian/debian-netinst.iso
+./install-os.sh      # instala o Debian sem interação a partir de debian/debian-netinst.iso
 ```
 
-Na instalação, marque **SSH server** e crie o usuário `psito`. Depois, com a VM ligada, copie sua chave:
+O `install-os.sh` embute `vm/preseed.cfg` e sua chave SSH pública no instalador. A instalação cria o usuário `psito` (pede a senha no terminal) com sudo sem senha e servidor SSH, e a janela do QEMU fecha sozinha ao terminar.
+
+Todos os scripts aceitam variáveis para trabalhar com outra VM, por exemplo uma de teste ao lado da principal:
 
 ```bash
-ssh-copy-id -p 2222 psito@localhost
+DISK=qemu/psito-test.qcow2 ./create-disk.sh
+DISK=qemu/psito-test.qcow2 SSH_PORT=2223 MEM=1536 ./install-os.sh
+DISK=qemu/psito-test.qcow2 SSH_PORT=2223 ./run.sh
+VM_PORT=2223 ./provision.sh && VM_PORT=2223 ./deploy.sh
 ```
+
+> Ao reinstalar uma VM na mesma porta, a chave do host SSH muda: rode `ssh-keygen -R "[localhost]:2222"`.
 
 ### 2. Provisionar a VM
 
@@ -70,7 +77,7 @@ Para rodar manualmente na VM:
 
 ```bash
 sudo systemctl stop psito-os
-sudo LD_LIBRARY_PATH=/opt/psito-app /usr/local/bin/flutter-pi --release /opt/psito-app
+LD_LIBRARY_PATH=/opt/psito-app /usr/local/bin/flutter-pi --release /opt/psito-app   # no console tty1, como psito
 ```
 
 ---
@@ -78,5 +85,5 @@ sudo LD_LIBRARY_PATH=/opt/psito-app /usr/local/bin/flutter-pi --release /opt/psi
 ## 📁 Estrutura
 
 * `system_shell/`: o shell em Flutter
-* `vm/`: arquivos instalados na VM pelo `provision.sh` (`psito-os.service`, `provision-guest.sh`)
+* `vm/`: arquivos da VM (`preseed.cfg` da instalação; `psito-os.service` e `provision-guest.sh` do provisionamento)
 * `patches/`: patches aplicados em dependências da VM

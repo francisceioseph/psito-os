@@ -21,7 +21,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `./provision.sh`: prepara a VM (deps, flutter-pi fixo + `patches/`, serviço de `vm/`). Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`)
 - `./logs.sh [n]`: últimas n linhas (padrão 40) do `journalctl -u psito-os` na VM
-- `./create-disk.sh`, `./install-os.sh`: só na primeira configuração
+- `./create-disk.sh`, `./install-os.sh`: criam e instalam a VM sem interação (`vm/preseed.cfg`). Todos os scripts aceitam `DISK`, `SSH_PORT`/`VM_PORT`, `MEM` (ex.: VM de teste na 2223).
 
 ## Regras
 - Não ler `build/`, `.dart_tool/`, `linux/flutter/ephemeral/`, `qemu/`, `debian/`.

@@ -5,7 +5,13 @@ Conflicts=getty@tty1.service
 
 [Service]
 Type=simple
-User=root
+User=psito
+# Abre uma sessão do logind no tty1: o libseat recebe acesso à GPU e ao input sem root
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+UtmpIdentifier=tty1
 WorkingDirectory=/opt/psito-app
 # FLUTTER_PI_ARGS (ex.: --release) é escrito pelo deploy.sh conforme o modo do build
 EnvironmentFile=-/etc/default/psito-os
@@ -14,7 +20,6 @@ Environment=LD_LIBRARY_PATH=/opt/psito-app
 ExecStart=/usr/local/bin/flutter-pi $FLUTTER_PI_ARGS /opt/psito-app
 Restart=always
 RestartSec=2
-TTYPath=/dev/tty1
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal

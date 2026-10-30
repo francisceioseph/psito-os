@@ -4,6 +4,7 @@ build/
 *.iso
 *.qcow2
 *.img
+qemu/
 os_image/rootfs/
 
 # Flutter/IDE gerados

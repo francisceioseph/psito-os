@@ -4,4 +4,16 @@ set -e
 
 echo "🦜 Create do Psito OS Disk (Debian + QEMU)..."
 
-qemu-img create -f qcow2 qemu/psito-disk.qcow2 20G
+# Garantir que estamos na raiz do repositório
+cd "$(dirname "$0")"
+
+DISK="${DISK:-qemu/psito-disk.qcow2}"
+
+# qemu-img sobrescreve sem perguntar: não apagar uma VM existente por engano
+if [ -e "$DISK" ]; then
+    echo "❌ $DISK já existe. Apague-o antes se quiser mesmo recriar a VM."
+    exit 1
+fi
+
+mkdir -p "$(dirname "$DISK")"
+qemu-img create -f qcow2 "$DISK" 20G
