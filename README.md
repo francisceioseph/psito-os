@@ -7,14 +7,14 @@ Este repositório contém as instruções e scripts para compilar, implantar e e
 ## 🛠️ Requisitos do Sistema
 
 * **Host:** Linux (ex: Linux Mint / Ubuntu) com QEMU, KVM e SDK do Flutter instalado.
-* **Target:** VM Debian 12 (Bookworm) Minimal/CLI.
-* **Embedder:** `flutter-pi` pré-compilado na VM target (`/usr/local/bin/flutter-pi`).
+* **Target:** VM Debian 13 (Trixie) Minimal/CLI.
+* **Embedder:** `flutter-pi` compilado na VM target (`/usr/local/bin/flutter-pi`) com o patch `patches/flutter-pi-virtio-gpu-modifiers.patch` (sem ele o virtio-gpu recusa os framebuffers e a tela fica preta).
 
 ---
 
 ## 📐 Arquitetura da Solução
 
-* **Aceleração 3D:** QEMU configurado com `-display gtk,gl=on` e `-vga virtio` repassando DRM/KMS para o driver VirGL no Debian.
+* **Aceleração 3D:** QEMU configurado com `-display gtk,gl=on` e `-device virtio-vga-gl` repassando DRM/KMS para o driver VirGL no Debian.
 * **Engine & Assets:** Execução do bundle gerado por `flutter build bundle` carregado via `flutter-pi` no framebuffer sem dependência de X11 ou Wayland.
 * **Boot Autônomo:** Gerenciado pelo `systemd`, assumindo o `/dev/tty1` diretamente na inicialização do sistema (sem tela de login ou gerenciador de sessão).
 
@@ -63,7 +63,7 @@ QEMU_ARGS=(
     -m 2048
     -smp 2
     -drive "file=$DISK,format=qcow2"
-    -vga virtio
+    -device virtio-vga-gl
     -display gtk,gl=on
     -netdev user,id=net0,hostfwd=tcp::2222-:22
     -device virtio-net-pci,netdev=net0

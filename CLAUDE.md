@@ -1,6 +1,6 @@
 # Psito OS
 
-SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuchsia). Hoje é um mock: Debian 12 numa VM QEMU, com `flutter-pi` desenhando direto no DRM/KMS (sem X11/Wayland), iniciado pelo systemd no tty1.
+SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuchsia). Hoje é um mock: Debian 13 numa VM QEMU, com `flutter-pi` desenhando direto no DRM/KMS (sem X11/Wayland), iniciado pelo systemd no tty1.
 
 ## Layout
 - `system_shell/`: o shell em Flutter (app `system_shell`)
@@ -9,6 +9,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `lib/widgets/`: `top_bar`, `psito_dock`, `desktop_background`
   - `lib/apps/`: "apps" de exemplo; hoje são widgets dentro do mesmo processo
   - `lib/models/psito_app_item.dart`: um item da dock/app
+- `patches/`: patches aplicados em dependências da VM (ex.: flutter-pi pro virtio-gpu)
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)

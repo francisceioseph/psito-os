@@ -10,7 +10,7 @@ QEMU_ARGS=(
     -m 2048
     -smp 2
     -drive "file=$DISK,format=qcow2"
-    -vga virtio
+    -device virtio-vga-gl
     -display gtk,gl=on
     -netdev user,id=net0,hostfwd=tcp::2222-:22
     -device virtio-net-pci,netdev=net0

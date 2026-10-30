@@ -8,7 +8,7 @@ qemu-system-x86_64 \
   -enable-kvm \
   -m 2048 \
   -smp 2 \
-  -vga virtio \
+  -device virtio-vga-gl \
   -display gtk,gl=on \
   -drive file=qemu/psito-disk.qcow2,format=qcow2 \
   -cdrom debian/debian-netinst.iso \
