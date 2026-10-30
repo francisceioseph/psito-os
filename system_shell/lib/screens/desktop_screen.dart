@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../shell/app_registry.dart';
+import '../shell/notification_center.dart';
 import '../shell/window_manager.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
 import '../widgets/launcher.dart';
+import '../widgets/notification_panel.dart';
+import '../widgets/notification_toasts.dart';
 import '../widgets/psito_dock.dart';
 import '../widgets/psito_window.dart';
 
@@ -22,12 +25,14 @@ class _DesktopScreenState extends State<DesktopScreen> {
   /// Espaço reservado para a dock (com o zoom do hover).
   static const _dockReserve = 100.0;
 
-  final _windows = WindowManager();
+  final _notifications = NotificationCenter();
+  late final _windows = WindowManager(onNotify: _notifications.post);
 
   // Fora do setState: mover o mouse só redesenha o cursor
   final _mousePosition = ValueNotifier<Offset?>(null);
 
   final _launcherOpen = ValueNotifier(false);
+  final _panelOpen = ValueNotifier(false);
 
   /// Super foi pressionado e nenhuma outra tecla veio antes de soltar.
   bool _superAlone = false;
@@ -42,12 +47,37 @@ class _DesktopScreenState extends State<DesktopScreen> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKey);
     _windows.dispose();
+    _notifications.dispose();
     _mousePosition.dispose();
     _launcherOpen.dispose();
+    _panelOpen.dispose();
     super.dispose();
   }
 
-  void _toggleLauncher() => _launcherOpen.value = !_launcherOpen.value;
+  // Launcher e painel se excluem: abrir um fecha o outro
+  void _toggleLauncher() {
+    _panelOpen.value = false;
+    _launcherOpen.value = !_launcherOpen.value;
+  }
+
+  void _togglePanel() {
+    _launcherOpen.value = false;
+    _panelOpen.value = !_panelOpen.value;
+    if (_panelOpen.value) _notifications.markAllRead();
+  }
+
+  /// Traz para frente (restaurando) a janela que notificou; se ela já
+  /// fechou, abre o app de novo.
+  void _openNotificationSource(ShellNotification notification) {
+    _panelOpen.value = false;
+    if (_windows.contains(notification.windowId)) {
+      _windows.focus(notification.windowId);
+      return;
+    }
+    for (final app in registeredApps) {
+      if (app.id == notification.appId) _windows.activateApp(app);
+    }
+  }
 
   // Super sozinho alterna o launcher; Super+tecla fica para os atalhos da
   // etapa 6, que vão assumir este handler.
@@ -135,7 +165,14 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: TopBar(onMenuTap: _toggleLauncher),
+                  child: ListenableBuilder(
+                    listenable: _notifications,
+                    builder: (context, _) => TopBar(
+                      onMenuTap: _toggleLauncher,
+                      onNotificationsTap: _togglePanel,
+                      unreadCount: _notifications.unreadCount,
+                    ),
+                  ),
                 ),
 
                 // Dock na parte inferior central
@@ -155,6 +192,31 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       ),
                     ),
                   ),
+                ),
+
+                // Toasts abaixo da top bar, à direita
+                Positioned(
+                  top: _topBarHeight + 8,
+                  right: 12,
+                  child: NotificationToasts(
+                    center: _notifications,
+                    onTap: _openNotificationSource,
+                  ),
+                ),
+
+                // Painel de notificações
+                ValueListenableBuilder(
+                  valueListenable: _panelOpen,
+                  builder: (context, open, _) {
+                    if (!open) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: NotificationPanel(
+                        center: _notifications,
+                        onClose: () => _panelOpen.value = false,
+                        onTap: _openNotificationSource,
+                      ),
+                    );
+                  },
                 ),
 
                 // Menu Psito, por cima de tudo menos do cursor

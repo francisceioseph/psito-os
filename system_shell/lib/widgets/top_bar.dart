@@ -4,7 +4,16 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Botão do Menu Psito: abre e fecha o launcher.
   final VoidCallback? onMenuTap;
 
-  const TopBar({super.key, this.onMenuTap});
+  /// Sino e relógio: abrem e fecham o painel de notificações.
+  final VoidCallback? onNotificationsTap;
+  final int unreadCount;
+
+  const TopBar({
+    super.key,
+    this.onMenuTap,
+    this.onNotificationsTap,
+    this.unreadCount = 0,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(40);
@@ -89,6 +98,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Text('|', style: TextStyle(color: Colors.white24)),
               ),
 
+              _buildBell(),
+              const SizedBox(width: 8),
+
               // Relógio / Data completa estilo Cinnamon
               StreamBuilder<DateTime>(
                 stream: Stream.periodic(
@@ -101,12 +113,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   // Formatação amigável da data em português (ex: Sáb, 12 de set, 16:41)
                   final formattedDateTime = _formatCinnamonDate(now);
 
-                  return Text(
-                    formattedDateTime,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                  return GestureDetector(
+                    onTap: onNotificationsTap,
+                    child: Text(
+                      formattedDateTime,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },
@@ -114,6 +129,33 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBell() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const ValueKey('notifications-bell'),
+        onTap: onNotificationsTap,
+        borderRadius: BorderRadius.circular(6),
+        hoverColor: Colors.white12,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Badge(
+            isLabelVisible: unreadCount > 0,
+            label: Text('$unreadCount'),
+            backgroundColor: const Color(0xFFFF5722),
+            child: Icon(
+              unreadCount > 0
+                  ? Icons.notifications_active
+                  : Icons.notifications_none,
+              size: 16,
+              color: unreadCount > 0 ? const Color(0xFFFFC107) : Colors.white70,
+            ),
+          ),
+        ),
       ),
     );
   }

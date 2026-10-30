@@ -76,6 +76,8 @@ class WindowManager extends ChangeNotifier {
   Rect? get snapPreviewRect =>
       _snapPreview == null ? null : snapRect(_snapPreview!);
 
+  bool contains(String id) => _byId(id) != null;
+
   bool isRunning(String appId) => _windows.any((w) => w.app.id == appId);
 
   /// Chamado durante o layout do desktop, que já vai redesenhar as janelas:

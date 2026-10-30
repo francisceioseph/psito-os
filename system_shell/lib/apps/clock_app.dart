@@ -5,7 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 class ClockView extends StatefulWidget {
-  const ClockView({super.key});
+  /// Para notificar quando o timer termina; null em previews.
+  final PsitoAppContext? appContext;
+
+  const ClockView({super.key, this.appContext});
+
+  static const timerDuration = Duration(seconds: 10);
 
   @override
   State<ClockView> createState() => _ClockViewState();
@@ -14,6 +19,28 @@ class ClockView extends StatefulWidget {
 class _ClockViewState extends State<ClockView> {
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
+
+  /// Segundos que faltam no timer; null quando parado.
+  int? _remaining;
+  Timer? _countdown;
+
+  void _startTimer() {
+    _countdown?.cancel();
+    setState(() => _remaining = ClockView.timerDuration.inSeconds);
+    _countdown = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      setState(() => _remaining = _remaining! - 1);
+      if (_remaining! > 0) return;
+      timer.cancel();
+      setState(() => _remaining = null);
+      widget.appContext?.notify(
+        const PsitoNotification(
+          title: 'Timer concluído',
+          body: '10 segundos se passaram 🦜',
+        ),
+      );
+    });
+  }
 
   @override
   void initState() {
@@ -30,6 +57,7 @@ class _ClockViewState extends State<ClockView> {
   @override
   void dispose() {
     _timer.cancel();
+    _countdown?.cancel();
     super.dispose();
   }
 
@@ -99,37 +127,32 @@ class _ClockViewState extends State<ClockView> {
           const SizedBox(height: 24),
           const Divider(color: Colors.white24),
           const SizedBox(height: 12),
-          // Status ou Alarme Simulado
+          // Timer de demonstração das notificações
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.alarm_rounded,
-                      size: 18,
-                      color: Color(0xFFFFC107),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Próximo alarme',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ],
+              children: [
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 18,
+                  color: Color(0xFFFFC107),
                 ),
-                Text(
-                  '07:00 (Acordar os passarinhos)',
-                  style: TextStyle(
-                    color: Color(0xFFFFC107),
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _remaining == null
+                        ? 'Timer de 10 s'
+                        : 'Faltam $_remaining s',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
                   ),
+                ),
+                TextButton(
+                  onPressed: _remaining == null ? _startTimer : null,
+                  child: const Text('Iniciar timer'),
                 ),
               ],
             ),
@@ -156,5 +179,5 @@ class ClockApp extends PsitoApp {
   Color get color => const Color(0xFFFF9800);
 
   @override
-  Widget build(PsitoAppContext context) => const ClockView();
+  Widget build(PsitoAppContext context) => ClockView(appContext: context);
 }
