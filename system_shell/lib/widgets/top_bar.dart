@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
-  const TopBar({super.key});
+  /// Botão do Menu Psito: abre e fecha o launcher.
+  final VoidCallback? onMenuTap;
+
+  const TopBar({super.key, this.onMenuTap});
 
   @override
   Size get preferredSize => const Size.fromHeight(40);
@@ -24,10 +27,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () {
-                    // Ação do Menu Psito (Abrirá o launcher/menu principal em breve)
-                    debugPrint('🦜 Menu Psito acionado!');
-                  },
+                  onTap: onMenuTap,
                   borderRadius: BorderRadius.circular(6),
                   hoverColor: Colors.white12,
                   child: const Padding(

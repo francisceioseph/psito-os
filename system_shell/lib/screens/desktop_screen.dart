@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../shell/app_registry.dart';
 import '../shell/window_manager.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
+import '../widgets/launcher.dart';
 import '../widgets/psito_dock.dart';
 import '../widgets/psito_window.dart';
 
@@ -25,11 +27,41 @@ class _DesktopScreenState extends State<DesktopScreen> {
   // Fora do setState: mover o mouse só redesenha o cursor
   final _mousePosition = ValueNotifier<Offset?>(null);
 
+  final _launcherOpen = ValueNotifier(false);
+
+  /// Super foi pressionado e nenhuma outra tecla veio antes de soltar.
+  bool _superAlone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
+  }
+
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _windows.dispose();
     _mousePosition.dispose();
+    _launcherOpen.dispose();
     super.dispose();
+  }
+
+  void _toggleLauncher() => _launcherOpen.value = !_launcherOpen.value;
+
+  // Super sozinho alterna o launcher; Super+tecla fica para os atalhos da
+  // etapa 6, que vão assumir este handler.
+  bool _onKey(KeyEvent event) {
+    final isSuper =
+        event.logicalKey == LogicalKeyboardKey.metaLeft ||
+        event.logicalKey == LogicalKeyboardKey.metaRight;
+    if (event is KeyDownEvent) {
+      _superAlone = isSuper;
+    } else if (event is KeyUpEvent && isSuper) {
+      if (_superAlone) _toggleLauncher();
+      _superAlone = false;
+    }
+    return false;
   }
 
   @override
@@ -99,7 +131,12 @@ class _DesktopScreenState extends State<DesktopScreen> {
                 ),
 
                 // Barra Superior do Sistema
-                const Positioned(top: 0, left: 0, right: 0, child: TopBar()),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TopBar(onMenuTap: _toggleLauncher),
+                ),
 
                 // Dock na parte inferior central
                 Positioned(
@@ -118,6 +155,24 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       ),
                     ),
                   ),
+                ),
+
+                // Menu Psito, por cima de tudo menos do cursor
+                ValueListenableBuilder(
+                  valueListenable: _launcherOpen,
+                  builder: (context, open, _) {
+                    if (!open) return const SizedBox.shrink();
+                    return Positioned.fill(
+                      child: Launcher(
+                        apps: registeredApps,
+                        onLaunch: (app) {
+                          _launcherOpen.value = false;
+                          _windows.open(app);
+                        },
+                        onClose: () => _launcherOpen.value = false,
+                      ),
+                    );
+                  },
                 ),
 
                 // Ponteiro do Mouse Customizado e Alinhado
