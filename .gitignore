@@ -5,3 +5,11 @@ build/
 *.qcow2
 *.img
 os_image/rootfs/
+
+# Flutter/IDE gerados
+.idea/
+*.iml
+system_shell/linux/flutter/ephemeral/
+
+# Saídas locais dos scripts
+*.log

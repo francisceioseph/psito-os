@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./check.sh)",
+      "Bash(./logs.sh:*)"
+    ],
+    "deny": [
+      "Read(./system_shell/build/**)",
+      "Read(./system_shell/.dart_tool/**)",
+      "Read(./system_shell/linux/flutter/ephemeral/**)",
+      "Read(./qemu/**)",
+      "Read(./debian/**)"
+    ]
+  }
+}
