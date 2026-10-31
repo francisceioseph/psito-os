@@ -36,6 +36,31 @@ void main() {
     c.dispose();
   });
 
+  test('as não lidas por app, e ler as de um app', () {
+    final c = _center();
+    AppEntry app(String id) => AppEntry(
+      id: id,
+      name: id,
+      color: const Color(0xFF000000),
+      icon: (size) => const SizedBox(),
+    );
+    c.add(app: app('a'), title: '1');
+    final second = c.add(app: app('a'), title: '2');
+    c.add(app: app('b'), title: '3');
+    expect(c.unreadFor('a'), 2);
+    expect(c.unreadFor('b'), 1);
+
+    c.markRead('a');
+    expect(c.unreadFor('a'), 0);
+    expect(c.unreadCount, 1);
+    // Trocar uma lida não a faz não lida de novo
+    c.add(app: app('a'), title: '2b', replaces: second);
+    expect(c.unreadFor('a'), 0);
+    c.dismiss(c.history.last.id);
+    expect(c.unreadCount, 1);
+    c.dispose();
+  });
+
   test('dismissToast só tira da tela; dismiss tira de tudo', () {
     final c = _center();
     _post(c, 'a');

@@ -96,4 +96,44 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('dock-a')));
     expect(tapped, 'a 64.0');
   });
+
+  testWidgets('os pontos das janelas, a bolinha e o pulo', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PsitoDock(
+            tiles: [
+              DockTile(key: 'a', entry: _tile('a').entry, windows: 1),
+              DockTile(
+                key: 'b',
+                entry: _tile('b').entry,
+                windows: 3,
+                badge: 120,
+              ),
+              DockTile(key: 'c', entry: _tile('c').entry, bouncing: true),
+            ],
+            onTap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    Finder dots(String key) => find.descendant(
+      of: find.byKey(ValueKey('running-$key')),
+      matching: find.byType(Container),
+    );
+    expect(dots('a'), findsOneWidget);
+    expect(dots('b'), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('running-c')), findsNothing);
+    expect(find.text('99+'), findsOneWidget);
+    expect(find.byKey(const ValueKey('badge-a')), findsNothing);
+
+    // O que abre sobe e desce
+    final ground = tester.getCenter(find.byKey(const ValueKey('dock-c'))).dy;
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(
+      tester.getCenter(find.byKey(const ValueKey('dock-c'))).dy,
+      lessThan(ground - 5),
+    );
+    expect(tester.getCenter(find.byKey(const ValueKey('dock-a'))).dy, ground);
+  });
 }

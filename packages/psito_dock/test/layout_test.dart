@@ -83,9 +83,18 @@ void main() {
   test('com a janela em foco, o clique minimiza', () {
     const slot = DockAppSlot<String, _Window>(
       id: 'foot',
-      windows: [_Window(1, 'foot'), _Window(2, 'foot', focused: true)],
+      windows: [_Window(2, 'foot', focused: true)],
     );
     expect((tapAction(slot)! as MinimizeWindow<String, _Window>).window.id, 2);
+  });
+
+  test('com outras janelas, o clique no app em foco mostra as janelas', () {
+    const slot = DockAppSlot<String, _Window>(
+      id: 'foot',
+      windows: [_Window(1, 'foot'), _Window(2, 'foot', focused: true)],
+    );
+    final action = tapAction(slot)! as ShowWindows<String, _Window>;
+    expect(action.windows.map((w) => w.id), [1, 2]);
   });
 
   test('sem foco ou minimizada, o clique ativa a mais recente', () {

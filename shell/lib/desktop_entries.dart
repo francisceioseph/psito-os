@@ -8,6 +8,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+/// Uma ação do `.desktop` (`[Desktop Action <id>]`), como a "Nova janela"
+/// do Firefox.
+class DesktopAction {
+  final String id;
+  final String name;
+
+  /// O `Exec` da ação, sem os códigos de campo.
+  final List<String> command;
+
+  const DesktopAction(this.id, this.name, this.command);
+}
+
 class DesktopEntry {
   /// Nome do arquivo sem o `.desktop`. Bate com o `app_id` das janelas na
   /// maioria dos apps (firefox-esr, foot, org.gtk.Demo4).
@@ -42,6 +54,9 @@ class DesktopEntry {
   /// O arquivo `.desktop` de onde veio.
   final String? path;
 
+  /// As ações do `Actions=`, na ordem dele.
+  final List<DesktopAction> actions;
+
   const DesktopEntry({
     required this.id,
     required this.name,
@@ -54,25 +69,33 @@ class DesktopEntry {
     this.color,
     this.permissions = const [],
     this.path,
+    this.actions = const [],
   }) : exec = exec ?? command;
 
   /// As chaves do grupo `[Desktop Entry]`.
-  static Map<String, String> fields(String content) {
-    final values = <String, String>{};
-    var inEntry = false;
+  static Map<String, String> fields(String content) =>
+      groups(content)['Desktop Entry'] ?? {};
+
+  /// As chaves de cada grupo, pelo nome do grupo (sem os colchetes).
+  static Map<String, Map<String, String>> groups(String content) {
+    final result = <String, Map<String, String>>{};
+    Map<String, String>? current;
     for (final raw in content.split('\n')) {
       final line = raw.trim();
       if (line.isEmpty || line.startsWith('#')) continue;
-      if (line.startsWith('[')) {
-        inEntry = line == '[Desktop Entry]';
+      if (line.startsWith('[') && line.endsWith(']')) {
+        current = result.putIfAbsent(
+          line.substring(1, line.length - 1),
+          () => {},
+        );
         continue;
       }
-      if (!inEntry) continue;
+      if (current == null) continue;
       final eq = line.indexOf('=');
       if (eq < 0) continue;
-      values[line.substring(0, eq).trim()] = line.substring(eq + 1).trim();
+      current[line.substring(0, eq).trim()] = line.substring(eq + 1).trim();
     }
-    return values;
+    return result;
   }
 
   /// Lê o grupo `[Desktop Entry]`. Devolve null para o que não aparece no
@@ -85,7 +108,8 @@ class DesktopEntry {
     String? path,
     bool autostart = false,
   }) {
-    final values = fields(content);
+    final all = groups(content);
+    final values = all['Desktop Entry'] ?? const <String, String>{};
     if ((values['Type'] ?? 'Application') != 'Application') return null;
     if ((!autostart && values['NoDisplay'] == 'true') ||
         values['Hidden'] == 'true') {
@@ -95,10 +119,7 @@ class DesktopEntry {
     final name = _localized(values, 'Name', locale);
     if (exec == null || name == null) return null;
     final args = splitExec(exec);
-    final command = [
-      for (final arg in args)
-        if (!_fieldCode.hasMatch(arg)) arg.replaceAll('%%', '%'),
-    ];
+    final command = _command(args);
     if (command.isEmpty) return null;
     return DesktopEntry(
       id: id,
@@ -112,8 +133,25 @@ class DesktopEntry {
       color: _color(values['X-Psito-Color']),
       permissions: _list(values['X-Psito-Permissions']),
       path: path,
+      actions: [
+        for (final id in _list(values['Actions']))
+          if (all['Desktop Action $id'] case final group?)
+            if ((_localized(group, 'Name', locale), group['Exec']) case (
+              final name?,
+              final exec?,
+            ))
+              if (_command(splitExec(exec)) case final command
+                  when command.isNotEmpty)
+                DesktopAction(id, name, command),
+      ],
     );
   }
+
+  /// O `Exec` sem os códigos de campo.
+  static List<String> _command(List<String> args) => [
+    for (final arg in args)
+      if (!_fieldCode.hasMatch(arg)) arg.replaceAll('%%', '%'),
+  ];
 
   /// Uma lista separada por `;` (`MimeType`, `OnlyShowIn`).
   static List<String> list(String? value) => _list(value);

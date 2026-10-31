@@ -9,10 +9,12 @@ import 'package:psito_services/system_services.dart';
 import 'package:psito_shell/autostart.dart';
 import 'package:psito_shell/desktop_entries.dart';
 import 'package:psito_shell/dock.dart';
+import 'package:psito_shell/notifications_server.dart';
 import 'package:psito_shell/shell_state.dart';
 import 'package:psito_shell/surfaces.dart';
 import 'package:psito_shell/toplevels.dart';
 import 'package:system_shell/shell/settings_store.dart';
+import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 
 const _toplevels = MethodChannel('test/dock-toplevels');
@@ -29,12 +31,17 @@ void main() {
   late ShellState state;
   late DockController ui;
   late List<MethodCall> surfaceCalls;
+  late List<MethodCall> toplevelCalls;
   late Directory tmp;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('psito_dock_shell_');
     surfaceCalls = [];
-    messenger.setMockMethodCallHandler(_toplevels, (call) async => null);
+    toplevelCalls = [];
+    messenger.setMockMethodCallHandler(_toplevels, (call) async {
+      toplevelCalls.add(call);
+      return null;
+    });
     messenger.setMockMethodCallHandler(_surfaces, (call) async {
       surfaceCalls.add(call);
       return null;
@@ -167,17 +174,26 @@ void main() {
     await state.toplevels.handle(
       const MethodCall('changed', {'id': 1, 'appId': 'gimp', 'title': 'x'}),
     );
+    // O traço marca o começo de um grupo, e o asterisco, a marca
     List<String> labels(DockItem item) => [
       for (final entry in ui.menuItems(item))
-        '${entry.label}${entry.checked == true ? ' *' : ''}',
+        '${entry.separated ? '- ' : ''}${entry.label}'
+            '${entry.checked == true ? ' *' : ''}',
     ];
+    DockMenuItem option(DockItem item, String label) =>
+        ui.menuItems(item).firstWhere((entry) => entry.label == label);
     expect(labels(const DockApp('foot')), [
-      'Abrir ao iniciar a sessão',
+      'Abrir',
+      '- Abrir ao iniciar a sessão',
       'Remover da Dock',
     ]);
     expect(labels(const DockApp('gimp')), [
-      'Abrir ao iniciar a sessão',
+      'x',
+      '- Nova janela',
+      '- Abrir ao iniciar a sessão',
       'Manter na Dock',
+      '- Ocultar',
+      'Fechar',
     ]);
     expect(labels(const DockFolder('/home/u/Downloads')), [
       'Abrir no Files',
@@ -185,13 +201,17 @@ void main() {
       'Manter na Dock',
     ]);
 
-    ui.menuItems(const DockApp('gimp'))[1].onTap();
+    option(const DockApp('gimp'), 'Manter na Dock').onTap();
     expect(state.dock.contains(const DockApp('gimp')), isTrue);
+    option(const DockApp('gimp'), 'x').onTap();
+    expect(toplevelCalls.last, isMethodCall('activate', arguments: 1));
+    option(const DockApp('gimp'), 'Fechar').onTap();
+    expect(toplevelCalls.last, isMethodCall('close', arguments: 1));
 
     // O autostart grava no ~/.config/autostart
-    ui.menuItems(const DockApp('foot'))[0].onTap();
+    option(const DockApp('foot'), 'Abrir ao iniciar a sessão').onTap();
     await Future<void>.delayed(const Duration(milliseconds: 50));
-    expect(labels(const DockApp('foot')).first, 'Abrir ao iniciar a sessão *');
+    expect(labels(const DockApp('foot'))[1], '- Abrir ao iniciar a sessão *');
   });
 
   test('o menu abre na tela, e abrir um painel fecha o menu', () {
@@ -337,5 +357,129 @@ void main() {
     expect(await ui.dropOn(const DockApp('foot'), ['/a.txt']), isTrue);
     expect(opened.single.$1, ['/a.txt']);
     expect(opened.single.$2, 'foot');
+  });
+
+  Future<void> window(int id, String appId, {bool activated = false}) =>
+      state.toplevels.handle(
+        MethodCall('changed', {
+          'id': id,
+          'appId': appId,
+          'title': '$appId $id',
+          'activated': activated,
+        }),
+      );
+
+  test('o menu de um app com várias janelas e as ações do .desktop', () async {
+    state.apps.value = [
+      DesktopEntry(
+        id: 'firefox-esr',
+        name: 'Firefox',
+        command: ['firefox'],
+        actions: [
+          DesktopAction('new-window', 'Nova janela do Firefox', [
+            'firefox',
+            '--new-window',
+          ]),
+          DesktopAction('private', 'Janela privativa', ['firefox', '-p']),
+        ],
+      ),
+    ];
+    await window(1, 'firefox-esr');
+    await window(2, 'firefox-esr', activated: true);
+    expect(
+      [
+        for (final entry in ui.menuItems(const DockApp('firefox-esr')))
+          entry.label,
+      ],
+      [
+        'firefox-esr 2',
+        'firefox-esr 1',
+        'Nova janela',
+        'Janela privativa',
+        'Abrir ao iniciar a sessão',
+        'Remover da Dock',
+        'Ocultar',
+        'Fechar 2 janelas',
+      ],
+    );
+    expect(ui.menuItems(const DockApp('firefox-esr')).first.checked, isTrue);
+
+    // Ocultar minimiza as duas
+    ui
+        .menuItems(const DockApp('firefox-esr'))
+        .firstWhere((entry) => entry.label == 'Ocultar')
+        .onTap();
+    expect(toplevelCalls.where((call) => call.method == 'minimize').length, 2);
+  });
+
+  test('o segundo clique num app com várias janelas mostra as dele', () async {
+    await window(1, 'foot');
+    await window(2, 'gimp');
+    await window(3, 'foot', activated: true);
+    ui.tap(const DockApp('foot'));
+    expect(state.switcher.isOpen, isTrue);
+    expect(state.switcher.windows.map((w) => w.id), ['3', '1']);
+    expect(
+      surfaceCalls.last,
+      isMethodCall('showOverlay', arguments: 'exclusive'),
+    );
+    // Sem modificador: soltar uma tecla não escolhe; o Enter escolhe
+    state.handleKey(
+      const KeyUpEvent(
+        physicalKey: PhysicalKeyboardKey.altLeft,
+        logicalKey: LogicalKeyboardKey.altLeft,
+        timeStamp: Duration.zero,
+      ),
+    );
+    expect(state.switcher.isOpen, isTrue);
+    state.handleKey(
+      const KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.enter,
+        logicalKey: LogicalKeyboardKey.enter,
+        timeStamp: Duration.zero,
+      ),
+    );
+    expect(state.switcher.isOpen, isFalse);
+    expect(toplevelCalls.last, isMethodCall('activate', arguments: 1));
+  });
+
+  test('o ícone pula até aparecer uma janela nova do app', () async {
+    await window(1, 'foot');
+    ui.startBounce('foot');
+    expect(ui.launching.value, {'foot'});
+    await window(2, 'gimp');
+    expect(ui.launching.value, {'foot'});
+    await window(3, 'foot');
+    expect(ui.launching.value, isEmpty);
+  });
+
+  test('o pulo para sozinho depois do limite', () async {
+    ui.bounceLimit = const Duration(milliseconds: 30);
+    ui.startBounce('gimp');
+    expect(ui.launching.value, {'gimp'});
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    expect(ui.launching.value, isEmpty);
+  });
+
+  test('as não lidas de um app somem quando ele vem para frente', () async {
+    state.notify(
+      const IncomingNotification(
+        appName: 'foot',
+        summary: 'oi',
+        desktopEntry: 'foot',
+      ),
+    );
+    state.notify(
+      const IncomingNotification(
+        appName: 'gimp',
+        summary: 'oi',
+        desktopEntry: 'gimp',
+      ),
+    );
+    expect(state.notifications.unreadFor('foot'), 1);
+    await window(1, 'foot', activated: true);
+    expect(state.notifications.unreadFor('foot'), 0);
+    expect(state.notifications.unreadFor('gimp'), 1);
+    expect(state.notifications.unreadCount, 1);
   });
 }

@@ -37,6 +37,31 @@ void main() {
     expect(entry.command, ['/usr/lib/firefox-esr/firefox-esr']);
   });
 
+  test('lê as ações do Actions=, com o nome no idioma', () {
+    final entry = DesktopEntry.parse(
+      'firefox-esr',
+      _firefox
+          .replaceFirst(
+            'Type=Application',
+            'Type=Application\nActions=new-window;sumiu;',
+          )
+          .replaceFirst(
+            'Name=New Window',
+            'Name=New Window\nName[pt_BR]=Nova janela',
+          ),
+      locale: 'pt_BR.UTF-8',
+    )!;
+    // A "sumiu" não tem grupo
+    final action = entry.actions.single;
+    expect((action.id, action.name), ('new-window', 'Nova janela'));
+    expect(action.command, [
+      '/usr/lib/firefox-esr/firefox-esr',
+      '--new-window',
+    ]);
+    // Sem o Actions=, nenhuma
+    expect(DesktopEntry.parse('firefox-esr', _firefox)!.actions, isEmpty);
+  });
+
   test('cai para o idioma sem região', () {
     final entry = DesktopEntry.parse(
       'x',

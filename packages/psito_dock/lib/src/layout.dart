@@ -120,15 +120,26 @@ class MinimizeWindow<A, W> extends DockAction<A, W> {
   const MinimizeWindow(this.window);
 }
 
-/// Sem janela, abre o app; com a janela em foco, minimiza; senão, ativa a
-/// mais recente (e traz de volta se estiver minimizada).
+/// As janelas do app para escolher (o seletor só com elas).
+class ShowWindows<A, W> extends DockAction<A, W> {
+  final List<W> windows;
+  const ShowWindows(this.windows);
+}
+
+/// Sem janela, abre o app; com a janela em foco, minimiza, ou, se o app
+/// tem outras, mostra as janelas dele; senão, ativa a mais recente (e traz
+/// de volta se estiver minimizada).
 DockAction<A, W>? tapAction<A, W extends DockWindow>(DockAppSlot<A, W> slot) {
   if (!slot.running) {
     final app = slot.app;
     return app == null ? null : LaunchApp(app);
   }
   for (final window in slot.windows) {
-    if (window.focused && !window.minimized) return MinimizeWindow(window);
+    if (window.focused && !window.minimized) {
+      return slot.windows.length > 1
+          ? ShowWindows(slot.windows)
+          : MinimizeWindow(window);
+    }
   }
   return ActivateWindow(slot.windows.last);
 }

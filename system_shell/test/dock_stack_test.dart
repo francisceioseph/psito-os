@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/shell/app_entry.dart';
+import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
 
 DockStackEntry _entry(String name) => DockStackEntry(
@@ -56,5 +57,26 @@ void main() {
   testWidgets('a pasta vazia diz que está vazia', (tester) async {
     await pump(tester, 0);
     expect(find.text('A pasta está vazia.'), findsOneWidget);
+  });
+
+  testWidgets('o menu e a pilha aguentam a tela minúscula do primeiro quadro', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1, 1);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pump(tester, DockStack.fanLimit + 1);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DockMenu(
+          anchor: const Rect.fromLTWH(380, 540, 52, 52),
+          title: 'App',
+          items: [DockMenuItem('Abrir', () {})],
+          onClose: () {},
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
   });
 }

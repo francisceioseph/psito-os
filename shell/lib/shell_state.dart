@@ -49,6 +49,7 @@ class ShellState {
     dockUi.stack.addListener(_syncOverlay);
     dockUi.askEmptyTrash.addListener(_syncOverlay);
     notifications.addListener(_syncToasts);
+    toplevels.addListener(_windowsChanged);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
   }
 
@@ -197,13 +198,54 @@ class ShellState {
   void tapDock(DockSlot slot) {
     switch (tapAction(slot)) {
       case LaunchApp(:final app):
-        unawaited(app.launch(sandbox: sandbox));
+        launchFromDock(app);
       case ActivateWindow(:final window):
         unawaited(toplevels.activate(window.id));
       case MinimizeWindow(:final window):
         unawaited(toplevels.minimize(window.id));
+      case ShowWindows(:final windows):
+        showWindows(windows);
       case null:
         break;
+    }
+  }
+
+  /// Abre pela dock, com o ícone pulando até a janela aparecer. [command]
+  /// é o de uma ação do `.desktop`.
+  void launchFromDock(DesktopEntry app, {List<String>? command}) {
+    dockUi.startBounce(app.id);
+    unawaited(app.launch(sandbox: sandbox, command: command));
+  }
+
+  /// O seletor só com [windows] (as de um app): fica aberto até um clique,
+  /// o Enter ou o Esc, sem modificador segurado.
+  void showWindows(List<Toplevel> windows) {
+    closeOverlay();
+    dockUi.closePopups();
+    switcher.start(
+      [
+        for (final w in windows)
+          SwitcherEntry(
+            id: '${w.id}',
+            title: w.title,
+            minimized: w.minimized,
+            app: appFor(w.appId),
+          ),
+      ],
+      holdKeys: const {},
+      focusedId: switch (toplevels.activated) {
+        final w? => '${w.id}',
+        null => null,
+      },
+    );
+  }
+
+  /// Uma janela nova pode encerrar o pulo, e o app que veio para frente lê
+  /// as notificações dele.
+  void _windowsChanged() {
+    dockUi.windowsChanged();
+    if (toplevels.activated case final window?) {
+      notifications.markRead(appFor(window.appId).id);
     }
   }
 
@@ -314,6 +356,8 @@ class ShellState {
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       switcher.cancel();
+    } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+      commitSwitcher();
     } else if (event.logicalKey == LogicalKeyboardKey.tab) {
       switcher.step(reverse: shift);
     }

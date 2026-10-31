@@ -56,6 +56,10 @@ class DockStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
+    // O primeiro quadro da sobreposição pode vir antes do tamanho dela
+    if (screen.width < cell * 2 || screen.height < cell * 2) {
+      return const SizedBox.shrink();
+    }
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): onClose},
       child: FocusScope(
@@ -123,10 +127,14 @@ class DockStack extends StatelessWidget {
   }
 
   Widget _grid(Size screen) {
-    final width = math.min(columns * cell + 24, screen.width - 16);
+    final width = math.max(
+      0.0,
+      math.min(columns * cell + 24, screen.width - 16),
+    );
     final left = (anchor.center.dx - width / 2).clamp(
       8.0,
-      screen.width - width - 8,
+      // No primeiro quadro a sobreposição pode ainda não ter o tamanho
+      math.max(8.0, screen.width - width - 8).toDouble(),
     );
     return Positioned(
       left: left,
@@ -173,7 +181,7 @@ class DockStack extends StatelessWidget {
               else
                 ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxHeight: math.min(420, anchor.top - 120),
+                    maxHeight: math.max(120, math.min(420, anchor.top - 120)),
                   ),
                   child: GridView.extent(
                     maxCrossAxisExtent: cell,

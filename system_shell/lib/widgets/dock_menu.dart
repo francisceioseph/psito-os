@@ -1,6 +1,8 @@
 // system_shell/lib/widgets/dock_menu.dart
 //
 // O menu de um ícone da dock (o clique direito), acima do ícone.
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +14,15 @@ class DockMenuItem {
   /// ação.
   final bool? checked;
 
-  const DockMenuItem(this.label, this.onTap, {this.checked});
+  /// Um traço antes, separando de um grupo (as janelas, das ações).
+  final bool separated;
+
+  const DockMenuItem(
+    this.label,
+    this.onTap, {
+    this.checked,
+    this.separated = false,
+  });
 }
 
 class DockMenu extends StatelessWidget {
@@ -37,7 +47,8 @@ class DockMenu extends StatelessWidget {
     final screen = MediaQuery.sizeOf(context);
     final left = (anchor.center.dx - width / 2).clamp(
       8.0,
-      screen.width - width - 8,
+      // No primeiro quadro a sobreposição pode ainda não ter o tamanho
+      math.max(8.0, screen.width - width - 8).toDouble(),
     );
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): onClose},
@@ -78,11 +89,22 @@ class DockMenu extends StatelessWidget {
                           ),
                         ),
                       ),
-                      for (final item in items)
+                      for (final item in items) ...[
+                        if (item.separated)
+                          const Divider(
+                            height: 9,
+                            indent: 12,
+                            endIndent: 12,
+                            color: Colors.white12,
+                          ),
                         ListTile(
                           dense: true,
                           visualDensity: VisualDensity.compact,
-                          title: Text(item.label),
+                          title: Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           trailing: item.checked == true
                               ? const Icon(Icons.check, size: 18)
                               : null,
@@ -91,6 +113,7 @@ class DockMenu extends StatelessWidget {
                             item.onTap();
                           },
                         ),
+                      ],
                     ],
                   ),
                 ),

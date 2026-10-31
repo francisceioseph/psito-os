@@ -392,7 +392,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                                 DockTile(
                                   key: slot.id,
                                   entry: app,
-                                  running: slot.running,
+                                  windows: slot.windows.length,
                                 ),
                           ],
                           onTap: (id, _) => _windows.activateApp(

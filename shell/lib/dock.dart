@@ -120,6 +120,39 @@ class DockController {
   /// Até quantos itens a pilha mostra.
   static const stackLimit = 200;
 
+  /// Os apps abrindo pela dock, cujo ícone pula.
+  final launching = ValueNotifier<Set<String>>(const {});
+  final _launchTimers = <String, Timer>{};
+  final _launchBase = <String, int>{};
+
+  /// Quanto o ícone pula, no máximo, esperando a janela.
+  Duration bounceLimit = const Duration(seconds: 10);
+
+  int _windowCount(String id) =>
+      state.toplevels.windows.where((w) => w.appId == id).length;
+
+  /// O ícone de [id] pula até aparecer uma janela nova dele, ou até o
+  /// [bounceLimit].
+  void startBounce(String id) {
+    _launchBase[id] = _windowCount(id);
+    _launchTimers.remove(id)?.cancel();
+    _launchTimers[id] = Timer(bounceLimit, () => _stopBounce(id));
+    launching.value = {...launching.value, id};
+  }
+
+  void _stopBounce(String id) {
+    _launchTimers.remove(id)?.cancel();
+    _launchBase.remove(id);
+    launching.value = {...launching.value}..remove(id);
+  }
+
+  /// As janelas mudaram: o app que ganhou uma para de pular.
+  void windowsChanged() {
+    for (final id in launching.value) {
+      if (_windowCount(id) > (_launchBase[id] ?? 0)) _stopBounce(id);
+    }
+  }
+
   /// A tela, e o tamanho da superfície da dock (centrada na base). A view
   /// da dock avisa os dois.
   Size screen = const Size(1440, 900);
@@ -438,6 +471,83 @@ class DockController {
     DockTrash() => 'Lixeira',
   };
 
+  /// O menu de um app, em grupos: as janelas (a mais recente primeiro),
+  /// abrir de novo, a sessão e a dock, e ocultar e fechar.
+  List<DockMenuItem> _appMenu(String id, DockMenuItem keep) {
+    final app = state.installed(id);
+    final autostart = state.autostart;
+    final windows = [
+      for (final slot in state.dockSections.apps)
+        if (slot.id == id) ...slot.windows.reversed,
+    ];
+    final newWindow = app?.actions.where((a) => a.id == 'new-window');
+    final toplevels = state.toplevels;
+    final groups = [
+      [
+        for (final window in windows)
+          DockMenuItem(
+            window.title.isEmpty ? title(DockApp(id)) : window.title,
+            () => unawaited(toplevels.activate(window.id)),
+            checked: window.activated && !window.minimized ? true : null,
+          ),
+      ],
+      [
+        if (app != null) ...[
+          DockMenuItem(
+            windows.isEmpty ? 'Abrir' : 'Nova janela',
+            () => state.launchFromDock(
+              app,
+              command: newWindow?.firstOrNull?.command,
+            ),
+          ),
+          for (final action in app.actions)
+            if (action.id != 'new-window')
+              DockMenuItem(
+                action.name,
+                () => state.launchFromDock(app, command: action.command),
+              ),
+        ],
+      ],
+      [
+        if (app != null && autostart != null)
+          DockMenuItem(
+            'Abrir ao iniciar a sessão',
+            () => unawaited(autostart.set(app, !autostart.enabled(id))),
+            checked: autostart.enabled(id),
+          ),
+        keep,
+      ],
+      if (windows.isNotEmpty)
+        [
+          DockMenuItem('Ocultar', () {
+            for (final window in windows) {
+              if (!window.minimized) unawaited(toplevels.minimize(window.id));
+            }
+          }),
+          DockMenuItem(
+            windows.length > 1 ? 'Fechar ${windows.length} janelas' : 'Fechar',
+            () {
+              for (final window in windows) {
+                unawaited(toplevels.close(window.id));
+              }
+            },
+          ),
+        ],
+    ];
+    return [
+      for (final group in groups.where((g) => g.isNotEmpty).indexed)
+        for (final (i, item) in group.$2.indexed)
+          i == 0 && group.$1 > 0
+              ? DockMenuItem(
+                  item.label,
+                  item.onTap,
+                  checked: item.checked,
+                  separated: true,
+                )
+              : item,
+    ];
+  }
+
   /// As opções do menu de [item].
   List<DockMenuItem> menuItems(DockItem item) {
     final pinned = state.dock.contains(item);
@@ -446,17 +556,7 @@ class DockController {
         : DockMenuItem('Manter na Dock', () => state.dock.pin(item));
     switch (item) {
       case DockApp(:final id):
-        final app = state.installed(id);
-        final autostart = state.autostart;
-        return [
-          if (app != null && autostart != null)
-            DockMenuItem(
-              'Abrir ao iniciar a sessão',
-              () => unawaited(autostart.set(app, !autostart.enabled(id))),
-              checked: autostart.enabled(id),
-            ),
-          keep,
-        ];
+        return _appMenu(id, keep);
       case DockPath(:final path):
         final parent = File(path).parent.path;
         return [

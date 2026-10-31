@@ -58,7 +58,9 @@ class NotificationCenter extends ChangeNotifier {
   final List<ShellNotification> _history = [];
   final List<ShellNotification> _toasts = [];
   final Map<int, Timer> _toastTimers = {};
-  int _unread = 0;
+
+  /// As não lidas; abrir o painel lê todas, e ativar um app lê as dele.
+  final Set<int> _unread = {};
   int _nextId = 0;
 
   /// Mais nova primeiro.
@@ -66,7 +68,11 @@ class NotificationCenter extends ChangeNotifier {
 
   /// Toasts na tela, mais novo primeiro.
   List<ShellNotification> get toasts => List.unmodifiable(_toasts);
-  int get unreadCount => _unread;
+  int get unreadCount => _unread.length;
+
+  /// As não lidas de um app (a bolinha da dock).
+  int unreadFor(String appId) =>
+      _history.where((n) => n.appId == appId && _unread.contains(n.id)).length;
 
   void post(ShellWindow window, PsitoNotification notification) => add(
     app: AppEntry.fromPsitoApp(window.app),
@@ -105,11 +111,12 @@ class NotificationCenter extends ChangeNotifier {
       _history.insert(0, item);
       if (_history.length > historyLimit) {
         final dropped = _history.removeLast();
+        _unread.remove(dropped.id);
         _toastTimers.remove(dropped.id)?.cancel();
         _toasts.removeWhere((n) => n.id == dropped.id);
         onRemoved?.call(dropped.id, NotificationRemoval.dismissed);
       }
-      _unread = (_unread + 1).clamp(0, _history.length);
+      _unread.add(item.id);
     }
 
     if (silent?.call() != true) {
@@ -143,7 +150,7 @@ class NotificationCenter extends ChangeNotifier {
     final before = _history.length;
     _history.removeWhere((n) => n.id == id);
     if (_history.length == before) return;
-    _unread = _unread.clamp(0, _history.length);
+    _unread.remove(id);
     onRemoved?.call(id, reason);
     notifyListeners();
   }
@@ -159,14 +166,23 @@ class NotificationCenter extends ChangeNotifier {
     for (final id in removed) {
       onRemoved?.call(id, NotificationRemoval.dismissed);
     }
-    _unread = 0;
+    _unread.clear();
     notifyListeners();
   }
 
   void markAllRead() {
-    if (_unread == 0) return;
-    _unread = 0;
+    if (_unread.isEmpty) return;
+    _unread.clear();
     notifyListeners();
+  }
+
+  /// Lê as de [appId]: o app veio para frente.
+  void markRead(String appId) {
+    final before = _unread.length;
+    _unread.removeWhere(
+      (id) => _history.any((n) => n.id == id && n.appId == appId),
+    );
+    if (_unread.length != before) notifyListeners();
   }
 
   @override

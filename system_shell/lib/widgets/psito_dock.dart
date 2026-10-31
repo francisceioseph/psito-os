@@ -1,4 +1,6 @@
 // system_shell/lib/widgets/psito_dock.dart
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../shell/app_entry.dart';
@@ -9,14 +11,25 @@ class DockTile {
   final String key;
   final AppEntry entry;
 
-  /// Ganha um ponto embaixo do ícone.
-  final bool running;
+  /// Quantas janelas abertas: um ponto embaixo do ícone, dois a partir de
+  /// duas.
+  final int windows;
+
+  /// As notificações não lidas do app, numa bolinha no canto.
+  final int badge;
+
+  /// O app está abrindo: o ícone pula até a janela aparecer.
+  final bool bouncing;
 
   const DockTile({
     required this.key,
     required this.entry,
-    this.running = false,
+    this.windows = 0,
+    this.badge = 0,
+    this.bouncing = false,
   });
+
+  bool get running => windows > 0;
 }
 
 class PsitoDock extends StatefulWidget {
@@ -195,7 +208,7 @@ class _PsitoDockState extends State<PsitoDock> {
 
   Widget _square(DockTile tile, double containerSize, bool isHovered) {
     final app = tile.entry;
-    return AnimatedContainer(
+    final square = AnimatedContainer(
       key: ValueKey('dock-${tile.key}'),
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOutCubic,
@@ -225,20 +238,135 @@ class _PsitoDockState extends State<PsitoDock> {
           if (tile.running)
             Positioned(
               bottom: containerSize * 0.06,
-              child: Container(
+              child: Row(
                 key: ValueKey('running-${tile.key}'),
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: app.color,
-                  shape: BoxShape.circle,
-                ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < tile.windows.clamp(1, 2); i++)
+                    Container(
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      decoration: BoxDecoration(
+                        color: app.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
               ),
             ),
         ],
       ),
     );
+    return _Bounce(
+      active: tile.bouncing,
+      // Cabe na margem de cima da superfície da dock
+      height: widget.iconSize * 0.25,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          square,
+          if (tile.badge > 0)
+            Positioned(
+              top: -5,
+              right: -5,
+              child: _Badge(key: ValueKey('badge-${tile.key}'), tile.badge),
+            ),
+        ],
+      ),
+    );
   }
+}
+
+/// O contador de não lidas, em vermelho, como no macOS.
+class _Badge extends StatelessWidget {
+  final int count;
+
+  const _Badge(this.count, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+    padding: const EdgeInsets.symmetric(horizontal: 5),
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: const Color(0xFFE53935),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: Colors.black26),
+    ),
+    child: Text(
+      count > 99 ? '99+' : '$count',
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    ),
+  );
+}
+
+/// O pulo de um app abrindo: sobe e desce enquanto [active].
+class _Bounce extends StatefulWidget {
+  final bool active;
+  final double height;
+  final Widget child;
+
+  const _Bounce({
+    required this.active,
+    required this.height,
+    required this.child,
+  });
+
+  @override
+  State<_Bounce> createState() => _BounceState();
+}
+
+class _BounceState extends State<_Bounce> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_Bounce old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!widget.active && _controller.isAnimating) {
+      // Termina o pulo de agora, para não parar no ar
+      _land();
+    }
+  }
+
+  void _land() {
+    _controller.animateTo(1).whenComplete(() {
+      if (mounted && !widget.active) _controller.value = 0;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _controller,
+    builder: (context, child) {
+      // Meio seno: sobe e cai, com uma pausa curta no chão
+      final t = (_controller.value / 0.8).clamp(0.0, 1.0);
+      final lift = math.sin(t * math.pi) * widget.height;
+      return Transform.translate(offset: Offset(0, -lift), child: child);
+    },
+    child: widget.child,
+  );
 }
 
 class _Separator extends StatelessWidget {

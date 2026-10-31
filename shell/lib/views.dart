@@ -290,6 +290,8 @@ class _DockView extends StatelessWidget {
             state.dock,
             ui.drag,
             ui.trashFull,
+            ui.launching,
+            state.notifications,
           ]),
           builder: (context, _) {
             final row = ui.row;
@@ -307,7 +309,12 @@ class _DockView extends StatelessWidget {
                     DockTile(
                       key: DockController.keyOf(item.item),
                       entry: ui.visual(item.item),
-                      running: item.slot?.running ?? false,
+                      windows: item.slot?.windows.length ?? 0,
+                      badge: switch (item.slot) {
+                        final slot? => state.notifications.unreadFor(slot.id),
+                        null => 0,
+                      },
+                      bouncing: ui.launching.value.contains(item.slot?.id),
                     ),
                 ],
                 separators: row.separators,
@@ -482,9 +489,21 @@ class _OverlayView extends StatelessWidget {
               )
               ? KeyEventResult.handled
               : KeyEventResult.ignored,
-          child: WindowSwitcherOverlay(
-            switcher: state.switcher,
-            onPick: state.pickSwitcher,
+          // Clicar fora fecha (o seletor das janelas de um app, aberto
+          // pela dock, não fecha soltando uma tecla)
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: state.switcher.cancel,
+                  behavior: HitTestBehavior.opaque,
+                ),
+              ),
+              WindowSwitcherOverlay(
+                switcher: state.switcher,
+                onPick: state.pickSwitcher,
+              ),
+            ],
           ),
         );
       }
