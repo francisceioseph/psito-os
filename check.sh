@@ -5,7 +5,7 @@
 cd "$(dirname "$0")"
 
 STATUS=0
-for dir in packages/psito_fs packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/; do
+for dir in packages/psito_fs packages/psito_dock packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/; do
     dir=${dir%/}
     OUT=$(cd "$dir" && flutter analyze --no-pub 2>&1)
     CODE=$?

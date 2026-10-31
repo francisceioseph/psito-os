@@ -217,6 +217,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0+1"
+  psito_dock:
+    dependency: "direct main"
+    description:
+      path: "../packages/psito_dock"
+      relative: true
+    source: path
+    version: "0.1.0"
   psito_files:
     dependency: "direct main"
     description:

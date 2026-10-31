@@ -16,6 +16,8 @@ dependencies:
     path: ../packages/psito_runtime
   psito_fs:
     path: ../packages/psito_fs
+  psito_dock:
+    path: ../packages/psito_dock
   psito_services:
     path: ../packages/psito_services
   system_shell:

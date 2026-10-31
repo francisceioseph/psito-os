@@ -260,6 +260,14 @@ class PsitoSettings {
   /// Porcentagem ao lado do ícone de bateria (como no macOS).
   final bool showBatteryPercentage;
 
+  /// O lado dos ícones da dock, em px lógicos ([dockSizes]).
+  final double dockIconSize;
+
+  /// O ícone sob o mouse cresce.
+  final bool dockMagnification;
+
+  static const dockSizes = (min: 32.0, max: 96.0);
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -267,6 +275,8 @@ class PsitoSettings {
     this.showSeconds = false,
     this.doNotDisturb = false,
     this.showBatteryPercentage = true,
+    this.dockIconSize = 52,
+    this.dockMagnification = true,
   });
 
   static const defaults = PsitoSettings();
@@ -280,6 +290,8 @@ class PsitoSettings {
     bool? showSeconds,
     bool? doNotDisturb,
     bool? showBatteryPercentage,
+    double? dockIconSize,
+    bool? dockMagnification,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -287,6 +299,8 @@ class PsitoSettings {
     showSeconds: showSeconds ?? this.showSeconds,
     doNotDisturb: doNotDisturb ?? this.doNotDisturb,
     showBatteryPercentage: showBatteryPercentage ?? this.showBatteryPercentage,
+    dockIconSize: dockIconSize ?? this.dockIconSize,
+    dockMagnification: dockMagnification ?? this.dockMagnification,
   );
 
   Map<String, Object?> toJson() => {
@@ -296,6 +310,8 @@ class PsitoSettings {
     'showSeconds': showSeconds,
     'doNotDisturb': doNotDisturb,
     'showBatteryPercentage': showBatteryPercentage,
+    'dockIconSize': dockIconSize,
+    'dockMagnification': dockMagnification,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -315,6 +331,11 @@ class PsitoSettings {
         'showBatteryPercentage',
         defaults.showBatteryPercentage,
       ),
+      dockIconSize: pick<num>(
+        'dockIconSize',
+        defaults.dockIconSize,
+      ).toDouble().clamp(dockSizes.min, dockSizes.max),
+      dockMagnification: pick('dockMagnification', defaults.dockMagnification),
     );
   }
 
@@ -326,7 +347,9 @@ class PsitoSettings {
       other.use24h == use24h &&
       other.showSeconds == showSeconds &&
       other.doNotDisturb == doNotDisturb &&
-      other.showBatteryPercentage == showBatteryPercentage;
+      other.showBatteryPercentage == showBatteryPercentage &&
+      other.dockIconSize == dockIconSize &&
+      other.dockMagnification == dockMagnification;
 
   @override
   int get hashCode => Object.hash(
@@ -336,6 +359,8 @@ class PsitoSettings {
     showSeconds,
     doNotDisturb,
     showBatteryPercentage,
+    dockIconSize,
+    dockMagnification,
   );
 }
 

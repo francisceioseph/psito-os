@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_shell/desktop_entries.dart';
+import 'package:psito_shell/dock.dart';
 import 'package:psito_shell/notifications_server.dart';
 import 'package:psito_shell/shell_state.dart';
 import 'package:psito_shell/surfaces.dart';
@@ -126,6 +128,36 @@ void main() {
           isFalse,
         );
       },
+    );
+  });
+
+  test('a dock segue o dock.json e as janelas abertas', () async {
+    List<String> ids() => [for (final slot in state.dockSections.apps) slot.id];
+    // Os da primeira vez que não estão instalados ficam escondidos
+    expect(ids(), ['foot']);
+    await window(1, 'org.gtk.Demo4');
+    expect(ids(), ['foot', 'org.gtk.Demo4']);
+    expect(state.dockSections.running.single.name, 'janela 1');
+
+    await state.dock.pin(
+      const DockApp('org.gtk.Demo4'),
+      before: const DockApp('foot'),
+    );
+    expect(ids(), ['org.gtk.Demo4', 'foot']);
+    expect(state.dockSections.running, isEmpty);
+    await state.dock.unpin(const DockApp('foot'));
+    expect(ids(), ['org.gtk.Demo4']);
+  });
+
+  test('o clique na dock ativa e minimiza pelo foreign-toplevel', () async {
+    await window(1, 'foot');
+    state.tapDock(state.dockSections.pinned.single);
+    expect(toplevelCalls.last, isMethodCall('activate', arguments: 1));
+    await window(1, 'foot', activated: true);
+    state.tapDock(state.dockSections.pinned.single);
+    expect(
+      toplevelCalls.last,
+      isMethodCall('minimize', arguments: {'id': 1, 'minimized': true}),
     );
   });
 

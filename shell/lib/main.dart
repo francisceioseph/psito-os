@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/widgets.dart';
+import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
@@ -30,10 +31,16 @@ Future<void> main() async {
   final settings = await SettingsStore.load(defaultSettingsFile());
   // Quem edita o arquivo à mão (ou um shell de outra sessão) também conta
   unawaited(settings.watch());
+  final dock = await DockStore.load(
+    defaultDockFile(),
+    initial: ShellState.defaultDock,
+  );
+  unawaited(dock.watch());
   final state = ShellState(
     settings: settings,
     services: SystemServices.start(),
     toplevels: ToplevelList(),
+    dock: dock,
     sandbox: ShellState.sandboxFor(Platform.environment),
   );
   final viewIds = await state.surfaces.viewIds();

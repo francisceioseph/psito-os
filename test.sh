@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 JOBS="${TEST_JOBS:-2}"
 MEM="${TEST_MEM:-2G}"
 DIRS=("$@")
-[ ${#DIRS[@]} -eq 0 ] && DIRS=(packages/psito_fs packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/)
+[ ${#DIRS[@]} -eq 0 ] && DIRS=(packages/psito_fs packages/psito_dock packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/)
 
 LIMIT=()
 if [ "$MEM" != "0" ] && command -v systemd-run >/dev/null; then

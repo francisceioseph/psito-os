@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'package:psito_services/system_services.dart';
@@ -87,6 +88,11 @@ class _DesktopScreenState extends State<DesktopScreen> {
   ];
   PsitoApp _appFor(AppEntry entry) =>
       registeredApps.firstWhere((app) => app.id == entry.id);
+
+  /// A dock do laboratório, só em memória: começa com os apps registrados.
+  final _dock = DockStore.memory([
+    for (final app in registeredApps) DockApp(app.id),
+  ]);
   final _superTap = SuperTapDetector();
 
   @override
@@ -98,6 +104,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKey);
+    _dock.dispose();
     _windows.dispose();
     _notifications.dispose();
     if (widget.settings == null) _settings.dispose();
@@ -363,15 +370,32 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   right: 0,
                   child: Center(
                     child: ListenableBuilder(
-                      listenable: _windows,
-                      builder: (context, _) => PsitoDock(
-                        apps: _entries,
-                        runningAppIds: {
-                          for (final w in _windows.windows) w.app.id,
-                        },
-                        onAppTap: (entry) =>
-                            _windows.activateApp(_appFor(entry)),
-                      ),
+                      listenable: Listenable.merge([
+                        _windows,
+                        _dock,
+                        _settings,
+                      ]),
+                      builder: (context, _) {
+                        final slots = dockLayout(
+                          items: _dock.value,
+                          apps: {for (final app in _entries) app.id: app},
+                          windows: [
+                            for (final w in _windows.windows)
+                              _DockWindow(w, w.id == _windows.focusedId),
+                          ],
+                        ).apps;
+                        return PsitoDock(
+                          apps: [for (final slot in slots) ?slot.app],
+                          runningAppIds: {
+                            for (final slot in slots)
+                              if (slot.running) slot.id,
+                          },
+                          onAppTap: (entry) =>
+                              _windows.activateApp(_appFor(entry)),
+                          iconSize: _settings.value.dockIconSize,
+                          magnification: _settings.value.dockMagnification,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -519,4 +543,19 @@ class _DesktopScreenState extends State<DesktopScreen> {
       ),
     );
   }
+}
+
+/// Uma janela do laboratório como a dock a vê.
+class _DockWindow implements DockWindow {
+  final ShellWindow window;
+  @override
+  final bool focused;
+
+  const _DockWindow(this.window, this.focused);
+
+  @override
+  String get appId => window.app.id;
+
+  @override
+  bool get minimized => window.minimized;
 }

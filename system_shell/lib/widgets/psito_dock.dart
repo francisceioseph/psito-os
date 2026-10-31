@@ -10,11 +10,19 @@ class PsitoDock extends StatefulWidget {
   final Set<String> runningAppIds;
   final void Function(AppEntry app) onAppTap;
 
+  /// O lado de cada ícone (o `dockIconSize` das configurações).
+  final double iconSize;
+
+  /// O ícone sob o mouse cresce.
+  final bool magnification;
+
   const PsitoDock({
     super.key,
     required this.apps,
     this.runningAppIds = const {},
     required this.onAppTap,
+    this.iconSize = 52,
+    this.magnification = true,
   });
 
   @override
@@ -52,8 +60,9 @@ class _PsitoDockState extends State<PsitoDock> {
           final isHovered = _hoveredIndex == index;
 
           // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
-          double iconSize = isHovered ? 48.0 : 36.0;
-          double containerSize = isHovered ? 64.0 : 52.0;
+          final containerSize = isHovered && widget.magnification
+              ? widget.iconSize * 1.25
+              : widget.iconSize;
 
           return MouseRegion(
             onEnter: (_) => setState(() => _hoveredIndex = index),
@@ -68,7 +77,7 @@ class _PsitoDockState extends State<PsitoDock> {
                 margin: const EdgeInsets.symmetric(horizontal: 6),
                 decoration: BoxDecoration(
                   color: app.color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(containerSize * 0.3),
                   border: Border.all(
                     color: isHovered ? app.color : Colors.white24,
                     width: isHovered ? 2.0 : 1.0,
@@ -86,10 +95,10 @@ class _PsitoDockState extends State<PsitoDock> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    app.icon(iconSize * 0.75),
+                    app.icon(containerSize * 0.55),
                     if (widget.runningAppIds.contains(app.id))
                       Positioned(
-                        bottom: 3,
+                        bottom: containerSize * 0.06,
                         child: Container(
                           key: ValueKey('running-${app.id}'),
                           width: 5,

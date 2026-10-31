@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/notification_center.dart';
@@ -16,7 +17,7 @@ import 'package:system_shell/shell/window_switcher.dart';
 
 import 'app_icon.dart';
 import 'desktop_entries.dart';
-import 'dock_model.dart';
+import 'dock.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
 import 'surfaces.dart';
@@ -33,10 +34,11 @@ class ShellState {
     required this.settings,
     required this.services,
     required this.toplevels,
+    DockStore? dock,
     this.surfaces = const Surfaces(),
     this.osdDuration = const Duration(milliseconds: 1500),
     this.sandbox,
-  }) {
+  }) : dock = dock ?? DockStore.memory(defaultDock) {
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
     switcher.addListener(_syncOverlay);
@@ -47,6 +49,9 @@ class ShellState {
   final SettingsStore settings;
   final SystemServices services;
   final ToplevelList toplevels;
+
+  /// Os itens fixados na dock (o dock.json).
+  final DockStore dock;
   final Surfaces surfaces;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
@@ -96,16 +101,16 @@ class ShellState {
   /// Os apps de fora, dos `.desktop`.
   final apps = ValueNotifier<List<DesktopEntry>>(const []);
 
-  /// Fixados na dock, por id do `.desktop`. Os que não estão instalados não
-  /// aparecem.
-  static const pinned = [
-    'firefox-esr',
-    'foot',
-    'org.psito.files',
-    'org.psito.notepad',
-    'org.psito.calculator',
-    'org.psito.clock',
-    'org.psito.settings',
+  /// A dock da primeira vez, por id do `.desktop`. Os que não estão
+  /// instalados não aparecem.
+  static const defaultDock = [
+    DockApp('firefox-esr'),
+    DockApp('foot'),
+    DockApp('org.psito.files'),
+    DockApp('org.psito.notepad'),
+    DockApp('org.psito.calculator'),
+    DockApp('org.psito.clock'),
+    DockApp('org.psito.settings'),
   ];
 
   final overlay = ValueNotifier<ShellOverlay?>(null);
@@ -164,20 +169,20 @@ class ShellState {
     }
   }
 
-  List<DockSlot> get dockSlots => dockSlotsFor(
-    pinned: pinned,
-    entries: {for (final app in apps.value) app.id: app},
+  DockLayout<DesktopEntry, Toplevel> get dockSections => dockLayout(
+    items: dock.value,
+    apps: {for (final app in apps.value) app.id: app},
     windows: toplevels.windows,
   );
 
   void tapDock(DockSlot slot) {
     switch (tapAction(slot)) {
-      case LaunchApp(:final entry):
-        unawaited(entry.launch(sandbox: sandbox));
-      case ActivateWindow(:final id):
-        unawaited(toplevels.activate(id));
-      case MinimizeWindow(:final id):
-        unawaited(toplevels.minimize(id));
+      case LaunchApp(:final app):
+        unawaited(app.launch(sandbox: sandbox));
+      case ActivateWindow(:final window):
+        unawaited(toplevels.activate(window.id));
+      case MinimizeWindow(:final window):
+        unawaited(toplevels.minimize(window.id));
       case null:
         break;
     }

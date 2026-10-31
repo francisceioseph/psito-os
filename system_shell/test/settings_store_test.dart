@@ -85,8 +85,15 @@ void main() {
       wallpaperId: 'floresta',
       showSeconds: true,
       showBatteryPercentage: false,
+      dockIconSize: 72,
+      dockMagnification: false,
     );
     expect(PsitoSettings.fromJson(s.toJson()), s);
+  });
+
+  test('o tamanho da dock fica entre o mínimo e o máximo', () {
+    expect(PsitoSettings.fromJson({'dockIconSize': 500}).dockIconSize, 96);
+    expect(PsitoSettings.fromJson({'dockIconSize': 'x'}).dockIconSize, 52);
   });
 
   test('papel de parede desconhecido cai no padrão', () {

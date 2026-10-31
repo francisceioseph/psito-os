@@ -5,13 +5,16 @@
 // Dart pelo canal psito/toplevels.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_dock/psito_dock.dart';
 
 @immutable
-class Toplevel {
+class Toplevel implements DockWindow {
   final int id;
   final String title;
+  @override
   final String appId;
   final bool activated;
+  @override
   final bool minimized;
   final bool maximized;
 
@@ -23,6 +26,9 @@ class Toplevel {
     this.minimized = false,
     this.maximized = false,
   });
+
+  @override
+  bool get focused => activated;
 
   factory Toplevel.fromMap(Map<Object?, Object?> map) => Toplevel(
     id: map['id']! as int,

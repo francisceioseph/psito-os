@@ -6,6 +6,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 
 enum _Section {
   appearance('Aparência', Icons.palette_outlined),
+  dock('Dock', Icons.call_to_action_outlined),
   dateTime('Data e hora', Icons.schedule),
   network('Rede', Icons.lan_outlined),
   notifications('Notificações', Icons.notifications_none),
@@ -77,6 +78,7 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 16),
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
+                  _Section.dock => _dock(settings),
                   _Section.dateTime => _dateTime(settings),
                   _Section.network => _network(),
                   _Section.notifications => _notifications(settings),
@@ -176,6 +178,20 @@ class _SettingsViewState extends State<SettingsView> {
             onTap: () => _update(s.copyWith(wallpaperId: w.id)),
           ),
       ],
+    ),
+  ];
+
+  List<Widget> _dock(PsitoSettings s) => [
+    const _Label('Tamanho dos ícones'),
+    _DockSizeSlider(
+      value: s.dockIconSize,
+      onChanged: (v) => _update(s.copyWith(dockIconSize: v)),
+    ),
+    SwitchListTile(
+      title: const Text('Ampliação'),
+      subtitle: const Text('O ícone sob o mouse cresce.'),
+      value: s.dockMagnification,
+      onChanged: (v) => _update(s.copyWith(dockMagnification: v)),
     ),
   ];
 
@@ -443,6 +459,47 @@ class _WallpaperCard extends StatelessWidget {
           Text(wallpaper.name, style: const TextStyle(fontSize: 12)),
         ],
       ),
+    );
+  }
+}
+
+/// Grava só ao soltar, e não a cada passo do arrastar: cada gravação vai
+/// pelo D-Bus e faz a dock mudar de tamanho.
+class _DockSizeSlider extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  const _DockSizeSlider({required this.value, required this.onChanged});
+
+  @override
+  State<_DockSizeSlider> createState() => _DockSizeSliderState();
+}
+
+class _DockSizeSliderState extends State<_DockSizeSlider> {
+  double? _dragging;
+
+  @override
+  Widget build(BuildContext context) {
+    const sizes = PsitoSettings.dockSizes;
+    final value = _dragging ?? widget.value;
+    return Row(
+      children: [
+        Expanded(
+          child: Slider(
+            min: sizes.min,
+            max: sizes.max,
+            divisions: ((sizes.max - sizes.min) / 4).round(),
+            value: value,
+            label: '${value.round()} px',
+            onChanged: (v) => setState(() => _dragging = v),
+            onChangeEnd: (v) {
+              setState(() => _dragging = null);
+              widget.onChanged(v);
+            },
+          ),
+        ),
+        SizedBox(width: 56, child: Text('${value.round()} px')),
+      ],
     );
   }
 }

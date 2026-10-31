@@ -31,6 +31,9 @@ ssh -p "$VM_PORT" psito@localhost "
         dir=~/psito-src/\$dir
         [ -f \$dir/pubspec.yaml ] || continue
         cd \$dir
+        # O build incremental não refaz a fonte de ícones cortada (só com os
+        # ícones usados): um ícone novo saía em branco
+        rm -rf build/flutter_assets
         ~/flutter/bin/flutter build linux --$MODE 2>&1 | grep -E 'error|warning|✓' | tail -n 20
     done
     echo $MODE > ~/psito-src/.mode

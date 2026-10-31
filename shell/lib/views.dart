@@ -20,6 +20,7 @@ import 'package:system_shell/widgets/volume_panel.dart';
 import 'package:system_shell/widgets/window_switcher_overlay.dart';
 
 import 'app_icon.dart';
+import 'dock.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
 import 'surfaces.dart';
@@ -244,13 +245,14 @@ class _DockView extends StatelessWidget {
     // a margem da dock até a borda da tela (a reserva do system_shell)
     padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
     builder: (context, settings) => ListenableBuilder(
-      listenable: Listenable.merge([state.toplevels, state.apps]),
+      listenable: Listenable.merge([state.toplevels, state.apps, state.dock]),
       builder: (context, _) {
-        final slots = state.dockSlots;
+        // As pastas e os arquivos (dockSections.paths) entram na etapa 4
+        final slots = state.dockSections.apps;
         return PsitoDock(
           apps: [
             for (final slot in slots)
-              appEntry(slot.id, slot.name, slot.entry, settings.accent),
+              appEntry(slot.id, slot.name, slot.app, settings.accent),
           ],
           runningAppIds: {
             for (final slot in slots)
@@ -258,6 +260,8 @@ class _DockView extends StatelessWidget {
           },
           onAppTap: (app) =>
               state.tapDock(slots.firstWhere((slot) => slot.id == app.id)),
+          iconSize: settings.dockIconSize,
+          magnification: settings.dockMagnification,
         );
       },
     ),

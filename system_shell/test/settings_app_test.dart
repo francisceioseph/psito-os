@@ -100,6 +100,8 @@ void main() {
     addTearDown(services.dispose);
     await pumpOS(tester, services: services);
     await _openSettings(tester);
+    await tester.ensureVisible(find.text('Sobre'));
+    await tester.pump();
     await tester.tap(find.text('Sobre'));
     await tester.pump();
 
