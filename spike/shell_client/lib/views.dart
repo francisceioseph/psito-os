@@ -183,12 +183,17 @@ class _Sized extends StatelessWidget {
   final ShellState state;
   final Surface surface;
   final Alignment alignment;
+
+  /// Espaço transparente em volta, para a sombra não ser cortada pela borda
+  /// da superfície; fica fora da região de input.
+  final EdgeInsets padding;
   final Widget Function(BuildContext context, PsitoSettings settings) builder;
 
   const _Sized(
     this.state,
     this.surface, {
     required this.alignment,
+    this.padding = EdgeInsets.zero,
     required this.builder,
   });
 
@@ -210,9 +215,13 @@ class _Sized extends StatelessWidget {
               maxWidth: double.infinity,
               maxHeight: double.infinity,
               child: SizeReporter(
-                onSize: (size) => state.surfaces.resize(surface, size),
-                child: Builder(
-                  builder: (context) => builder(context, settings),
+                onSize: (size) =>
+                    state.surfaces.resize(surface, size, input: padding),
+                child: Padding(
+                  padding: padding,
+                  child: Builder(
+                    builder: (context) => builder(context, settings),
+                  ),
                 ),
               ),
             ),
@@ -232,6 +241,9 @@ class _DockView extends StatelessWidget {
     state,
     Surface.dock,
     alignment: Alignment.bottomCenter,
+    // A sombra da dock: 20 de blur, 2 de spread, 10 para baixo. Embaixo fica
+    // a margem da dock até a borda da tela (a reserva do system_shell)
+    padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
     builder: (context, settings) => ListenableBuilder(
       listenable: Listenable.merge([state.toplevels, state.apps]),
       builder: (context, _) {
@@ -362,6 +374,8 @@ class _ToastsView extends StatelessWidget {
     state,
     Surface.toasts,
     alignment: Alignment.topRight,
+    // A sombra dos toasts (18 de blur); à direita, a margem até a borda
+    padding: const EdgeInsets.fromLTRB(20, 20, 12, 20),
     builder: (context, _) => NotificationToasts(
       center: state.notifications,
       onTap: state.openNotification,

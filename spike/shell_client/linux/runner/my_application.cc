@@ -17,15 +17,14 @@
 
 // As mesmas medidas do system_shell: TopBar.height e a reserva da dock
 constexpr int kTopBarHeight = 40;
-constexpr int kDockMargin = 20;
 constexpr int kDockReserve = 100;
 // Espaço transparente embaixo da top bar para os tooltips, que o Flutter
 // desenha dentro da própria view; fora da região de input e da zona exclusiva
 constexpr int kTooltipSpace = 48;
 // Toasts no canto de cima à direita e o OSD acima da dock, como no
-// DesktopScreen do system_shell
-constexpr int kToastsTop = kTopBarHeight + 8;
-constexpr int kToastsRight = 12;
+// DesktopScreen do system_shell. A margem da dock (20) e a dos toasts (8 e
+// 12) ficam dentro da superfície, no espaço da sombra (lib/views.dart)
+constexpr int kToastsTop = kTopBarHeight + 8 - 20;
 constexpr int kOsdBottom = kDockReserve + 16;
 
 struct _MyApplication {
@@ -89,11 +88,22 @@ static GtkWindow* layer_window(MyApplication* self, FlView* view,
 // (fl_view_new_sized_to_content) não servem: elas pedem o tamanho novo à
 // GtkWindow, mas a superfície layer-shell fica no tamanho do primeiro
 // configure e a view nunca aparece.
-static void sized_window_resize(GtkWindow* window, int width, int height) {
+// A borda [input] (esquerda, cima, direita, baixo) é o espaço da sombra e
+// fica fora da região de input: os cliques ali vão para as janelas.
+static void sized_window_resize(GtkWindow* window, int width, int height,
+                                const int input[4]) {
   width = MAX(width, 1);
   height = MAX(height, 1);
   gtk_widget_set_size_request(GTK_WIDGET(window), width, height);
   gtk_window_resize(window, width, height);
+  GdkWindow* gdk_window = gtk_widget_get_window(GTK_WIDGET(window));
+  if (gdk_window == nullptr || input == nullptr) return;
+  cairo_rectangle_int_t rect = {input[0], input[1],
+                                MAX(width - input[0] - input[2], 0),
+                                MAX(height - input[1] - input[3], 0)};
+  cairo_region_t* region = cairo_region_create_rectangle(&rect);
+  gdk_window_input_shape_combine_region(gdk_window, region, 0, 0);
+  cairo_region_destroy(region);
 }
 
 static void anchor_all(GtkWindow* window) {
@@ -168,8 +178,18 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
     int i = surface_index(fl_value_lookup_string(args, "surface"));
     int width = fl_value_get_int(fl_value_lookup_string(args, "width"));
     int height = fl_value_get_int(fl_value_lookup_string(args, "height"));
+    FlValue* input = fl_value_lookup_string(args, "input");
+    int insets[4] = {0, 0, 0, 0};
+    if (input != nullptr && fl_value_get_type(input) == FL_VALUE_TYPE_LIST &&
+        fl_value_get_length(input) == 4) {
+      for (int k = 0; k < 4; k++) {
+        insets[k] = fl_value_get_int(fl_value_get_list_value(input, k));
+      }
+    }
+    // O OSD não recebe cliques: a região dele fica vazia (osd_size_allocate_cb)
     if (i >= 0 && self->windows[i] != nullptr) {
-      sized_window_resize(self->windows[i], width, height);
+      sized_window_resize(self->windows[i], width, height,
+                          i == kOsd ? nullptr : insets);
     }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else if (strcmp(method, "show") == 0 || strcmp(method, "hide") == 0) {
@@ -258,16 +278,15 @@ static void my_application_activate(GApplication* application) {
   }
 
   // A dock tem o tamanho do conteúdo (sized_window_resize), centrada na
-  // base. A zona exclusiva
-  // conta a partir da margem: as duas somam a reserva do system_shell
+  // base; a margem até a borda está dentro da superfície, e a zona
+  // exclusiva é a reserva do system_shell
   if (surface_wanted(kDock)) {
     FlView* dock = fl_view_new_for_engine(engine);
     GtkWindow* window =
         layer_window(self, dock, GTK_LAYER_SHELL_LAYER_TOP, "dock");
     gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_BOTTOM, kDockMargin);
-    gtk_layer_set_exclusive_zone(window, kDockReserve - kDockMargin);
-    sized_window_resize(window, 1, 1);
+    gtk_layer_set_exclusive_zone(window, kDockReserve);
+    sized_window_resize(window, 1, 1, nullptr);
     self->views[kDock] = dock;
     self->windows[kDock] = window;
   }
@@ -293,9 +312,8 @@ static void my_application_activate(GApplication* application) {
     gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
     gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
     gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_TOP, kToastsTop);
-    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_RIGHT, kToastsRight);
     gtk_layer_set_exclusive_zone(window, -1);
-    sized_window_resize(window, 1, 1);
+    sized_window_resize(window, 1, 1, nullptr);
     self->views[kToasts] = toasts;
     self->windows[kToasts] = window;
   }
@@ -309,7 +327,7 @@ static void my_application_activate(GApplication* application) {
     gtk_layer_set_exclusive_zone(window, -1);
     g_signal_connect_after(window, "size-allocate",
                            G_CALLBACK(osd_size_allocate_cb), nullptr);
-    sized_window_resize(window, 1, 1);
+    sized_window_resize(window, 1, 1, nullptr);
     self->views[kOsd] = osd;
     self->windows[kOsd] = window;
   }
