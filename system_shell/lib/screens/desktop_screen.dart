@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 import '../services/system_services.dart';
+import '../shell/app_entry.dart';
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';
 import '../shell/settings_store.dart';
@@ -78,6 +80,13 @@ class _DesktopScreenState extends State<DesktopScreen> {
   static const _volumeOsdDuration = Duration(milliseconds: 1500);
   static const _volumeStep = 0.05;
   final _switcher = WindowSwitcher();
+
+  /// Os apps registrados como a dock e o launcher os veem.
+  final _entries = [
+    for (final app in registeredApps) AppEntry.fromPsitoApp(app),
+  ];
+  PsitoApp _appFor(AppEntry entry) =>
+      registeredApps.firstWhere((app) => app.id == entry.id);
   final _superTap = SuperTapDetector();
 
   @override
@@ -356,11 +365,12 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     child: ListenableBuilder(
                       listenable: _windows,
                       builder: (context, _) => PsitoDock(
-                        apps: registeredApps,
+                        apps: _entries,
                         runningAppIds: {
                           for (final w in _windows.windows) w.app.id,
                         },
-                        onAppTap: _windows.activateApp,
+                        onAppTap: (entry) =>
+                            _windows.activateApp(_appFor(entry)),
                       ),
                     ),
                   ),
@@ -414,10 +424,10 @@ class _DesktopScreenState extends State<DesktopScreen> {
                         onClose: _closeOverlay,
                       ),
                       _Overlay.launcher => Launcher(
-                        apps: registeredApps,
-                        onLaunch: (app) {
+                        apps: _entries,
+                        onLaunch: (entry) {
                           _closeOverlay();
-                          _windows.open(app);
+                          _windows.open(_appFor(entry));
                         },
                         onClose: _closeOverlay,
                       ),

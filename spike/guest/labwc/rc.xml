@@ -18,7 +18,7 @@
   <keyboard>
     <default />
     <!-- Combinações de VM do Psito (o host fica com Super e Alt+Tab) -->
-    <keybind key="C-space"><action name="Execute" command="foot" /></keybind>
+    <keybind key="C-space"><action name="Execute" command="gdbus call --session --dest org.psito.Shell --object-path /org/psito/Shell --method org.psito.Shell.ToggleLauncher" /></keybind>
     <keybind key="C-Tab"><action name="NextWindow" /></keybind>
     <keybind key="C-S-Tab"><action name="PreviousWindow" /></keybind>
     <keybind key="C-A-w"><action name="Close" /></keybind>

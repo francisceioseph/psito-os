@@ -1,5 +1,10 @@
 # O virtio-gpu anuncia 640x480 como modo preferido; o labwc não tem modo no rc.xml
 wlr-randr --output Virtual-1 --mode 1440x900
-# O waybar faz o papel do painel do Psito nesta etapa (cliente layer-shell)
+# O shell do Psito como cliente layer-shell (spike/shell_client/build.sh);
+# sem ele compilado, o waybar faz o papel do painel
 mkdir -p /tmp/spike
-waybar >/tmp/spike/waybar.log 2>&1 &
+if [ -x "$HOME/shell_client/psito_shell_client" ]; then
+    "$HOME/shell_client/psito_shell_client" >/tmp/spike/shell.log 2>&1 &
+else
+    waybar >/tmp/spike/waybar.log 2>&1 &
+fi

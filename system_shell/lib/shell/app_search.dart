@@ -1,5 +1,5 @@
 // system_shell/lib/shell/app_search.dart
-import 'package:psito_sdk/psito_sdk.dart';
+import 'app_entry.dart';
 
 const _accents = {
   'á': 'a', 'à': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', //
@@ -22,12 +22,12 @@ String foldForSearch(String s) {
 
 /// Apps cujo nome ou id contém [query]. Os que começam com o termo vêm
 /// primeiro; fora isso, vale a ordem de [apps].
-List<PsitoApp> searchApps(List<PsitoApp> apps, String query) {
+List<AppEntry> searchApps(List<AppEntry> apps, String query) {
   final term = foldForSearch(query.trim());
   if (term.isEmpty) return List.of(apps);
 
-  final prefix = <PsitoApp>[];
-  final inside = <PsitoApp>[];
+  final prefix = <AppEntry>[];
+  final inside = <AppEntry>[];
   for (final app in apps) {
     final name = foldForSearch(app.name);
     final id = foldForSearch(app.id);

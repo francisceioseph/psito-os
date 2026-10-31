@@ -1,0 +1,24 @@
+name: psito_shell_client
+description: "O shell do Psito como cliente layer-shell do compositor (fase 3, etapa 4)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dbus: ^0.8.0
+  psito_sdk:
+    path: ../../packages/psito_sdk
+  system_shell:
+    path: ../../system_shell
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

@@ -18,16 +18,19 @@ class PsitoOSApp extends StatelessWidget {
       builder: (context, value, _) => MaterialApp(
         title: 'Psito OS',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          scaffoldBackgroundColor: const Color(0xFF12181B),
-          colorScheme: ColorScheme.dark(
-            primary: value.accent, // Amarelo calopsita 🦜 por padrão
-            secondary: const Color(0xFFFF5722), // Bochecha alaranjada
-          ),
-        ),
+        theme: psitoTheme(value.accent),
         home: DesktopScreen(settings: settings, services: services),
       ),
     );
   }
 }
+
+/// Tema escuro do Psito com a cor de destaque das Configurações.
+ThemeData psitoTheme(Color accent) => ThemeData(
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: const Color(0xFF12181B),
+  colorScheme: ColorScheme.dark(
+    primary: accent, // Amarelo calopsita 🦜 por padrão
+    secondary: const Color(0xFFFF5722), // Bochecha alaranjada
+  ),
+);

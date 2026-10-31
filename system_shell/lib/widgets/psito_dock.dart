@@ -1,14 +1,14 @@
 // system_shell/lib/widgets/psito_dock.dart
 import 'package:flutter/material.dart';
 
-import 'package:psito_sdk/psito_sdk.dart';
+import '../shell/app_entry.dart';
 
 class PsitoDock extends StatefulWidget {
-  final List<PsitoApp> apps;
+  final List<AppEntry> apps;
 
   /// Apps com pelo menos uma janela aberta: ganham um ponto embaixo do ícone.
   final Set<String> runningAppIds;
-  final void Function(PsitoApp app) onAppTap;
+  final void Function(AppEntry app) onAppTap;
 
   const PsitoDock({
     super.key,
@@ -86,7 +86,7 @@ class _PsitoDockState extends State<PsitoDock> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(app.icon, size: iconSize * 0.75, color: app.color),
+                    app.icon(iconSize * 0.75),
                     if (widget.runningAppIds.contains(app.id))
                       Positioned(
                         bottom: 3,

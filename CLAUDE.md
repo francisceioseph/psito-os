@@ -42,6 +42,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `guest/`: o que o `spike/provision.sh` instala na VM;
   - `guest/labwc/`, `guest/wayfire.ini` e `guest/waybar/`: a configuração de cada candidato, instalada no `~/.config` do `psito`;
   - `bridge/labwc_bridge.py`: esboço da ponte (o `settings.json` do Psito vira o tema e os atalhos do labwc);
+  - `shell_client/`: o shell como cliente layer-shell. São quatro views do Flutter num engine, uma por superfície (fundo, top bar, dock, sobreposição), com os widgets do `system_shell` por dependência de caminho. O runner em C tem o layer-shell, a ponte do foreign-toplevel (`toplevels.cc`, canal `psito/toplevels`) e os ícones do tema. O launcher abre pelo D-Bus da sessão (`org.psito.Shell.ToggleLauncher`);
   - `zenith/`: instala as dependências do Zenith e compila (wlroots 0.15.1 e Flutter 3.10.6 na VM); `patches/`: os patches dele. As fontes de terceiros ficam em `~/vendor/` na VM;
   - `notas/` e `results/`: o que cada candidato mostrou e os números (`results/raw/` e `vendor/` ficam fora do git).
 - `vm/`: arquivos instalados na VM pelo `provision.sh`: o serviço, o script do guest e `polkit/`, com as permissões D-Bus do usuário `psito`
@@ -58,7 +59,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.
 - Spike (fase 3):
   - `spike/vm.sh <script da raiz>` roda `create-disk.sh`, `install-os.sh`, `provision.sh` ou `run.sh` na VM do spike; `spike/vm.sh ssh` entra nela. Depois do `provision.sh`, rode `spike/provision.sh`.
-  - `spike/session.sh weston|labwc|wayfire|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe.
+  - `spike/session.sh weston|labwc|wayfire|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe; `spike/shell_client/build.sh` compila o shell na VM, e o `autostart` do labwc e do Wayfire sobe ele.
   - `spike/measure.sh <candidato> <processo>` mede e grava `spike/results/<candidato>.csv`.
   - `ssh -p 2223 psito@localhost 'bash -s' < spike/tools/protocols.sh` lista os protocolos que o compositor rodando anuncia.
   - Não suba as duas VMs ao mesmo tempo.

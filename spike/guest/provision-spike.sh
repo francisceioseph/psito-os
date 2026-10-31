@@ -18,6 +18,8 @@ apt-get install -y -qq \
 # app comum pesado. Sem recomendados: o wayfire puxaria o wf-shell.
 apt-get install -y -qq --no-install-recommends \
     labwc wayfire wlr-randr wlrctl waybar firefox-esr fonts-dejavu >/dev/null
+# Etapa 4: o shell como cliente layer-shell (spike/shell_client)
+apt-get install -y -qq libgtk-layer-shell-dev libwayland-bin >/dev/null
 
 echo "🐦 [spike] Flutter $FLUTTER_VERSION..."
 if [ ! -d "$FLUTTER_DIR/.git" ]; then

@@ -46,8 +46,9 @@ BINDINGS = [
     ("A-S-m", "volumeMute"),
 ]
 
-# Ação do Psito -> ação do labwc. O que é do shell vira Execute de um comando,
-# que por enquanto é um placeholder (o shell como cliente é a etapa 4).
+# Ação do Psito -> ação do labwc. O que é do shell vira Execute de um comando:
+# o launcher chama o shell pelo D-Bus da sessão (spike/shell_client); o volume
+# ainda vai direto ao wpctl.
 ACTIONS = {
     "switchNext": '<action name="NextWindow" />',
     "switchPrev": '<action name="PreviousWindow" />',
@@ -56,7 +57,7 @@ ACTIONS = {
     "snapLeft": '<action name="SnapToEdge" direction="left" />',
     "snapRight": '<action name="SnapToEdge" direction="right" />',
     "minimize": '<action name="Iconify" />',
-    "launcher": '<action name="Execute" command="foot" />',
+    "launcher": '<action name="Execute" command="gdbus call --session --dest org.psito.Shell --object-path /org/psito/Shell --method org.psito.Shell.ToggleLauncher" />',
     "volumeUp": '<action name="Execute" command="wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+" />',
     "volumeDown": '<action name="Execute" command="wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" />',
     "volumeMute": '<action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" />',

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/app_search.dart';
 
 import 'helpers.dart';
@@ -10,8 +11,9 @@ const _apps = [
   FakeApp('files', name: 'Arquivos'),
 ];
 
-List<String> _ids(String query) =>
-    searchApps(_apps, query).map((a) => a.id).toList();
+List<String> _ids(String query) => searchApps([
+  for (final app in _apps) AppEntry.fromPsitoApp(app),
+], query).map((a) => a.id).toList();
 
 void main() {
   test('foldForSearch tira acentos e maiúsculas', () {

@@ -1,14 +1,14 @@
 // system_shell/lib/widgets/launcher.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:psito_sdk/psito_sdk.dart';
 
+import '../shell/app_entry.dart';
 import '../shell/app_search.dart';
 
 /// Menu Psito: busca com foco e grade de apps.
 class Launcher extends StatefulWidget {
-  final List<PsitoApp> apps;
-  final void Function(PsitoApp app) onLaunch;
+  final List<AppEntry> apps;
+  final void Function(AppEntry app) onLaunch;
   final VoidCallback onClose;
 
   const Launcher({
@@ -28,7 +28,7 @@ class _LauncherState extends State<Launcher> {
   static const _tileSize = 96.0;
   static const _spacing = 8.0;
 
-  late List<PsitoApp> _results = widget.apps;
+  late List<AppEntry> _results = widget.apps;
   int _selected = 0;
   int? _hovered;
 
@@ -170,7 +170,7 @@ class _LauncherState extends State<Launcher> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(app.icon, size: 36, color: app.color),
+              app.icon(36),
               const SizedBox(height: 8),
               Text(
                 app.name,
