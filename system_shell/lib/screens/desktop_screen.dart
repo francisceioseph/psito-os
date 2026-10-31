@@ -395,7 +395,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                                   running: slot.running,
                                 ),
                           ],
-                          onTap: (id) => _windows.activateApp(
+                          onTap: (id, _) => _windows.activateApp(
                             registeredApps.firstWhere((app) => app.id == id),
                           ),
                           iconSize: _settings.value.dockIconSize,

@@ -32,7 +32,8 @@ class PsitoDock extends StatefulWidget {
   /// Algo de fora em cima da dock: a borda se destaca.
   final bool highlighted;
 
-  final void Function(String key) onTap;
+  /// O clique, com o retângulo do ícone (para a pilha de uma pasta).
+  final void Function(String key, Rect rect) onTap;
 
   /// O clique direito, com o retângulo do ícone (para o menu).
   final void Function(String key, Rect rect)? onMenu;
@@ -47,6 +48,10 @@ class PsitoDock extends StatefulWidget {
   /// O ícone sob o mouse cresce.
   final bool magnification;
 
+  /// Põe algo em volta do quadrado de um ícone (sem a margem): o shell põe
+  /// o alvo de soltar arquivos de cada app e da lixeira.
+  final Widget Function(DockTile tile, Widget child)? wrapTile;
+
   const PsitoDock({
     super.key,
     required this.tiles,
@@ -58,6 +63,7 @@ class PsitoDock extends StatefulWidget {
     this.onDragStart,
     this.iconSize = 52,
     this.magnification = true,
+    this.wrapTile,
   });
 
   /// A margem de cada lado de um ícone.
@@ -142,7 +148,6 @@ class _PsitoDockState extends State<PsitoDock> {
   }
 
   Widget _tile(DockTile tile) {
-    final app = tile.entry;
     final isHovered = _hovered == tile.key;
     // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
     final containerSize = isHovered && widget.magnification
@@ -154,70 +159,83 @@ class _PsitoDockState extends State<PsitoDock> {
       onEnter: (_) => setState(() => _hovered = tile.key),
       onExit: (_) => setState(() => _hovered = null),
       child: Builder(
-        builder: (context) => GestureDetector(
-          onTap: () => widget.onTap(tile.key),
-          onSecondaryTap: widget.onMenu == null
-              ? null
-              : () {
-                  final box = context.findRenderObject()! as RenderBox;
-                  widget.onMenu!(
-                    tile.key,
-                    box.localToGlobal(Offset.zero) & box.size,
-                  );
-                },
-          onPanStart: drag
-              ? (details) {
-                  setState(() => _hovered = null);
-                  widget.onDragStart!(tile.key, details.globalPosition);
-                }
-              : null,
-          child: AnimatedContainer(
-            key: ValueKey('dock-${tile.key}'),
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            width: containerSize,
-            height: containerSize,
-            margin: const EdgeInsets.symmetric(
-              horizontal: PsitoDock.tileMargin,
-            ),
-            decoration: BoxDecoration(
-              color: app.color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(containerSize * 0.3),
-              border: Border.all(
-                color: isHovered ? app.color : Colors.white24,
-                width: isHovered ? 2.0 : 1.0,
+        builder: (context) {
+          Rect rect() {
+            final box = context.findRenderObject()! as RenderBox;
+            return box.localToGlobal(Offset.zero) & box.size;
+          }
+
+          return GestureDetector(
+            onTap: () => widget.onTap(tile.key, rect()),
+            onSecondaryTap: widget.onMenu == null
+                ? null
+                : () => widget.onMenu!(tile.key, rect()),
+            onPanStart: drag
+                ? (details) {
+                    setState(() => _hovered = null);
+                    widget.onDragStart!(tile.key, details.globalPosition);
+                  }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: PsitoDock.tileMargin,
               ),
-              boxShadow: isHovered
-                  ? [
-                      BoxShadow(
-                        color: app.color.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : [],
+              child: (widget.wrapTile ?? _plain)(
+                tile,
+                _square(tile, containerSize, isHovered),
+              ),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                app.icon(containerSize * 0.55),
-                if (tile.running)
-                  Positioned(
-                    bottom: containerSize * 0.06,
-                    child: Container(
-                      key: ValueKey('running-${tile.key}'),
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: app.color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  static Widget _plain(DockTile tile, Widget child) => child;
+
+  Widget _square(DockTile tile, double containerSize, bool isHovered) {
+    final app = tile.entry;
+    return AnimatedContainer(
+      key: ValueKey('dock-${tile.key}'),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      width: containerSize,
+      height: containerSize,
+      decoration: BoxDecoration(
+        color: app.color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(containerSize * 0.3),
+        border: Border.all(
+          color: isHovered ? app.color : Colors.white24,
+          width: isHovered ? 2.0 : 1.0,
         ),
+        boxShadow: isHovered
+            ? [
+                BoxShadow(
+                  color: app.color.withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              ]
+            : [],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          app.icon(containerSize * 0.55),
+          if (tile.running)
+            Positioned(
+              bottom: containerSize * 0.06,
+              child: Container(
+                key: ValueKey('running-${tile.key}'),
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: app.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

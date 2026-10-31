@@ -10,8 +10,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
+import 'package:system_shell/widgets/dock_stack.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 
 import 'app_icon.dart';
@@ -50,8 +53,22 @@ class DockMenuRequest {
   const DockMenuRequest(this.item, this.anchor);
 }
 
-/// Um ícone na fileira da dock: um app (com o [slot]) ou uma pasta ou um
-/// arquivo.
+/// Uma pasta aberta como pilha.
+@immutable
+class DockStackRequest {
+  final DockFolder folder;
+
+  /// O ícone, na tela.
+  final Rect anchor;
+
+  /// O conteúdo, os mais novos primeiro.
+  final List<DockPath> entries;
+
+  const DockStackRequest(this.folder, this.anchor, this.entries);
+}
+
+/// Um ícone na fileira da dock: um app (com o [slot]), uma pasta, um
+/// arquivo ou a lixeira.
 class DockRowItem {
   final DockItem item;
   final DockSlot? slot;
@@ -60,8 +77,8 @@ class DockRowItem {
 }
 
 /// A fileira como a dock desenha: os apps fixados, os abertos e as pastas e
-/// os arquivos, com um separador antes de cada seção que não seja a
-/// primeira. O ícone arrastado da dock fica de fora.
+/// os arquivos com a lixeira no fim, com um separador antes de cada seção
+/// que não seja a primeira. O ícone arrastado da dock fica de fora.
 class DockRow {
   final List<DockRowItem> items;
   final Set<int> separators;
@@ -69,7 +86,7 @@ class DockRow {
   /// Quantos apps fixados (o começo da fileira).
   final int pinned;
 
-  /// Onde começam as pastas e os arquivos.
+  /// Onde começam as pastas e os arquivos (a lixeira é o último).
   final int paths;
 
   const DockRow(this.items, this.separators, this.pinned, this.paths);
@@ -82,6 +99,26 @@ class DockController {
 
   final drag = ValueNotifier<DockDrag?>(null);
   final menu = ValueNotifier<DockMenuRequest?>(null);
+  final stack = ValueNotifier<DockStackRequest?>(null);
+
+  /// A confirmação do "Esvaziar a lixeira" está aberta.
+  final askEmptyTrash = ValueNotifier(false);
+
+  /// A lixeira do usuário (o main põe). Null: sem lixeira (testes).
+  Trash? trash;
+
+  /// Se a lixeira tem algo, para o ícone cheio.
+  final trashFull = ValueNotifier(false);
+
+  /// Se o app abre todos os [paths] (o `MimeType=` do `.desktop`, pelo
+  /// Opener no main).
+  bool Function(String appId, List<String> paths) appAccepts = (_, _) => false;
+
+  /// O conteúdo de uma pasta para a pilha, os mais novos primeiro.
+  Future<List<DockPath>> Function(String dir) listFolder = _listFolder;
+
+  /// Até quantos itens a pilha mostra.
+  static const stackLimit = 200;
 
   /// A tela, e o tamanho da superfície da dock (centrada na base). A view
   /// da dock avisa os dois.
@@ -103,6 +140,9 @@ class DockController {
   AppEntry visual(DockItem item) => switch (item) {
     DockApp(:final id) => state.appFor(id),
     DockPath() => pathEntry(keyOf(item), item.name, iconsFor(item), pathColor),
+    DockTrash() => pathEntry(keyOf(item), 'Lixeira', [
+      if (trashFull.value) 'user-trash-full' else 'user-trash',
+    ], pathColor),
   };
 
   static const pathColor = Color(0xFF90A4AE);
@@ -112,6 +152,7 @@ class DockController {
     DockApp(:final id) => 'app:$id',
     DockFolder(:final path) => 'folder:$path',
     DockFile(:final path) => 'file:$path',
+    DockTrash() => 'trash',
   };
 
   /// Onde o canto da superfície da dock fica na tela.
@@ -139,10 +180,10 @@ class DockController {
     ];
     final apps = pinned.length + running.length;
     return DockRow(
-      [...pinned, ...running, ...paths],
+      [...pinned, ...running, ...paths, const DockRowItem(DockTrash())],
       {
         if (running.isNotEmpty && pinned.isNotEmpty) pinned.length,
-        if (paths.isNotEmpty && apps > 0) apps,
+        if (apps > 0) apps,
       },
       pinned.length,
       apps,
@@ -151,7 +192,7 @@ class DockController {
 
   /// Onde o arrastado cai na [row] (o índice do espaço que abre), ou null
   /// longe da dock. Um app cai entre os fixados; uma pasta ou um arquivo,
-  /// entre os seus.
+  /// entre os seus, antes da lixeira.
   int? dropIndex(DockRow row, DockDrag drag) {
     final size = state.settings.value.dockIconSize;
     final position = drag.position;
@@ -170,7 +211,7 @@ class DockController {
     if (position.dx < left || position.dx > right) return null;
     final (start, end) = drag.item is DockApp
         ? (0, row.pinned)
-        : (row.paths, row.items.length);
+        : (row.paths, row.items.length - 1);
     var index = start;
     while (index < end && centers[index] < position.dx) {
       index++;
@@ -179,7 +220,9 @@ class DockController {
   }
 
   void startDrag(DockItem item, DockDragSource source, Offset position) {
+    if (item is DockTrash) return;
     menu.value = null;
+    stack.value = null;
     drag.value = DockDrag(item, source, position);
     // O launcher fecha, mas a sobreposição fica, com o ponteiro
     if (source == DockDragSource.launcher) state.closeOverlay();
@@ -211,25 +254,154 @@ class DockController {
 
   void cancelDrag() => drag.value = null;
 
-  void tap(DockItem item) {
+  /// O clique. Uma pasta abre a pilha acima do ícone ([rect], na view da
+  /// dock); sem ele, abre no Files.
+  void tap(DockItem item, [Rect? rect]) {
     switch (item) {
       case DockApp():
         for (final slot in state.dockSections.apps) {
           if (slot.item == item) state.tapDock(slot);
         }
+      case DockFolder() when rect != null:
+        unawaited(openStack(item, rect));
       case DockPath(:final path):
-        _open(path);
+        _open([path]);
+      case DockTrash():
+        unawaited(openTrash());
     }
   }
 
-  void _open(String path) {
+  void _open(List<String> paths, {String? withApp}) {
     final open = state.openPaths;
     if (open == null) return;
     unawaited(
-      open([
-        path,
-      ]).catchError((Object e) => debugPrint('🦜 dock: sem abrir $path ($e)')),
+      open(
+        paths,
+        withApp: withApp,
+      ).catchError((Object e) => debugPrint('🦜 dock: sem abrir $paths ($e)')),
     );
+  }
+
+  /// A lixeira no Files (que reconhece a pasta `Trash/files`).
+  Future<void> openTrash() async {
+    final trash = this.trash;
+    if (trash == null) return;
+    try {
+      await Directory(trash.filesDir).create(recursive: true);
+    } on FileSystemException catch (e) {
+      debugPrint('🦜 dock: sem a lixeira ($e)');
+      return;
+    }
+    _open([trash.filesDir]);
+  }
+
+  Future<void> openStack(DockFolder folder, Rect rect) async {
+    menu.value = null;
+    List<DockPath> entries;
+    try {
+      entries = await listFolder(folder.path);
+    } on FileSystemException catch (e) {
+      debugPrint('🦜 dock: sem listar ${folder.path} ($e)');
+      entries = const [];
+    }
+    stack.value = DockStackRequest(folder, rect.shift(origin), entries);
+  }
+
+  void closeStack() => stack.value = null;
+
+  /// O conteúdo da pilha como o DockStack desenha.
+  List<DockStackEntry> stackEntries(DockStackRequest request) => [
+    for (final path in request.entries) DockStackEntry(path.path, visual(path)),
+  ];
+
+  /// Abre um item da pilha: uma pasta no Files, um arquivo no app padrão.
+  void openFromStack(String path) => _open([path]);
+
+  static Future<List<DockPath>> _listFolder(String dir) async {
+    final found = <(DockPath, DateTime)>[];
+    await for (final entity in Directory(dir).list()) {
+      final name = entity.uri.pathSegments.lastWhere(
+        (part) => part.isNotEmpty,
+        orElse: () => '',
+      );
+      if (name.startsWith('.')) continue;
+      final stat = await entity.stat();
+      found.add((
+        stat.type == FileSystemEntityType.directory
+            ? DockFolder(entity.path)
+            : DockFile(entity.path),
+        stat.modified,
+      ));
+    }
+    // Do mesmo segundo, pelo nome
+    found.sort((a, b) {
+      final byDate = b.$2.compareTo(a.$2);
+      return byDate != 0 ? byDate : a.$1.path.compareTo(b.$1.path);
+    });
+    return [for (final (path, _) in found.take(stackLimit)) path];
+  }
+
+  /// Vigia a `Trash/files`, para o ícone cheio ou vazio.
+  Future<void> watchTrash() async {
+    final trash = this.trash;
+    if (trash == null) return;
+    final dir = Directory(trash.filesDir);
+    try {
+      await dir.create(recursive: true);
+    } on FileSystemException {
+      return;
+    }
+    await refreshTrash();
+    dir.watch().listen((_) => unawaited(refreshTrash()));
+  }
+
+  Future<void> refreshTrash() async {
+    final trash = this.trash;
+    if (trash == null) return;
+    trashFull.value = !await trash.isEmpty();
+  }
+
+  Future<void> emptyTrash() async {
+    try {
+      await trash?.empty();
+    } on FileSystemException catch (e) {
+      debugPrint('🦜 dock: sem esvaziar a lixeira ($e)');
+    }
+    await refreshTrash();
+  }
+
+  /// Com que ação [item] aceita os arquivos soltos nele: um app abre os
+  /// que ele abre, a lixeira leva. Null recusa.
+  DropAction? dropAction(DockItem item, List<String> paths) {
+    if (paths.isEmpty) return null;
+    return switch (item) {
+      DockApp(:final id)
+          when state.installed(id) != null && appAccepts(id, paths) =>
+        DropAction.copy,
+      DockTrash() when trash != null => DropAction.move,
+      _ => null,
+    };
+  }
+
+  /// Os arquivos soltos sobre [item].
+  Future<bool> dropOn(DockItem item, List<String> paths) async {
+    if (dropAction(item, paths) == null) return false;
+    switch (item) {
+      case DockApp(:final id):
+        _open(paths, withApp: id);
+      case DockTrash():
+        for (final path in paths) {
+          try {
+            await trash!.trash(path);
+          } on FileSystemException catch (e) {
+            debugPrint('🦜 dock: sem levar $path para a lixeira ($e)');
+          }
+        }
+        await refreshTrash();
+      case DockPath():
+        return false;
+    }
+    return true;
   }
 
   /// Arquivos e pastas soltos na dock viram itens, no fim.
@@ -249,6 +421,12 @@ class DockController {
 
   void closeMenu() => menu.value = null;
 
+  /// Fecha o menu e a pilha (o launcher ou um painel abriu).
+  void closePopups() {
+    menu.value = null;
+    stack.value = null;
+  }
+
   String title(DockItem item) => switch (item) {
     DockApp(:final id) =>
       [
@@ -257,6 +435,7 @@ class DockController {
           ].firstOrNull ??
           id,
     DockPath() => item.name,
+    DockTrash() => 'Lixeira',
   };
 
   /// As opções do menu de [item].
@@ -281,9 +460,21 @@ class DockController {
       case DockPath(:final path):
         final parent = File(path).parent.path;
         return [
-          DockMenuItem('Abrir', () => tap(item)),
-          DockMenuItem('Mostrar no Files', () => _open(parent)),
+          DockMenuItem(
+            item is DockFolder ? 'Abrir no Files' : 'Abrir',
+            () => _open([path]),
+          ),
+          DockMenuItem('Mostrar no Files', () => _open([parent])),
           keep,
+        ];
+      case DockTrash():
+        return [
+          DockMenuItem('Abrir', () => unawaited(openTrash())),
+          if (trashFull.value)
+            DockMenuItem(
+              'Esvaziar a lixeira',
+              () => askEmptyTrash.value = true,
+            ),
         ];
     }
   }

@@ -91,15 +91,22 @@ Future<void> main() async {
       'text-x-generic',
     ],
   };
+  final opener = Opener(
+    env: env,
+    mime: mime,
+    sandbox: state.sandbox,
+    apps: () => state.apps.value,
+  );
+  // Um app aceita o que ele abre: o tipo de cada arquivo está entre os dele
+  state.dockUi.appAccepts = (appId, paths) => paths.every(
+    (path) => opener.appsFor(mime.typeOf(path)).any((app) => app.id == appId),
+  );
+  state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now);
+  unawaited(state.dockUi.watchTrash());
   try {
     final launcherBus = DBusClient.session();
     final launcher = LauncherBusObject(
-      opener: Opener(
-        env: env,
-        mime: mime,
-        sandbox: state.sandbox,
-        apps: () => state.apps.value,
-      ),
+      opener: opener,
       callerOf: (sender) => senderAppId(launcherBus, sender),
       isConnected: launcherBus.nameHasOwner,
       launch: state.launchPlan,

@@ -86,7 +86,13 @@ class FilesController extends ChangeNotifier {
   FilesTab get tab => tabs[_active];
   int get activeIndex => _active;
 
+  /// A pasta da lixeira (o que a dock manda) abre a Lixeira.
   FilesTab _tabFor(String path) {
+    String bare(String p) =>
+        p.endsWith('/') && p.length > 1 ? p.substring(0, p.length - 1) : p;
+    if (bare(path) == bare(env.trash.filesDir)) {
+      return FilesTab(env, config, const TrashLocation());
+    }
     final entry = FsEntry.stat(path, env.mime);
     if (entry != null && !entry.isDirectory) {
       return FilesTab(env, config, FolderLocation(dirName(path)))

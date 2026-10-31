@@ -46,6 +46,8 @@ class ShellState {
     switcher.addListener(_syncOverlay);
     dockUi.drag.addListener(_syncOverlay);
     dockUi.menu.addListener(_syncOverlay);
+    dockUi.stack.addListener(_syncOverlay);
+    dockUi.askEmptyTrash.addListener(_syncOverlay);
     notifications.addListener(_syncToasts);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
   }
@@ -63,8 +65,9 @@ class ShellState {
   /// O autostart do XDG. Null: sem o "Abrir ao iniciar a sessão" (testes).
   final Autostart? autostart;
 
-  /// Abre arquivos no app padrão (o do `org.psito.Launcher`).
-  Future<void> Function(List<String> paths)? openPaths;
+  /// Abre arquivos no app padrão, ou em [withApp] (o do
+  /// `org.psito.Launcher`).
+  Future<void> Function(List<String> paths, {String? withApp})? openPaths;
   final Surfaces surfaces;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
@@ -159,7 +162,7 @@ class ShellState {
 
   /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
   void toggle(ShellOverlay value) {
-    dockUi.closeMenu();
+    dockUi.closePopups();
     overlay.value = overlay.value == value ? null : value;
     if (overlay.value == ShellOverlay.notifications) {
       notifications.markAllRead();
@@ -187,6 +190,8 @@ class ShellState {
     items: dock.value,
     apps: {for (final app in apps.value) app.id: app},
     windows: toplevels.windows,
+    exists: (path) =>
+        FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound,
   );
 
   void tapDock(DockSlot slot) {
@@ -430,11 +435,14 @@ class ShellState {
   void _syncOverlay() {
     final drag = dockUi.drag.value;
     if (confirm.value != null ||
+        dockUi.askEmptyTrash.value ||
         overlay.value == ShellOverlay.launcher ||
         switcher.isOpen ||
         drag?.source == DockDragSource.launcher) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.exclusive));
-    } else if (overlay.value != null || dockUi.menu.value != null) {
+    } else if (overlay.value != null ||
+        dockUi.menu.value != null ||
+        dockUi.stack.value != null) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.onDemand));
     } else if (drag != null) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.passive));

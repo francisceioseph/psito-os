@@ -102,3 +102,83 @@ class DockMenu extends StatelessWidget {
     );
   }
 }
+
+/// A confirmação de uma opção do menu que não se desfaz (o "Esvaziar a
+/// lixeira").
+class DockConfirm extends StatelessWidget {
+  final String title;
+  final String message;
+  final String action;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const DockConfirm({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.action,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: {const SingleActivator(LogicalKeyboardKey.escape): onCancel},
+    child: FocusScope(
+      autofocus: true,
+      child: ColoredBox(
+        color: Colors.black54,
+        child: Center(
+          child: Material(
+            color: const Color(0xFF1E252B),
+            borderRadius: BorderRadius.circular(20),
+            elevation: 16,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          autofocus: true,
+                          onPressed: onCancel,
+                          child: const Text('Cancelar'),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton(
+                          onPressed: () {
+                            onCancel();
+                            onConfirm();
+                          },
+                          child: Text(action),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}

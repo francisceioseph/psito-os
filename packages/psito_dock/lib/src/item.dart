@@ -78,3 +78,20 @@ final class DockFile extends DockPath {
   @override
   String toString() => 'DockFile($path)';
 }
+
+/// A lixeira: sempre no fim da dock, fora do dock.json.
+final class DockTrash extends DockItem {
+  const DockTrash();
+
+  @override
+  Map<String, Object?> toJson() => const {'trash': true};
+
+  @override
+  bool operator ==(Object other) => other is DockTrash;
+
+  @override
+  int get hashCode => (DockTrash).hashCode;
+
+  @override
+  String toString() => 'DockTrash()';
+}

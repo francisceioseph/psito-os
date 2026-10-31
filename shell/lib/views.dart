@@ -14,6 +14,7 @@ import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
+import 'package:system_shell/widgets/dock_stack.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/network_panel.dart';
 import 'package:system_shell/widgets/notification_panel.dart';
@@ -288,6 +289,7 @@ class _DockView extends StatelessWidget {
             state.apps,
             state.dock,
             ui.drag,
+            ui.trashFull,
           ]),
           builder: (context, _) {
             final row = ui.row;
@@ -311,7 +313,7 @@ class _DockView extends StatelessWidget {
                 separators: row.separators,
                 gap: drag == null ? null : ui.dropIndex(row, drag),
                 highlighted: hovering,
-                onTap: (key) => ui.tap(byKey[key]!),
+                onTap: (key, rect) => ui.tap(byKey[key]!, rect),
                 onMenu: (key, rect) => ui.openMenu(byKey[key]!, rect),
                 onDragStart: (key, position) => ui.startDrag(
                   byKey[key]!,
@@ -320,9 +322,55 @@ class _DockView extends StatelessWidget {
                 ),
                 iconSize: settings.dockIconSize,
                 magnification: settings.dockMagnification && drag == null,
+                wrapTile: (tile, child) => _TileDropTarget(
+                  ui: ui,
+                  item: byKey[tile.key]!,
+                  radius: settings.dockIconSize * 0.3,
+                  child: child,
+                ),
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Um app ou a lixeira recebe os arquivos soltos em cima dele (abre ou leva
+/// para a lixeira) e cresce com a borda de destaque enquanto aceita. Nas
+/// pastas e nos arquivos o alvo é a dock toda, que fixa o que vem.
+class _TileDropTarget extends StatelessWidget {
+  final DockController ui;
+  final DockItem item;
+  final double radius;
+  final Widget child;
+
+  const _TileDropTarget({
+    required this.ui,
+    required this.item,
+    required this.radius,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (item is DockPath) return child;
+    final accent = Theme.of(context).colorScheme.primary;
+    return PsitoDropTarget(
+      onWillAccept: (paths) => ui.dropAction(item, paths),
+      onAccept: (paths, _) => ui.dropOn(item, paths),
+      builder: (context, hovering) => AnimatedScale(
+        scale: hovering ? 1.15 : 1,
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.bottomCenter,
+        child: DecoratedBox(
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(radius),
+            border: hovering ? Border.all(color: accent, width: 2) : null,
+          ),
+          child: child,
         ),
       ),
     );
@@ -419,6 +467,8 @@ class _OverlayView extends StatelessWidget {
       state.confirm,
       state.switcher,
       state.dockUi.menu,
+      state.dockUi.stack,
+      state.dockUi.askEmptyTrash,
     ]),
     builder: (context, _) {
       final accent = Theme.of(context).colorScheme.primary;
@@ -446,6 +496,26 @@ class _OverlayView extends StatelessWidget {
           progressive: powerOff ? 'Desligando' : 'Reiniciando',
           onConfirm: () => state.runPower(action),
           onCancel: () => state.confirm.value = null,
+        );
+      }
+      final ui = state.dockUi;
+      if (ui.askEmptyTrash.value) {
+        return DockConfirm(
+          title: 'Esvaziar a lixeira?',
+          message: 'Os itens da lixeira serão apagados de vez.',
+          action: 'Esvaziar',
+          onConfirm: () => unawaited(ui.emptyTrash()),
+          onCancel: () => ui.askEmptyTrash.value = false,
+        );
+      }
+      if (ui.stack.value case final stack?) {
+        return DockStack(
+          anchor: stack.anchor,
+          title: stack.folder.name,
+          entries: ui.stackEntries(stack),
+          onOpen: ui.openFromStack,
+          onOpenFolder: () => ui.openFromStack(stack.folder.path),
+          onClose: ui.closeStack,
         );
       }
       if (state.dockUi.menu.value case final menu?) {

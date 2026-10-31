@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:psito_shell/autostart.dart';
 import 'package:psito_shell/desktop_entries.dart';
@@ -82,6 +84,7 @@ void main() {
     expect(ui.row.items.map((i) => i.item), const [
       DockApp('foot'),
       DockApp('firefox-esr'),
+      DockTrash(),
     ]);
     ui.moveDrag(at(0) - const Offset(10, 0));
     expect(ui.dropIndex(ui.row, ui.drag.value!), 0);
@@ -177,7 +180,7 @@ void main() {
       'Manter na Dock',
     ]);
     expect(labels(const DockFolder('/home/u/Downloads')), [
-      'Abrir',
+      'Abrir no Files',
       'Mostrar no Files',
       'Manter na Dock',
     ]);
@@ -204,12 +207,135 @@ void main() {
 
   test('clicar numa pasta abre no app padrão', () {
     final opened = <List<String>>[];
-    state.openPaths = (paths) async => opened.add(paths);
+    state.openPaths = (paths, {withApp}) async => opened.add(paths);
     ui.tap(const DockFolder('/home/u/Downloads'));
     ui.menuItems(const DockFile('/home/u/a/b.txt'))[1].onTap();
     expect(opened, [
       ['/home/u/Downloads'],
       ['/home/u/a'],
     ]);
+  });
+
+  test('a lixeira fica no fim, e uma pasta cai antes dela', () async {
+    final folder = Directory('${tmp.path}/Projetos')..createSync();
+    await ui.dropPaths([folder.path]);
+    final row = ui.row;
+    expect(row.items.map((i) => i.item).skip(3), [
+      DockFolder(folder.path),
+      const DockTrash(),
+    ]);
+    expect(row.separators, {3});
+
+    // Depois da lixeira, ainda cai antes dela
+    ui.startDrag(DockFolder(folder.path), DockDragSource.dock, at(3));
+    ui.moveDrag(at(3) + const Offset(60, 0));
+    expect(ui.dropIndex(ui.row, ui.drag.value!), 3);
+    ui.cancelDrag();
+
+    // A lixeira não sai do lugar
+    ui.startDrag(const DockTrash(), DockDragSource.dock, at(4));
+    expect(ui.drag.value, isNull);
+    await state.dock.pin(const DockTrash());
+    expect(state.dock.value.length, 4);
+  });
+
+  test('uma pasta ou um arquivo que sumiu fica escondido', () async {
+    final folder = Directory('${tmp.path}/Some')..createSync();
+    await ui.dropPaths([folder.path]);
+    expect(ui.row.items.length, 5);
+    folder.deleteSync();
+    expect(ui.row.items.length, 4);
+    expect(state.dock.contains(DockFolder(folder.path)), isTrue);
+  });
+
+  test('clicar numa pasta abre a pilha, os mais novos primeiro', () async {
+    final folder = Directory('${tmp.path}/Downloads')..createSync();
+    final old = File('${folder.path}/velho.txt')..writeAsStringSync('a');
+    old.setLastModifiedSync(DateTime(2020));
+    File('${folder.path}/novo.txt')
+      ..writeAsStringSync('b')
+      ..setLastModifiedSync(DateTime(2100));
+    File('${folder.path}/.oculto').writeAsStringSync('c');
+    // A pasta é de agora: entre os dois
+    Directory('${folder.path}/sub').createSync();
+
+    await ui.openStack(
+      DockFolder(folder.path),
+      const Rect.fromLTWH(0, 20, 52, 52),
+    );
+    final stack = ui.stack.value!;
+    expect(stack.anchor.topLeft, const Offset(520, 820));
+    expect(stack.entries, [
+      DockFile('${folder.path}/novo.txt'),
+      DockFolder('${folder.path}/sub'),
+      DockFile('${folder.path}/velho.txt'),
+    ]);
+    expect(
+      surfaceCalls.last,
+      isMethodCall('showOverlay', arguments: 'on_demand'),
+    );
+
+    // Abrir o launcher fecha a pilha
+    state.toggle(ShellOverlay.launcher);
+    expect(ui.stack.value, isNull);
+  });
+
+  group('a lixeira', () {
+    setUp(() => ui.trash = Trash('${tmp.path}/Trash'));
+
+    test('soltar leva para a lixeira, e o ícone enche', () async {
+      final file = File('${tmp.path}/lixo.txt')..writeAsStringSync('x');
+      expect(ui.dropAction(const DockTrash(), [file.path]), DropAction.move);
+      expect(await ui.dropOn(const DockTrash(), [file.path]), isTrue);
+      expect(file.existsSync(), isFalse);
+      expect(ui.trashFull.value, isTrue);
+      expect(ui.menuItems(const DockTrash()).map((item) => item.label), [
+        'Abrir',
+        'Esvaziar a lixeira',
+      ]);
+    });
+
+    test('esvaziar pergunta antes', () async {
+      final file = File('${tmp.path}/lixo.txt')..writeAsStringSync('x');
+      await ui.dropOn(const DockTrash(), [file.path]);
+      ui.menuItems(const DockTrash())[1].onTap();
+      expect(ui.askEmptyTrash.value, isTrue);
+      expect(
+        surfaceCalls.last,
+        isMethodCall('showOverlay', arguments: 'exclusive'),
+      );
+      await ui.emptyTrash();
+      expect(ui.trashFull.value, isFalse);
+      expect(Directory('${tmp.path}/Trash/files').listSync(), isEmpty);
+      expect(ui.menuItems(const DockTrash()).map((item) => item.label), [
+        'Abrir',
+      ]);
+    });
+
+    test('clicar abre a pasta da lixeira no Files', () async {
+      final opened = <List<String>>[];
+      state.openPaths = (paths, {withApp}) async => opened.add(paths);
+      ui.tap(const DockTrash());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(opened, [
+        ['${tmp.path}/Trash/files'],
+      ]);
+    });
+  });
+
+  test('soltar sobre um app abre nele, se ele abre o tipo', () async {
+    final opened = <(List<String>, String?)>[];
+    state.openPaths = (paths, {withApp}) async => opened.add((paths, withApp));
+    ui.appAccepts = (id, paths) => id == 'foot';
+    expect(ui.dropAction(const DockApp('foot'), ['/a.txt']), DropAction.copy);
+    expect(ui.dropAction(const DockApp('firefox-esr'), ['/a.txt']), isNull);
+    // Sem o .desktop, não há com que abrir
+    ui.appAccepts = (id, paths) => true;
+    expect(ui.dropAction(const DockApp('sumiu'), ['/a.txt']), isNull);
+    expect(ui.dropAction(const DockFolder('/x'), ['/a.txt']), isNull);
+
+    expect(await ui.dropOn(const DockApp('foot'), ['/a.txt']), isTrue);
+    expect(opened.single.$1, ['/a.txt']);
+    expect(opened.single.$2, 'foot');
   });
 }

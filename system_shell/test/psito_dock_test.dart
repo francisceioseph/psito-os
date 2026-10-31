@@ -30,7 +30,7 @@ void main() {
           child: PsitoDock(
             tiles: [_tile('a'), _tile('b'), _tile('c')],
             separators: const {1},
-            onTap: (_) {},
+            onTap: (_, _) {},
           ),
         ),
       ),
@@ -59,7 +59,7 @@ void main() {
           child: PsitoDock(
             tiles: [_tile('a'), _tile('b')],
             gap: 1,
-            onTap: (_) {},
+            onTap: (_, _) {},
             onMenu: (key, rect) => menu = '$key ${rect.width}',
           ),
         ),
@@ -74,5 +74,26 @@ void main() {
       buttons: kSecondaryButton,
     );
     expect(menu, 'b 64.0');
+  });
+
+  testWidgets('o wrapTile envolve o quadrado, e o clique tem o retângulo', (
+    tester,
+  ) async {
+    String? tapped;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PsitoDock(
+            tiles: [_tile('a')],
+            onTap: (key, rect) => tapped = '$key ${rect.width}',
+            wrapTile: (tile, child) =>
+                KeyedSubtree(key: ValueKey('wrap-${tile.key}'), child: child),
+          ),
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byKey(const ValueKey('wrap-a'))).width, 52);
+    await tester.tap(find.byKey(const ValueKey('dock-a')));
+    expect(tapped, 'a 64.0');
   });
 }

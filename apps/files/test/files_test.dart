@@ -135,6 +135,11 @@ void main() {
     });
     tearDown(() => files.dispose());
 
+    test('a pasta da lixeira, mandada pela dock, abre a Lixeira', () {
+      files.openPaths([p('.local/share/Trash/files/')]);
+      expect(files.tab.location, const TrashLocation());
+    });
+
     test('lista o home sem os ocultos, na ordem natural', () async {
       await until(() => files.tab.items.isNotEmpty);
       expect(files.tab.items.map((e) => e.name), [
