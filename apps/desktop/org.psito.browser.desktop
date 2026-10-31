@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Browser
-Exec=/opt/psito/apps/psito_apps browser
-StartupWMClass=org.psito.browser
-X-Psito-App=browser

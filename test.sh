@@ -1,6 +1,6 @@
 #!/bin/bash
-# Roda o flutter test nos pacotes, no system_shell, no shell e nos apps e
-# imprime só as falhas.
+# Roda o flutter test nos pacotes, no system_shell, no shell e nos apps
+# (apps/<id>/, os que têm test/) e imprime só as falhas.
 # Uso: ./test.sh [pasta...]   (padrão: todos)
 # Por padrão, o flutter test abre um processo de teste por núcleo, o que não
 # cabe na memória do host com a VM ligada. Aqui são TEST_JOBS processos (padrão
@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 JOBS="${TEST_JOBS:-2}"
 MEM="${TEST_MEM:-2G}"
 DIRS=("$@")
-[ ${#DIRS[@]} -eq 0 ] && DIRS=(packages/psito_services packages/psito_runtime system_shell shell apps)
+[ ${#DIRS[@]} -eq 0 ] && DIRS=(packages/psito_services packages/psito_runtime system_shell shell apps/*/)
 
 LIMIT=()
 if [ "$MEM" != "0" ] && command -v systemd-run >/dev/null; then
@@ -22,6 +22,8 @@ fi
 
 STATUS=0
 for dir in "${DIRS[@]}"; do
+    dir=${dir%/}
+    [ -d "$dir/test" ] || continue
     OUT=$(cd "$dir" && "${LIMIT[@]}" flutter test --no-pub -j "$JOBS" -r failures-only 2>&1)
     CODE=$?
     if [ $CODE -ne 0 ]; then

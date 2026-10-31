@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Notepad
+Exec=/opt/psito/apps/notepad/psito_notepad
+StartupWMClass=org.psito.notepad
+X-Psito-App=notepad

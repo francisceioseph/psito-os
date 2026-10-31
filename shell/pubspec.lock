@@ -195,6 +195,41 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.2"
+  psito_calculator:
+    dependency: transitive
+    description:
+      path: "../apps/calculator"
+      relative: true
+    source: path
+    version: "0.1.0+1"
+  psito_clock:
+    dependency: transitive
+    description:
+      path: "../apps/clock"
+      relative: true
+    source: path
+    version: "0.1.0+1"
+  psito_files:
+    dependency: transitive
+    description:
+      path: "../apps/files"
+      relative: true
+    source: path
+    version: "0.1.0+1"
+  psito_notepad:
+    dependency: transitive
+    description:
+      path: "../apps/notepad"
+      relative: true
+    source: path
+    version: "0.1.0+1"
+  psito_runtime:
+    dependency: transitive
+    description:
+      path: "../packages/psito_runtime"
+      relative: true
+    source: path
+    version: "0.1.0"
   psito_sdk:
     dependency: "direct main"
     description:
@@ -209,6 +244,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  psito_settings:
+    dependency: transitive
+    description:
+      path: "../apps/settings"
+      relative: true
+    source: path
+    version: "0.1.0+1"
   sky_engine:
     dependency: transitive
     description: flutter

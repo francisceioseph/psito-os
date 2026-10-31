@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compila o shell (shell/) e o host dos apps (apps/) dentro da VM, com o
+# Compila o shell (shell/) e cada app (apps/<id>/) dentro da VM, com o
 # Flutter que o provision.sh instalou: o binário liga no GTK e no
 # gtk-layer-shell da VM. Leva junto o system_shell e os packages/
 # (dependências de caminho), nos mesmos caminhos relativos.
@@ -23,8 +23,9 @@ done
 echo "🔨 [Psito OS] flutter build linux --$MODE na VM..."
 ssh -p "$VM_PORT" psito@localhost "
     set -e
-    for app in shell apps; do
-        cd ~/psito-src/\$app
+    for dir in ~/psito-src/shell ~/psito-src/apps/*/; do
+        [ -f \$dir/pubspec.yaml ] || continue
+        cd \$dir
         ~/flutter/bin/flutter build linux --$MODE 2>&1 | grep -E 'error|warning|✓' | tail -n 20
     done
     echo $MODE > ~/psito-src/.mode

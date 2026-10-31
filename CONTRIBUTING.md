@@ -18,7 +18,7 @@ Obrigado pelo interesse. O projeto é experimental e muda de direção a cada fa
 - **Sem emojis na interface,** porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - **Hora:** use `ctx.now()` (apps) ou `TimeService.now` (shell), nunca `DateTime.now()`.
 - **Atalhos globais** têm uma combinação nativa e uma de VM (`system_shell/lib/shell/shortcuts.dart`); o shell gera os atalhos do labwc a partir dela.
-- **Apps** só importam Flutter, pacotes externos e o `psito_sdk`, e cabem na janela mínima de 240×160.
+- **Apps** (`apps/<id>/`) só importam Flutter, pacotes externos, o `psito_sdk` e o `psito_runtime`, e cabem na janela mínima de 240×160.
 - **Nada de binários, discos ou ISOs** no git: `qemu/`, `debian/` e os `build/` ficam de fora.
 
 ## Commits

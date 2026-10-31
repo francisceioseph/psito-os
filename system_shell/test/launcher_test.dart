@@ -54,7 +54,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     await _submit(tester);
-    expect(find.text('Calculator'), findsOneWidget);
+    expect(find.text('Clock'), findsOneWidget);
   });
 
   testWidgets('Esc fecha', (tester) async {

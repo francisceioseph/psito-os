@@ -69,7 +69,7 @@ class ShellState {
   final apps = ValueNotifier<List<DesktopEntry>>(const []);
 
   /// Fixados na dock, por id do `.desktop`. Os que não estão instalados não
-  /// aparecem. O navegador do Psito fica só no menu: o da dock é o Firefox.
+  /// aparecem.
   static const pinned = [
     'firefox-esr',
     'foot',
@@ -77,7 +77,6 @@ class ShellState {
     'org.psito.notepad',
     'org.psito.calculator',
     'org.psito.clock',
-    'org.psito.buddy',
     'org.psito.settings',
   ];
 

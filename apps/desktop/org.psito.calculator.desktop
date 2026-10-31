@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Calculator
-Exec=/opt/psito/apps/psito_apps calculator
-StartupWMClass=org.psito.calculator
-X-Psito-App=calculator

@@ -1,0 +1,21 @@
+name: psito_notepad
+description: "Notepad, app do Psito."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  psito_runtime:
+    path: ../../packages/psito_runtime
+  psito_sdk:
+    path: ../../packages/psito_sdk
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

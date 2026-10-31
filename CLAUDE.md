@@ -10,29 +10,35 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `lib/bridge/`: a ponte. A `shellBindings` vira os atalhos do labwc (seção `<keyboard>` do `rc.xml` e `--reconfigure`) ou do Wayfire (IPC), e as cores viram a moldura e o tema GTK (`~/.config/gtk-3.0` e `gtk-4.0`).
   - Os apps `org.psito.<id>` aparecem com o ícone e a cor do `PsitoApp` (`app_icon.dart`); os de fora, com o ícone do tema.
   - Roda como a unidade `psito-shell` do systemd do usuário (`Restart`), subida pelo `psito-shell-start` no `autostart` do labwc. Log: `journalctl --user -u psito-shell` na VM.
-- `apps/`: o host dos apps do Psito (`psito_apps <id>`). Roda um `PsitoApp` do `system_shell` numa janela comum, com o `app_id` `org.psito.<id>`; o canal `psito/window` define o título e o tamanho e fecha. O `ProcessAppContext` usa os serviços do D-Bus, manda as notificações ao shell e lê e grava o `settings.json`. `desktop/` tem um `.desktop` por app (o teste confere com o registro).
-- `system_shell/`: os widgets, os serviços, os apps e o laboratório de UX no host (app `system_shell`, com janelas dentro do processo)
+- `apps/<id>/`: um projeto Flutter Linux por app do Psito (`psito_<id>`, `APPLICATION_ID` `org.psito.<id>`), com o runner do `flutter create`.
+  - `lib/<id>_app.dart` tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`; o `main.dart` é só `runPsitoApp(XxxApp())`.
+  - `org.psito.<id>.desktop` é o `.desktop` do app (o `app_boundary_test` do `system_shell` confere com o `PsitoApp` e o CMake).
+  - O app de Configurações é o único com `canChangeSettings`.
+- `packages/psito_runtime/`: o runtime dos apps. `runPsitoApp` sobe o app no próprio processo com o `ProcessAppContext` (serviços do D-Bus, notificações ao shell, configurações pelo `org.psito.Settings`). É um plugin Linux: o canal `psito/window` (título, tamanho mínimo e inicial, fechar) entra em qualquer app sem mexer no runner.
+- `packages/psito_services/`: os serviços do sistema, que o shell, o laboratório e o runtime consomem.
+  - Reais via D-Bus (`dbus`) e falsos (`Fake*`), juntos em `SystemServices`.
+  - Começam indisponíveis e carregam em segundo plano, então nunca seguram o boot.
+  - `PSITO_SERVICES=fake` força os falsos.
+  - Hoje:
+    - `system_info_service` (hostnamed);
+    - `network_service` (NetworkManager pelo pacote `nm`);
+    - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
+    - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell;
+    - `time_service` (timedated: fuso e NTP).
+  - `settings_client`: o cliente do `org.psito.Settings` (`Get`, `Update`, sinal `Changed`), que o shell publica (`shell/lib/settings_bus.dart`).
+  - O estado de cada serviço é um tipo do SDK (`PsitoSystemInfo`, `PsitoNetworkState`), que os apps leem pelo `PsitoAppContext`.
+  - Os serviços reais são testados num barramento D-Bus privado (`test/dbus_test_bus.dart`).
+- `system_shell/`: os widgets e o laboratório de UX no host (app `system_shell`, com os apps de `apps/` como pacotes e as janelas dentro do processo)
   - `lib/main.dart`: carrega as configurações e sobe o `PsitoOSApp`. `lib/app.dart` monta o tema a partir da cor de destaque salva (o padrão é amarelo `#FFC107` com fundo `#12181B`).
   - `lib/screens/desktop_screen.dart`: só composição, com as camadas e os atalhos globais do `_onKey`.
   - `lib/shell/`: lógica sem UI.
-    - `app_registry`: os apps da dock;
+    - `app_registry`: os apps do laboratório (na VM, valem os `.desktop` instalados);
     - `window_manager`: foco, z-order, snap, resize e o `PsitoAppContext` de cada janela;
     - `window_switcher`: o seletor de janelas do Alt+Tab;
     - `shortcuts`: as combinações nativas e de VM;
     - `notification_center`;
-    - `settings_store`: o JSON em `~/.config/psito/settings.json`. O `watch` relê quando outro processo grava (as Configurações em `apps/`);
+    - `settings_store`: o JSON em `~/.config/psito/settings.json`. O `watch` relê quando outro processo grava (o shell publica pelo `org.psito.Settings`);
     - `app_search`.
-  - `lib/services/`: os serviços do sistema que o shell consome.
-    - Reais via D-Bus (`dbus`) e falsos (`Fake*`), juntos em `SystemServices`.
-    - Começam indisponíveis e carregam em segundo plano, então nunca seguram o boot.
-    - `PSITO_SERVICES=fake` força os falsos.
-    - Hoje:
-      - `system_info_service` (hostnamed);
-      - `network_service` (NetworkManager pelo pacote `nm`);
-      - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
-      - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell;
-      - `time_service` (timedated: fuso e NTP).
-    - O estado de cada serviço é um tipo do SDK (`PsitoSystemInfo`, `PsitoNetworkState`), que os apps leem pelo `PsitoAppContext`.
   - `lib/widgets/`:
     - `psito_window` (a moldura), `top_bar`, `psito_dock`, `desktop_background`;
     - `launcher`, `notification_toasts`, `notification_panel`, `window_switcher_overlay`;
@@ -40,9 +46,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
     - `volume_indicator`, `volume_panel` e `volume_osd`;
     - `battery_indicator`, `battery_panel`, `power_panel` e `power_confirm_dialog`.
     - Os painéis da top bar abrem um de cada vez, pelo `_Overlay` do `DesktopScreen`. A barreira deles deixa a top bar clicável, para trocar de painel.
-  - `lib/apps/`: apps de exemplo. No laboratório rodam no mesmo processo; na VM, cada um no seu, pelo `apps/`. Cada arquivo tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`. O app de Configurações é o único com `canChangeSettings`.
-  - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). Os serviços reais são testados num barramento D-Bus privado (`test/services/dbus_test_bus.dart`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.
-- `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`, `PsitoSettings`, papéis de parede, cores e a tabela `psitoShortcuts`). Os apps só podem importar Flutter, pacotes externos e o `psito_sdk`. `test/app_boundary_test.dart` garante isso.
+  - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.
+- `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`, `PsitoSettings`, papéis de parede, cores, o tema `psitoTheme` e a tabela `psitoShortcuts`). Os apps só podem importar Flutter, pacotes externos, o `psito_sdk` e o `psito_runtime`. O `system_shell/test/app_boundary_test.dart` garante isso.
 - `docs/ROADMAP.md`: roteiro por fases (local, fora do git). `docs/FASE-3.md` detalha a última fase, e `docs/decisao-compositor.md` a base escolhida. Consulte só quando a tarefa envolver planejamento.
 - `spike/`: bancada da fase 3 (`docs/FASE-3.md`): a comparação dos compositores, numa VM própria (`qemu/psito-spike.qcow2`, SSH na 2223) em que o `session.sh` escolhe o compositor.
   - `probe/`: app Flutter Linux de referência, compilado dentro da VM;
@@ -55,11 +60,11 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
-- `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): o laboratório de UX no host, com os serviços falsos. Sem a variável, usa os serviços reais do host. Em `apps/`, `flutter run -d linux -a <id>` abre um app sozinho.
-- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/` e no `apps/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
+- `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): o laboratório de UX no host, com os serviços falsos. Sem a variável, usa os serviços reais do host. Em `apps/<id>/`, `flutter run -d linux` abre o app sozinho.
+- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/` e em cada `apps/<id>/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
 - `./test.sh [pasta...]`: o `flutter test` de cada projeto (ou só dos indicados), mostrando só as falhas. São 2 processos de teste (`TEST_JOBS`) num escopo do systemd com 2G de limite e sem swap (`TEST_MEM`; `0` tira o limite). Assim cabe no host com a VM ligada, e se estourar só os testes morrem. Não rode o `flutter test` direto com a VM ligada: ele abre um processo por núcleo.
-- `./build.sh [release|profile|debug]`: envia o código e compila o `shell/` e o `apps/` dentro da VM (padrão release), com o Flutter dela.
-- `./deploy.sh`: instala o shell em `/opt/psito/shell`, os apps em `/opt/psito/apps` e os `.desktop` no `~/.local/share/applications`, e reinicia a unidade `psito-shell`
+- `./build.sh [release|profile|debug]`: envia o código e compila o `shell/` e cada `apps/<id>/` dentro da VM (padrão release), com o Flutter dela.
+- `./deploy.sh`: instala o shell em `/opt/psito/shell`, cada app em `/opt/psito/apps/<id>` e os `.desktop` no `~/.local/share/applications`, e reinicia a unidade `psito-shell`
 - `./provision.sh`: prepara a VM (labwc, `gtk-layer-shell`, Flutter 3.47.4, os serviços da fase 2 e a sessão de `vm/`). Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`, 3 GB), com tablet USB, placa de som (`AUDIO=pipewire|pa|none`) e monitor em `qemu/monitor.sock`
 - `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.

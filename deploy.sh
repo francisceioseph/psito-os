@@ -1,6 +1,6 @@
 #!/bin/bash
-# Instala o que o build.sh compilou na VM: o shell em /opt/psito/shell, os
-# apps em /opt/psito/apps e os .desktop deles no ~/.local/share/applications
+# Instala o que o build.sh compilou na VM: o shell em /opt/psito/shell, cada
+# app em /opt/psito/apps/<id> e os .desktop deles no ~/.local/share/applications
 # (o launcher e a dock do shell leem dali). Depois reinicia o shell, se a
 # sessão do labwc estiver rodando.
 # A VM do spike: VM_PORT=2223 ./deploy.sh
@@ -15,19 +15,21 @@ ssh -p "$VM_PORT" psito@localhost 'test -f ~/psito-src/.mode' || {
     ./build.sh
 }
 
-echo "📦 [Psito OS] Instalando os .desktop dos apps..."
-rsync -az --delete -e "ssh -p $VM_PORT" apps/desktop/ \
-    psito@localhost:psito-src/apps-desktop/
-
 echo "🚀 [Psito OS] Instalando e reiniciando o shell..."
 ssh -p "$VM_PORT" psito@localhost '
     set -e
     mode=$(cat ~/psito-src/.mode)
     rsync -a --delete ~/psito-src/shell/build/linux/x64/$mode/bundle/ /opt/psito/shell/
-    rsync -a --delete ~/psito-src/apps/build/linux/x64/$mode/bundle/ /opt/psito/apps/
     mkdir -p ~/.local/share/applications
     rm -f ~/.local/share/applications/org.psito.*.desktop
-    cp ~/psito-src/apps-desktop/*.desktop ~/.local/share/applications/
+    rm -rf /opt/psito/apps.new && mkdir -p /opt/psito/apps.new
+    for dir in ~/psito-src/apps/*/; do
+        [ -f $dir/pubspec.yaml ] || continue
+        id=$(basename $dir)
+        cp -a $dir/build/linux/x64/$mode/bundle /opt/psito/apps.new/$id
+        cp $dir/org.psito.$id.desktop ~/.local/share/applications/
+    done
+    rm -rf /opt/psito/apps && mv /opt/psito/apps.new /opt/psito/apps
     if systemctl --user is-active -q psito-shell.service; then
         systemctl --user restart psito-shell.service
     fi

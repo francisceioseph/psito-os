@@ -34,15 +34,27 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  http: ^1.6.0
   psito_sdk:
     path: ../packages/psito_sdk
   psito_services:
     path: ../packages/psito_services
+  # Os apps do Psito (apps/<id>/), que o laboratório roda dentro do processo
+  psito_calculator:
+    path: ../apps/calculator
+  psito_clock:
+    path: ../apps/clock
+  psito_files:
+    path: ../apps/files
+  psito_notepad:
+    path: ../apps/notepad
+  psito_settings:
+    path: ../apps/settings
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  psito_runtime:
+    path: ../packages/psito_runtime
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

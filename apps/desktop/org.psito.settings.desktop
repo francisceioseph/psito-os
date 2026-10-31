@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Configurações
-Exec=/opt/psito/apps/psito_apps settings
-StartupWMClass=org.psito.settings
-X-Psito-App=settings

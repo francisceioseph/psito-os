@@ -36,9 +36,11 @@ Os números da fase 3 (memória, CPU e latência de cada compositor e do shell) 
 | Pasta | O que tem |
 |---|---|
 | `shell/` | O shell do Psito: top bar, dock, launcher, notificações, Alt+Tab e OSD como superfícies layer-shell do labwc, mais a ponte que gera a configuração do compositor e o tema GTK |
-| `apps/` | O host dos apps do Psito: `psito_apps <id>` roda cada app no próprio processo, numa janela comum |
-| `system_shell/` | Os widgets, os serviços D-Bus e os apps, mais um laboratório de UX que roda no host, com as janelas dentro do processo |
+| `apps/<id>/` | Os apps do Psito, um projeto Flutter por app, cada um no próprio processo e numa janela comum |
+| `system_shell/` | Os widgets e um laboratório de UX que roda no host, com os apps dentro do processo |
 | `packages/psito_sdk/` | O contrato entre o shell e os apps (`PsitoApp`, `PsitoAppContext`, notificações, configurações e atalhos) |
+| `packages/psito_runtime/` | O runtime dos apps: `runPsitoApp` e o canal da janela |
+| `packages/psito_services/` | Os serviços do sistema pelo D-Bus (rede, áudio, bateria, energia, hora e o cliente das configurações) |
 | `spike/` | A bancada da fase 3: o app de referência (`probe/`), as medições e a configuração de cada compositor comparado |
 | `vm/` | O que vai para a VM: `preseed.cfg`, o serviço `psito-os` (o labwc no tty1), a sessão (`session/`) e as regras do polkit |
 | Raiz | Scripts do host: criar, instalar e subir a VM, compilar, publicar e ver os logs |
