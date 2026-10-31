@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../shell/notification_center.dart';
 import 'notification_toasts.dart';
+import 'top_bar.dart';
 
 /// Painel de notificações abaixo da top bar, à direita.
 class NotificationPanel extends StatelessWidget {
@@ -36,8 +37,10 @@ class NotificationPanel extends StatelessWidget {
         autofocus: true,
         child: Stack(
           children: [
-            // Clicar fora fecha
+            // Clicar fora fecha. A top bar fica de fora: clicar em outro
+            // ícone dela troca de painel em vez de só fechar este
             Positioned.fill(
+              top: TopBar.height,
               child: GestureDetector(
                 onTap: onClose,
                 behavior: HitTestBehavior.opaque,

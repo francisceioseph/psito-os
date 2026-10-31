@@ -51,6 +51,9 @@ abstract class PsitoAppContext {
 
   /// Nome do computador e versões do sistema; só leitura.
   ValueListenable<PsitoSystemInfo> get systemInfo;
+
+  /// Estado da rede; só leitura (ligar e desligar fica com o shell).
+  ValueListenable<PsitoNetworkState> get network;
 }
 
 /// O que o sistema diz de si (hostnamed no Linux).
@@ -230,4 +233,101 @@ class PsitoSettings {
   @override
   int get hashCode =>
       Object.hash(accent, wallpaperId, use24h, showSeconds, doNotDisturb);
+}
+
+enum PsitoConnectivity { unknown, none, portal, limited, full }
+
+enum PsitoNetworkKind { ethernet, wifi, other }
+
+enum PsitoDeviceState {
+  /// Sem cabo ou sem rádio.
+  unavailable,
+  disconnected,
+  connecting,
+  connected,
+  other,
+}
+
+@immutable
+class PsitoNetworkDevice {
+  final String interface;
+  final PsitoNetworkKind kind;
+  final PsitoDeviceState state;
+
+  /// Nome da conexão ativa no dispositivo.
+  final String? connection;
+
+  /// Ex.: 10.0.2.15/24.
+  final String? ipv4;
+
+  /// 0–100, só em Wi-Fi.
+  final int? wifiStrength;
+
+  const PsitoNetworkDevice({
+    required this.interface,
+    required this.kind,
+    required this.state,
+    this.connection,
+    this.ipv4,
+    this.wifiStrength,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoNetworkDevice &&
+      other.interface == interface &&
+      other.kind == kind &&
+      other.state == state &&
+      other.connection == connection &&
+      other.ipv4 == ipv4 &&
+      other.wifiStrength == wifiStrength;
+
+  @override
+  int get hashCode =>
+      Object.hash(interface, kind, state, connection, ipv4, wifiStrength);
+}
+
+/// O que a rede está fazendo (NetworkManager no Linux).
+@immutable
+class PsitoNetworkState {
+  /// False enquanto carrega ou se não há gerenciador de rede.
+  final bool available;
+  final bool enabled;
+  final PsitoConnectivity connectivity;
+  final bool connecting;
+
+  /// Dispositivo da conexão principal, com o nome e o IP dela.
+  final PsitoNetworkDevice? primary;
+  final List<PsitoNetworkDevice> devices;
+
+  const PsitoNetworkState({
+    required this.available,
+    this.enabled = true,
+    this.connectivity = PsitoConnectivity.unknown,
+    this.connecting = false,
+    this.primary,
+    this.devices = const [],
+  });
+
+  static const unavailable = PsitoNetworkState(available: false);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoNetworkState &&
+      other.available == available &&
+      other.enabled == enabled &&
+      other.connectivity == connectivity &&
+      other.connecting == connecting &&
+      other.primary == primary &&
+      listEquals(other.devices, devices);
+
+  @override
+  int get hashCode => Object.hash(
+    available,
+    enabled,
+    connectivity,
+    connecting,
+    primary,
+    Object.hashAll(devices),
+  );
 }

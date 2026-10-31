@@ -7,6 +7,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 enum _Section {
   appearance('Aparência', Icons.palette_outlined),
   dateTime('Data e hora', Icons.schedule),
+  network('Rede', Icons.lan_outlined),
   notifications('Notificações', Icons.notifications_none),
   shortcuts('Atalhos', Icons.keyboard_outlined),
   about('Sobre', Icons.info_outline);
@@ -64,6 +65,7 @@ class _SettingsViewState extends State<SettingsView> {
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
                   _Section.dateTime => _dateTime(settings),
+                  _Section.network => _network(),
                   _Section.notifications => _notifications(settings),
                   _Section.shortcuts => _shortcuts(),
                   _Section.about => _about(),
@@ -178,6 +180,26 @@ class _SettingsViewState extends State<SettingsView> {
     const _Note(
       'Ajustar a data e a hora do sistema chega na fase 2, junto com os '
       'serviços via D-Bus.',
+    ),
+  ];
+
+  List<Widget> _network() => [
+    ValueListenableBuilder(
+      valueListenable: widget.appContext.network,
+      builder: (context, network, _) {
+        if (!network.available) {
+          return const _Note('NetworkManager indisponível');
+        }
+        if (network.devices.isEmpty) {
+          return const _Note('Nenhum dispositivo de rede');
+        }
+        return Column(
+          children: [for (final device in network.devices) _DeviceTile(device)],
+        );
+      },
+    ),
+    const _Note(
+      'Para ligar ou desligar a rede, use o ícone de rede na barra superior.',
     ),
   ];
 
@@ -341,6 +363,42 @@ class _Cell extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _DeviceTile extends StatelessWidget {
+  final PsitoNetworkDevice device;
+
+  const _DeviceTile(this.device);
+
+  static String stateLabel(PsitoDeviceState state) => switch (state) {
+    PsitoDeviceState.connected => 'Conectado',
+    PsitoDeviceState.connecting => 'Conectando…',
+    PsitoDeviceState.disconnected => 'Desconectado',
+    PsitoDeviceState.unavailable => 'Sem cabo ou sinal',
+    PsitoDeviceState.other => 'Não gerenciado',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final details = [
+      stateLabel(device.state),
+      ?device.connection,
+      ?device.ipv4,
+    ].join(' · ');
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(switch (device.kind) {
+        PsitoNetworkKind.ethernet => Icons.lan,
+        PsitoNetworkKind.wifi => Icons.wifi,
+        PsitoNetworkKind.other => Icons.settings_ethernet,
+      }),
+      title: Text(device.interface),
+      subtitle: Text(
+        details,
+        style: const TextStyle(fontSize: 12, color: Colors.white60),
+      ),
+    );
+  }
 }
 
 class _InfoRow extends StatelessWidget {

@@ -37,30 +37,47 @@ class DBusTestBus {
   }
 }
 
-/// Objeto com propriedades fixas numa interface, que dá para mudar e
-/// anunciar com PropertiesChanged.
-class FakePropertiesObject extends DBusObject {
-  final String interface;
-  final Map<String, DBusValue> properties;
+/// Objeto com propriedades em uma ou mais interfaces, que dá para mudar e
+/// anunciar com PropertiesChanged. Aparece no GetManagedObjects quando fica
+/// abaixo de um [DBusObject] com `isObjectManager`.
+class FakeDBusObject extends DBusObject {
+  final Map<String, Map<String, DBusValue>> interfaces;
 
-  FakePropertiesObject(super.path, this.interface, this.properties);
+  /// Métodos chamados neste objeto (ex.: Enable do NetworkManager).
+  final List<DBusMethodCall> calls = [];
+
+  FakeDBusObject(super.path, this.interfaces);
+
+  /// Uma interface só.
+  FakeDBusObject.single(
+    DBusObjectPath path,
+    String interface,
+    Map<String, DBusValue> properties,
+  ) : this(path, {interface: properties});
+
+  @override
+  Map<String, Map<String, DBusValue>> get interfacesAndProperties => interfaces;
 
   @override
   Future<DBusMethodResponse> getAllProperties(String interface) async =>
-      DBusGetAllPropertiesResponse(
-        interface == this.interface ? properties : {},
-      );
+      DBusGetAllPropertiesResponse(interfaces[interface] ?? {});
 
   @override
   Future<DBusMethodResponse> getProperty(String interface, String name) async {
-    final value = interface == this.interface ? properties[name] : null;
+    final value = interfaces[interface]?[name];
     return value == null
         ? DBusMethodErrorResponse.unknownProperty()
         : DBusGetPropertyResponse(value);
   }
 
-  Future<void> change(Map<String, DBusValue> changed) async {
-    properties.addAll(changed);
+  @override
+  Future<DBusMethodResponse> handleMethodCall(DBusMethodCall call) async {
+    calls.add(call);
+    return DBusMethodSuccessResponse();
+  }
+
+  Future<void> change(String interface, Map<String, DBusValue> changed) async {
+    interfaces[interface]!.addAll(changed);
     await emitPropertiesChanged(interface, changedProperties: changed);
   }
 }

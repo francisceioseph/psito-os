@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
+
+import 'network_indicator.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Botão do Menu Psito: abre e fecha o launcher.
@@ -13,6 +16,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showSeconds;
   final bool doNotDisturb;
 
+  final PsitoNetworkState network;
+
+  /// Ícone de rede: abre e fecha o painel de rede.
+  final VoidCallback? onNetworkTap;
+
   const TopBar({
     super.key,
     this.onMenuTap,
@@ -21,16 +29,20 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.use24h = true,
     this.showSeconds = false,
     this.doNotDisturb = false,
+    this.network = PsitoNetworkState.unavailable,
+    this.onNetworkTap,
   });
 
+  static const height = 40.0;
+
   @override
-  Size get preferredSize => const Size.fromHeight(40);
+  Size get preferredSize => const Size.fromHeight(height);
 
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     return Container(
-      height: 40,
+      height: height,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       color: Colors.black.withValues(alpha: 0.65),
       child: Row(
@@ -78,10 +90,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Indicadores de Periféricos / Status
-              _buildSystemTrayIcon(Icons.bluetooth, 'Bluetooth Ativo'),
-              const SizedBox(width: 12),
-              _buildSystemTrayIcon(Icons.wifi, 'Conectado à Rede'),
-              const SizedBox(width: 12),
+              NetworkIndicator(state: network, onTap: onNetworkTap),
+              const SizedBox(width: 8),
               _buildSystemTrayIcon(Icons.volume_up, 'Volume: 100%'),
               const SizedBox(width: 12),
 

@@ -11,6 +11,7 @@ import '../shell/window_switcher.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
 import '../widgets/launcher.dart';
+import '../widgets/network_panel.dart';
 import '../widgets/notification_panel.dart';
 import '../widgets/notification_toasts.dart';
 import '../widgets/psito_dock.dart';
@@ -30,6 +31,9 @@ class DesktopScreen extends StatefulWidget {
   State<DesktopScreen> createState() => _DesktopScreenState();
 }
 
+/// Camadas abertas pela top bar; só uma fica aberta por vez.
+enum _Overlay { launcher, notifications, network }
+
 class _DesktopScreenState extends State<DesktopScreen> {
   static const _topBarHeight = 40.0;
 
@@ -48,13 +52,13 @@ class _DesktopScreenState extends State<DesktopScreen> {
     settings: _settings,
     onUpdateSettings: _settings.update,
     systemInfo: _services.systemInfo.info,
+    network: _services.network.state,
   );
 
   // Fora do setState: mover o mouse só redesenha o cursor
   final _mousePosition = ValueNotifier<Offset?>(null);
 
-  final _launcherOpen = ValueNotifier(false);
-  final _panelOpen = ValueNotifier(false);
+  final _overlay = ValueNotifier<_Overlay?>(null);
   final _switcher = WindowSwitcher();
   final _superTap = SuperTapDetector();
 
@@ -72,28 +76,27 @@ class _DesktopScreenState extends State<DesktopScreen> {
     if (widget.settings == null) _settings.dispose();
     if (widget.services == null) _services.dispose();
     _mousePosition.dispose();
-    _launcherOpen.dispose();
-    _panelOpen.dispose();
+    _overlay.dispose();
     _switcher.dispose();
     super.dispose();
   }
 
-  // Launcher e painel se excluem: abrir um fecha o outro
-  void _toggleLauncher() {
-    _panelOpen.value = false;
-    _launcherOpen.value = !_launcherOpen.value;
+  /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
+  void _toggle(_Overlay overlay) {
+    _overlay.value = _overlay.value == overlay ? null : overlay;
+    if (_overlay.value == _Overlay.notifications) {
+      _notifications.markAllRead();
+    }
   }
 
-  void _togglePanel() {
-    _launcherOpen.value = false;
-    _panelOpen.value = !_panelOpen.value;
-    if (_panelOpen.value) _notifications.markAllRead();
-  }
+  void _closeOverlay() => _overlay.value = null;
+
+  void _toggleLauncher() => _toggle(_Overlay.launcher);
 
   /// Traz para frente (restaurando) a janela que notificou; se ela já
   /// fechou, abre o app de novo.
   void _openNotificationSource(ShellNotification notification) {
-    _panelOpen.value = false;
+    _closeOverlay();
     if (_windows.contains(notification.windowId)) {
       _windows.focus(notification.windowId);
       return;
@@ -139,8 +142,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
       case ShellAction.launcher:
         _toggleLauncher();
       case ShellAction.switchNext || ShellAction.switchPrev:
-        _launcherOpen.value = false;
-        _panelOpen.value = false;
+        _closeOverlay();
         _switcher.start(
           _windows.windows,
           holdKeys: keyboard.isAltPressed
@@ -257,10 +259,16 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   left: 0,
                   right: 0,
                   child: ListenableBuilder(
-                    listenable: Listenable.merge([_notifications, _settings]),
+                    listenable: Listenable.merge([
+                      _notifications,
+                      _settings,
+                      _services.network.state,
+                    ]),
                     builder: (context, _) => TopBar(
                       onMenuTap: _toggleLauncher,
-                      onNotificationsTap: _togglePanel,
+                      onNotificationsTap: () => _toggle(_Overlay.notifications),
+                      network: _services.network.state.value,
+                      onNetworkTap: () => _toggle(_Overlay.network),
                       unreadCount: _notifications.unreadCount,
                       use24h: _settings.value.use24h,
                       showSeconds: _settings.value.showSeconds,
@@ -298,36 +306,34 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   ),
                 ),
 
-                // Painel de notificações
+                // Painéis da top bar e o Menu Psito, por cima de tudo menos
+                // do seletor e do cursor
                 ValueListenableBuilder(
-                  valueListenable: _panelOpen,
-                  builder: (context, open, _) {
-                    if (!open) return const SizedBox.shrink();
-                    return Positioned.fill(
-                      child: NotificationPanel(
+                  valueListenable: _overlay,
+                  builder: (context, overlay, _) {
+                    final child = switch (overlay) {
+                      null => null,
+                      _Overlay.notifications => NotificationPanel(
                         center: _notifications,
-                        onClose: () => _panelOpen.value = false,
+                        onClose: _closeOverlay,
                         onTap: _openNotificationSource,
                       ),
-                    );
-                  },
-                ),
-
-                // Menu Psito, por cima de tudo menos do cursor
-                ValueListenableBuilder(
-                  valueListenable: _launcherOpen,
-                  builder: (context, open, _) {
-                    if (!open) return const SizedBox.shrink();
-                    return Positioned.fill(
-                      child: Launcher(
+                      _Overlay.network => NetworkPanel(
+                        state: _services.network.state,
+                        onSetEnabled: _services.network.setEnabled,
+                        onClose: _closeOverlay,
+                      ),
+                      _Overlay.launcher => Launcher(
                         apps: registeredApps,
                         onLaunch: (app) {
-                          _launcherOpen.value = false;
+                          _closeOverlay();
                           _windows.open(app);
                         },
-                        onClose: () => _launcherOpen.value = false,
+                        onClose: _closeOverlay,
                       ),
-                    );
+                    };
+                    if (child == null) return const SizedBox.shrink();
+                    return Positioned.fill(child: child);
                   },
                 ),
 

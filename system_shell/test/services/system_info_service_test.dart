@@ -6,7 +6,7 @@ import 'package:system_shell/services/system_services.dart';
 
 import 'dbus_test_bus.dart';
 
-FakePropertiesObject _hostname1({String pretty = ''}) => FakePropertiesObject(
+FakeDBusObject _hostname1({String pretty = ''}) => FakeDBusObject.single(
   HostnamedSystemInfoService.path,
   HostnamedSystemInfoService.interface,
   {
@@ -59,7 +59,9 @@ void main() {
     await service.ready;
     expect(service.info.value.hostname, 'Calopsita');
 
-    await object.change({'PrettyHostname': const DBusString('Psito Teste')});
+    await object.change(HostnamedSystemInfoService.interface, {
+      'PrettyHostname': const DBusString('Psito Teste'),
+    });
     await _until(() => service.info.value.hostname == 'Psito Teste');
     expect(service.info.value.hostname, 'Psito Teste');
     await service.dispose();

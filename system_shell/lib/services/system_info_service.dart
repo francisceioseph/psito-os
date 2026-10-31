@@ -7,6 +7,8 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import 'dbus_names.dart';
+
 abstract class SystemInfoService {
   ValueListenable<PsitoSystemInfo> get info;
 
@@ -36,7 +38,7 @@ class HostnamedSystemInfoService implements SystemInfoService {
 
   Future<void> _load() async {
     try {
-      if (!await _client.nameHasOwner(busName)) {
+      if (!await busNameAvailable(_client, busName)) {
         debugPrint('🦜 $busName não está no barramento');
         return;
       }

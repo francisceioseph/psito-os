@@ -8,18 +8,27 @@ import 'dart:io';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
+import 'network_service.dart';
 import 'system_info_service.dart';
 
 class SystemServices {
   final SystemInfoService systemInfo;
+  final NetworkService network;
 
   /// Conexão com o barramento de sistema; null nos falsos.
   final DBusClient? _systemBus;
 
-  SystemServices._({required this.systemInfo, this._systemBus});
+  SystemServices._({
+    required this.systemInfo,
+    required this.network,
+    this._systemBus,
+  });
 
-  SystemServices.fake({SystemInfoService? systemInfo})
-    : this._(systemInfo: systemInfo ?? FakeSystemInfoService());
+  SystemServices.fake({SystemInfoService? systemInfo, NetworkService? network})
+    : this._(
+        systemInfo: systemInfo ?? FakeSystemInfoService(),
+        network: network ?? FakeNetworkService(),
+      );
 
   /// Não bloqueia o boot: cada serviço conecta e carrega em segundo plano e
   /// fica indisponível se o serviço não responder.
@@ -31,15 +40,25 @@ class SystemServices {
     }
     final bus = DBusClient.system();
     final systemInfo = HostnamedSystemInfoService(bus);
-    systemInfo.ready.then((_) {
-      final ok = systemInfo.info.value.available;
-      debugPrint('🦜 serviços: systemInfo=${ok ? 'ok' : 'indisponível'}');
+    final network = NetworkManagerService(bus);
+    Future.wait([systemInfo.ready, network.ready]).then((_) {
+      String status(bool ok) => ok ? 'ok' : 'indisponível';
+      debugPrint(
+        '🦜 serviços: '
+        'systemInfo=${status(systemInfo.info.value.available)} '
+        'network=${status(network.state.value.available)}',
+      );
     });
-    return SystemServices._(systemInfo: systemInfo, systemBus: bus);
+    return SystemServices._(
+      systemInfo: systemInfo,
+      network: network,
+      systemBus: bus,
+    );
   }
 
   Future<void> dispose() async {
     await systemInfo.dispose();
+    await network.dispose();
     await _systemBus?.close();
   }
 }
