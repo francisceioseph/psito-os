@@ -4,8 +4,11 @@
 // GtkWindow em que o runner pôs a view, e o id da aplicação; e o canal
 // psito/icons, os ícones do tema (o PsitoIcon do SDK). Como é um plugin,
 // entra em qualquer app que dependa do psito_runtime sem mexer no runner
-// dele (e no shell, que também usa os ícones).
+// dele (e no shell, que também usa os ícones). O arrastar e soltar de
+// arquivos fica no psito_dnd.cc.
 #include "include/psito_runtime/psito_runtime_plugin.h"
+
+#include "include/psito_runtime/psito_dnd.h"
 
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
@@ -169,4 +172,5 @@ void psito_runtime_plugin_register_with_registrar(
       FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(plugin->icons_channel,
                                             icons_call_cb, nullptr, nullptr);
+  if (plugin->view != nullptr) psito_dnd_attach(plugin->view);
 }

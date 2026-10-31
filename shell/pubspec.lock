@@ -239,7 +239,7 @@ packages:
     source: path
     version: "0.1.0+1"
   psito_runtime:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../packages/psito_runtime"
       relative: true

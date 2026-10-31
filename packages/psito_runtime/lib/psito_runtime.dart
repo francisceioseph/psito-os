@@ -4,6 +4,7 @@
 library;
 
 export 'src/app_context.dart' show AppServices, ProcessAppContext;
+export 'src/dnd.dart' show DropAction, PsitoDnd, PsitoDropTarget, filePaths;
 export 'src/run.dart'
     show PsitoAppHost, openedPaths, runPsitoApp, startServices;
 export 'src/window.dart' show AppWindow, minWindowSize;

@@ -2,14 +2,17 @@
 //
 // O que os três modos de ver têm em comum em cada item: o clique (com o Ctrl
 // e o Shift), o duplo clique que abre, o menu de contexto, arrastar (os
-// selecionados vão juntos), soltar numa pasta e o nome em edição.
+// selecionados vão juntos, e para fora da janela pelo psito/dnd), soltar
+// numa pasta (de dentro ou de outro app) e o nome em edição.
 import 'package:flutter/gestures.dart'
     show kPrimaryButton, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 
 import 'controller.dart';
+import 'env.dart';
 import 'file_icon.dart';
 
 /// O que a janela oferece aos widgets de dentro.
@@ -103,19 +106,37 @@ class ItemGestures extends StatelessWidget {
         child: child,
       ),
     );
+    final data = DragFiles(
+      tab.selection.contains(entry.path) ? [...tab.selection] : [entry.path],
+    );
     final draggable = Draggable<DragFiles>(
-      data: DragFiles(
-        tab.selection.contains(entry.path) ? [...tab.selection] : [entry.path],
-      ),
+      data: data,
       onDragStarted: () {
         controller.pendingCollapse = null;
         if (!tab.selection.contains(entry.path)) tab.tap(entry.path);
       },
+      // Fora da janela, o arrastar continua pelo sistema, para outros apps
+      // e a dock; o Draggable segue vivo e solta se voltar
+      onDragUpdate: (details) {
+        if (controller.outsideDrag.value) return;
+        final view = View.of(context);
+        final bounds = Offset.zero & view.physicalSize / view.devicePixelRatio;
+        if (bounds.contains(details.globalPosition)) return;
+        controller.outsideDrag.value = true;
+        PsitoDnd.instance.startDrag(view.viewId, data.paths);
+      },
+      onDragEnd: (_) => controller.outsideDrag.value = false,
       dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: _DragFeedback(
-        entry: entry,
-        count: tab.selection.contains(entry.path) ? tab.selection.length : 1,
-        size: feedbackSize,
+      feedback: ValueListenableBuilder(
+        valueListenable: controller.outsideDrag,
+        builder: (context, outside, child) =>
+            outside ? const SizedBox.shrink() : child!,
+        child: _DragFeedback(
+          entry: entry,
+          count: tab.selection.contains(entry.path) ? tab.selection.length : 1,
+          size: feedbackSize,
+          env: controller.env,
+        ),
       ),
       childWhenDragging: Opacity(opacity: 0.5, child: gestures),
       child: gestures,
@@ -129,16 +150,17 @@ class _DragFeedback extends StatelessWidget {
   final FsEntry entry;
   final int count;
   final double size;
+  final FilesEnv env;
 
   const _DragFeedback({
     required this.entry,
     required this.count,
     required this.size,
+    required this.env,
   });
 
   @override
   Widget build(BuildContext context) {
-    final env = FilesScope.of(context).controller.env;
     return Transform.translate(
       offset: Offset(-size / 2, -size / 2),
       child: Opacity(
@@ -177,8 +199,8 @@ class _DragFeedback extends StatelessWidget {
   }
 }
 
-/// Soltar arquivos em [path]: move, ou copia com o Ctrl. Uma pasta não
-/// aceita a si mesma nem o que já está nela.
+/// Soltar arquivos em [path]: move, ou copia com o Ctrl. O que vem de outro
+/// app é copiado. Uma pasta não aceita a si mesma nem o que já está nela.
 class FolderDropTarget extends StatelessWidget {
   final String path;
   final Widget child;
@@ -193,29 +215,39 @@ class FolderDropTarget extends StatelessWidget {
     this.highlight = true,
   });
 
-  bool _accepts(DragFiles data) =>
-      data.paths.every((p) => p != path && !isWithin(p, path));
+  bool _accepts(List<String> paths) =>
+      paths.every((p) => p != path && !isWithin(p, path));
 
   @override
   Widget build(BuildContext context) {
     final controller = FilesScope.of(context).controller;
-    return DragTarget<DragFiles>(
-      onWillAcceptWithDetails: (d) => _accepts(d.data),
-      onAcceptWithDetails: (d) =>
-          controller.transfer(d.data.paths, path, move: !_ctrl),
-      builder: (context, candidates, _) {
-        if (!highlight || candidates.isEmpty) return child;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.primary,
-              width: 2,
-            ),
-          ),
-          child: child,
-        );
+    return PsitoDropTarget(
+      onWillAccept: (paths) => _accepts(paths) ? DropAction.copy : null,
+      onAccept: (paths, action) {
+        controller.transfer(paths, path, move: action == DropAction.move);
+        return true;
       },
+      builder: (context, outside) => DragTarget<DragFiles>(
+        onWillAcceptWithDetails: (d) => _accepts(d.data.paths),
+        onAcceptWithDetails: (d) =>
+            controller.transfer(d.data.paths, path, move: !_ctrl),
+        builder: (context, candidates, _) =>
+            _highlighted(context, outside || candidates.isNotEmpty),
+      ),
+    );
+  }
+
+  Widget _highlighted(BuildContext context, bool hovering) {
+    if (!highlight || !hovering) return child;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary,
+          width: 2,
+        ),
+      ),
+      child: child,
     );
   }
 }

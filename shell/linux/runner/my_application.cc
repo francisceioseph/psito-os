@@ -7,6 +7,7 @@
 #include <initializer_list>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "psito_runtime/psito_dnd.h"
 #include "toplevels.h"
 
 // O shell do Psito como cliente layer-shell: um engine, uma FlView por
@@ -319,6 +320,8 @@ static void my_application_activate(GApplication* application) {
   }
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(background));
+  // Arquivos soltos na dock (o plugin já ligou o fundo, a view dele)
+  if (self->views[kDock] != nullptr) psito_dnd_attach(self->views[kDock]);
 }
 
 // Implements GApplication::local_command_line.

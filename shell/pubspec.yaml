@@ -12,6 +12,8 @@ dependencies:
   dbus: ^0.8.0
   psito_sdk:
     path: ../packages/psito_sdk
+  psito_runtime:
+    path: ../packages/psito_runtime
   psito_fs:
     path: ../packages/psito_fs
   psito_services:

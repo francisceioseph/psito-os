@@ -6,12 +6,14 @@
 # psito-deb, que o deploy.sh usa).
 # Uso: ./build.sh [release|profile|debug]   (padrão: release)
 # A VM do spike: VM_PORT=2223 ./build.sh
+# Só alguns projetos: ONLY="shell apps/files" ./build.sh
 set -e
 
 cd "$(dirname "$0")"
 
 MODE="${1:-release}"
 VM_PORT="${VM_PORT:-2222}"
+ONLY="${ONLY:-shell apps/*/}"
 EXCLUDES=(--exclude build/ --exclude .dart_tool/ --exclude linux/flutter/ephemeral/)
 
 echo "📦 [Psito OS] Enviando o código..."
@@ -24,7 +26,9 @@ done
 echo "🔨 [Psito OS] flutter build linux --$MODE na VM..."
 ssh -p "$VM_PORT" psito@localhost "
     set -e
-    for dir in ~/psito-src/shell ~/psito-src/apps/*/; do
+    cd ~/psito-src
+    for dir in $ONLY; do
+        dir=~/psito-src/\$dir
         [ -f \$dir/pubspec.yaml ] || continue
         cd \$dir
         ~/flutter/bin/flutter build linux --$MODE 2>&1 | grep -E 'error|warning|✓' | tail -n 20

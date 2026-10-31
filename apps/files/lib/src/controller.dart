@@ -59,6 +59,10 @@ class FilesController extends ChangeNotifier {
   /// selecionado.
   String? pendingCollapse;
 
+  /// O arrastar saiu da janela e virou o arrastar do sistema (o Wayland): o
+  /// ícone que segue o ponteiro passa a ser o do sistema.
+  final outsideDrag = ValueNotifier(false);
+
   FilesController({
     required this.ctx,
     required this.env,
