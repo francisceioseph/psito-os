@@ -37,6 +37,7 @@ dependencies:
   http: ^1.6.0
   psito_sdk:
     path: ../packages/psito_sdk
+  dbus: ^0.8.0
 
 dev_dependencies:
   flutter_test:

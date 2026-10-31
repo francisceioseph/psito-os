@@ -223,14 +223,35 @@ class _SettingsViewState extends State<SettingsView> {
     ),
   ];
 
-  List<Widget> _about() => const [
-    _Cell('Psito OS v0.0.1'),
-    _Cell(
+  List<Widget> _about() => [
+    const _Cell('Psito OS v0.0.1'),
+    const _Cell(
       'Shell em Flutter desenhado direto no DRM/KMS pelo flutter-pi, '
       'sem X11 nem Wayland.',
     ),
-    SizedBox(height: 12),
-    _Note('Configurações salvas em ~/.config/psito/settings.json'),
+    const SizedBox(height: 16),
+    ValueListenableBuilder(
+      valueListenable: widget.appContext.systemInfo,
+      builder: (context, info, _) {
+        if (!info.available) {
+          return const _Note(
+            'Informações do sistema indisponíveis (hostnamed)',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _InfoRow('Nome do computador', info.hostname),
+            _InfoRow('Sistema', info.osName),
+            _InfoRow('Kernel', info.kernel),
+            if (info.hardware case final hardware?)
+              _InfoRow('Hardware', hardware),
+          ],
+        );
+      },
+    ),
+    const SizedBox(height: 12),
+    const _Note('Configurações salvas em ~/.config/psito/settings.json'),
   ];
 }
 
@@ -318,6 +339,36 @@ class _Cell extends StatelessWidget {
         fontFamily: keys ? 'monospace' : null,
         color: keys ? Colors.white : Colors.white70,
       ),
+    ),
+  );
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 150,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Colors.white54),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, color: Colors.white),
+          ),
+        ),
+      ],
     ),
   );
 }

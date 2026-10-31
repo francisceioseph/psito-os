@@ -57,7 +57,9 @@ class WindowManager extends ChangeNotifier {
     this.onNotify,
     ValueListenable<PsitoSettings>? settings,
     this.onUpdateSettings,
-  }) : settings = settings ?? ValueNotifier(PsitoSettings.defaults);
+    ValueListenable<PsitoSystemInfo>? systemInfo,
+  }) : settings = settings ?? ValueNotifier(PsitoSettings.defaults),
+       systemInfo = systemInfo ?? ValueNotifier(PsitoSystemInfo.unavailable);
 
   final void Function(ShellWindow window, PsitoNotification notification)?
   onNotify;
@@ -67,6 +69,9 @@ class WindowManager extends ChangeNotifier {
 
   /// Pedido de mudança vindo de um app com [PsitoApp.canChangeSettings].
   final void Function(PsitoSettings settings)? onUpdateSettings;
+
+  /// O que os apps leem por [PsitoAppContext.systemInfo].
+  final ValueListenable<PsitoSystemInfo> systemInfo;
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -348,6 +353,9 @@ class _WindowContext implements PsitoAppContext {
 
   @override
   ValueListenable<PsitoSettings> get settings => _manager.settings;
+
+  @override
+  ValueListenable<PsitoSystemInfo> get systemInfo => _manager.systemInfo;
 
   @override
   void updateSettings(PsitoSettings settings) {

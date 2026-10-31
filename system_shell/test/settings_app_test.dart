@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/services/system_info_service.dart';
+import 'package:system_shell/services/system_services.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 
@@ -86,6 +89,27 @@ void main() {
     expect(find.descendant(of: bell, matching: find.text('1')), findsOneWidget);
     expect(
       find.descendant(of: bell, matching: find.byIcon(Icons.notifications_off)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Sobre mostra o sistema e acompanha mudanças', (tester) async {
+    final info = FakeSystemInfoService();
+    final services = SystemServices.fake(systemInfo: info);
+    addTearDown(services.dispose);
+    await pumpOS(tester, services: services);
+    await _openSettings(tester);
+    await tester.tap(find.text('Sobre'));
+    await tester.pump();
+
+    expect(find.text('psito-fake'), findsOneWidget);
+    expect(find.text('0.0.0-fake'), findsOneWidget);
+
+    info.set(PsitoSystemInfo.unavailable);
+    await tester.pump();
+    expect(find.text('psito-fake'), findsNothing);
+    expect(
+      find.text('Informações do sistema indisponíveis (hostnamed)'),
       findsOneWidget,
     );
   });

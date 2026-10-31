@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/app.dart';
 import 'package:system_shell/screens/desktop_screen.dart';
+import 'package:system_shell/services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
 class FakeApp extends PsitoApp {
@@ -44,11 +45,17 @@ Future<void> pumpDesktop(WidgetTester tester) async {
   await tester.pumpWidget(const MaterialApp(home: DesktopScreen()));
 }
 
-/// O app inteiro (tema e configurações), como no boot.
-Future<SettingsStore> pumpOS(WidgetTester tester) async {
+/// O app inteiro (tema e configurações), como no boot. Sem [services], usa
+/// os falsos.
+Future<SettingsStore> pumpOS(
+  WidgetTester tester, {
+  SystemServices? services,
+}) async {
   _useDesktopView(tester);
   final store = SettingsStore.memory();
   addTearDown(store.dispose);
-  await tester.pumpWidget(PsitoOSApp(settings: store));
+  final system = services ?? SystemServices.fake();
+  if (services == null) addTearDown(system.dispose);
+  await tester.pumpWidget(PsitoOSApp(settings: store, services: system));
   return store;
 }

@@ -48,6 +48,44 @@ abstract class PsitoAppContext {
 
   /// Ignorado se o app não tiver [PsitoApp.canChangeSettings].
   void updateSettings(PsitoSettings settings);
+
+  /// Nome do computador e versões do sistema; só leitura.
+  ValueListenable<PsitoSystemInfo> get systemInfo;
+}
+
+/// O que o sistema diz de si (hostnamed no Linux).
+@immutable
+class PsitoSystemInfo {
+  /// False enquanto carrega ou se o serviço não existe.
+  final bool available;
+  final String hostname;
+  final String osName;
+  final String kernel;
+
+  /// Fabricante e modelo, quando o sistema informa.
+  final String? hardware;
+
+  const PsitoSystemInfo({
+    required this.available,
+    this.hostname = '',
+    this.osName = '',
+    this.kernel = '',
+    this.hardware,
+  });
+
+  static const unavailable = PsitoSystemInfo(available: false);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoSystemInfo &&
+      other.available == available &&
+      other.hostname == hostname &&
+      other.osName == osName &&
+      other.kernel == kernel &&
+      other.hardware == hardware;
+
+  @override
+  int get hashCode => Object.hash(available, hostname, osName, kernel, hardware);
 }
 
 class PsitoNotification {

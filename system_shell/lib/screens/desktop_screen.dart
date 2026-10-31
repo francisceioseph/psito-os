@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/system_services.dart';
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';
 import '../shell/settings_store.dart';
@@ -20,7 +21,10 @@ class DesktopScreen extends StatefulWidget {
   /// Sem store, as configurações ficam só em memória (testes).
   final SettingsStore? settings;
 
-  const DesktopScreen({super.key, this.settings});
+  /// Sem serviços, usa os falsos (testes).
+  final SystemServices? services;
+
+  const DesktopScreen({super.key, this.settings, this.services});
 
   @override
   State<DesktopScreen> createState() => _DesktopScreenState();
@@ -34,6 +38,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
 
   late final SettingsStore _settings =
       widget.settings ?? SettingsStore.memory();
+  late final SystemServices _services =
+      widget.services ?? SystemServices.fake();
   late final _notifications = NotificationCenter(
     silent: () => _settings.value.doNotDisturb,
   );
@@ -41,6 +47,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     onNotify: _notifications.post,
     settings: _settings,
     onUpdateSettings: _settings.update,
+    systemInfo: _services.systemInfo.info,
   );
 
   // Fora do setState: mover o mouse só redesenha o cursor
@@ -63,6 +70,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     _windows.dispose();
     _notifications.dispose();
     if (widget.settings == null) _settings.dispose();
+    if (widget.services == null) _services.dispose();
     _mousePosition.dispose();
     _launcherOpen.dispose();
     _panelOpen.dispose();

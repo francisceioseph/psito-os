@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'screens/desktop_screen.dart';
+import 'services/system_services.dart';
 import 'shell/settings_store.dart';
 
 class PsitoOSApp extends StatelessWidget {
   final SettingsStore settings;
+  final SystemServices services;
 
-  const PsitoOSApp({super.key, required this.settings});
+  const PsitoOSApp({super.key, required this.settings, required this.services});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class PsitoOSApp extends StatelessWidget {
             secondary: const Color(0xFFFF5722), // Bochecha alaranjada
           ),
         ),
-        home: DesktopScreen(settings: settings),
+        home: DesktopScreen(settings: settings, services: services),
       ),
     );
   }

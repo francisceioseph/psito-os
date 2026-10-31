@@ -18,6 +18,11 @@ apt-get install -y -qq \
     libdrm-dev libgbm-dev libinput-dev libudev-dev libxkbcommon-dev \
     libsystemd-dev libseat-dev >/dev/null
 
+# Serviços que o shell consome via D-Bus (fase 2)
+apt-get install -y -qq \
+    network-manager upower polkitd \
+    pipewire wireplumber pipewire-pulse pulseaudio-utils >/dev/null
+
 echo "🔨 [VM] flutter-pi ($FLUTTER_PI_COMMIT)..."
 if [ ! -d "$FLUTTER_PI_DIR/.git" ]; then
     sudo -u "$APP_USER" git clone -q "$FLUTTER_PI_REPO" "$FLUTTER_PI_DIR"
@@ -40,5 +45,29 @@ chown -R "$APP_USER:$APP_USER" /opt/psito-app
 install -m 644 "$SRC/psito-os.service" /etc/systemd/system/psito-os.service
 systemctl daemon-reload
 systemctl enable -q psito-os.service
+
+echo "🌐 [VM] Rede e permissões..."
+# O NetworkManager ignora interfaces do ifupdown: o ens3 sai do interfaces.
+# Derrubar o ens3 agora cortaria este SSH, então a troca vale no próximo boot.
+NEED_REBOOT=0
+if grep -q '^[^#]*ens3' /etc/network/interfaces; then
+    cp /etc/network/interfaces /etc/network/interfaces.bak
+    cat > /etc/network/interfaces <<'IFACES'
+# A rede é gerida pelo NetworkManager (provision-guest.sh do Psito OS).
+# Configuração anterior em interfaces.bak.
+source /etc/network/interfaces.d/*
+
+auto lo
+iface lo inet loopback
+IFACES
+    NEED_REBOOT=1
+fi
+install -d -m 755 /etc/polkit-1/rules.d
+install -m 644 "$SRC/polkit/50-psito.rules" /etc/polkit-1/rules.d/50-psito.rules
+
+if [ "$NEED_REBOOT" = 1 ]; then
+    systemd-run -q --on-active=3 systemctl reboot
+    echo "🔁 [VM] A rede passou para o NetworkManager: reiniciando em 3 s."
+fi
 
 echo "✅ [VM] Provisionamento concluído."
