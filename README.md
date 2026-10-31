@@ -26,7 +26,7 @@ A ideia é parecida com a do Fuchsia: tudo que é do Psito é Flutter. Mas o Psi
 | 3 | A base do compositor (o labwc) e o shell como cliente layer-shell | feita |
 | 4 | Apps em processos separados: pacotes `.deb`, manifesto, sandbox e portais | feita |
 | 5 | O shell como pacote (`psito-shell` e o metapacote `psito-desktop`) | planejada |
-| 6 | O Psito Files, um gerenciador de arquivos como o Finder | em andamento |
+| 6 | O Psito Files, um gerenciador de arquivos como o Finder | feita |
 | 7 | Uma dock de verdade: pôr e tirar apps, pastas, arquivos e a lixeira | planejada |
 | 8 | A área de trabalho com arquivos e atalhos de programas | planejada |
 | 9 | Imagem do sistema | planejada |
