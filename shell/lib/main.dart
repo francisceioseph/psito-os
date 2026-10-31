@@ -1,6 +1,6 @@
 // shell/lib/main.dart
 //
-// O shell do Psito como cliente layer-shell do compositor (fase 3). O runner
+// O shell do Psito como cliente layer-shell do labwc. O runner
 // cria uma superfície por parte do shell; aqui cada uma ganha a sua view, com
 // os widgets e os serviços do system_shell.
 import 'dart:async';
@@ -24,6 +24,8 @@ Future<void> main() async {
   FlutterError.onError = (details) =>
       debugPrint('🦜 erro: ${details.exceptionAsString()}\n${details.stack}');
   final settings = await SettingsStore.load(defaultSettingsFile());
+  // As Configurações rodam no próprio processo (apps/) e gravam o arquivo
+  unawaited(settings.watch());
   final state = ShellState(
     settings: settings,
     services: SystemServices.start(),

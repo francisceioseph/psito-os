@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Clock
+Exec=/opt/psito/apps/psito_apps clock
+StartupWMClass=org.psito.clock
+X-Psito-App=clock

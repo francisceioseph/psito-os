@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Psito Buddy
+Exec=/opt/psito/apps/psito_apps buddy
+StartupWMClass=org.psito.buddy
+X-Psito-App=buddy

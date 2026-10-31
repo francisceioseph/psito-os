@@ -55,6 +55,30 @@ void main() {
     expect((await SettingsStore.load(file)).value, changed);
   });
 
+  test('watch relê o que outro processo grava', () async {
+    final shell = await SettingsStore.load(file);
+    final settingsApp = await SettingsStore.load(file);
+    await shell.watch(debounce: const Duration(milliseconds: 20));
+    var notified = 0;
+    shell.addListener(() => notified++);
+
+    final changed = PsitoSettings.defaults.copyWith(
+      accent: const Color(0xFF2196F3),
+    );
+    await settingsApp.update(changed);
+    for (var i = 0; i < 50 && shell.value != changed; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    expect(shell.value, changed);
+    expect(notified, 1);
+
+    // A própria gravação não avisa de novo
+    await shell.update(changed);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(notified, 1);
+    shell.dispose();
+  });
+
   test('toJson e fromJson não perdem dados', () {
     final s = PsitoSettings.defaults.copyWith(
       accent: const Color(0xFFE91E63),

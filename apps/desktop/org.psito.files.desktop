@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Exec=/opt/psito/apps/psito_apps files
+StartupWMClass=org.psito.files
+X-Psito-App=files
