@@ -73,4 +73,38 @@ void main() {
       '/usr/share/applications',
     ]);
   });
+
+  test('o systemd-run abre o app numa unidade própria', () {
+    const firefox = DesktopEntry(
+      id: 'firefox-esr',
+      name: 'Firefox',
+      command: ['/usr/lib/firefox-esr/firefox-esr', '--new-window'],
+    );
+    expect(firefox.launchCommand(random: 0xbeef), [
+      'systemd-run',
+      '--user',
+      '--scope',
+      '--collect',
+      '--quiet',
+      r'--unit=app-psito-firefox\x2desr-beef.scope',
+      '--',
+      '/usr/lib/firefox-esr/firefox-esr',
+      '--new-window',
+    ]);
+
+    const htop = DesktopEntry(
+      id: 'htop',
+      name: 'htop',
+      command: ['htop'],
+      terminal: true,
+    );
+    expect(htop.launchCommand(random: 1).sublist(6), ['--', 'foot', 'htop']);
+  });
+
+  test('systemdEscape como o systemd-escape', () {
+    expect(systemdEscape('org.psito.settings'), 'org.psito.settings');
+    expect(systemdEscape('firefox-esr'), r'firefox\x2desr');
+    expect(systemdEscape('.oculto'), r'\x2eoculto');
+    expect(systemdEscape('ação'), r'a\xc3\xa7\xc3\xa3o');
+  });
 }

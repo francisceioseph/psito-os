@@ -2,7 +2,9 @@
 //
 // Os apps de fora do Psito, lidos dos arquivos .desktop (Desktop Entry
 // Specification), e como abrir cada um.
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 class DesktopEntry {
   /// Nome do arquivo sem o `.desktop`. Bate com o `app_id` das janelas na
@@ -83,15 +85,71 @@ class DesktopEntry {
 
   static final _fieldCode = RegExp(r'^%[fFuUdDnNickvm]$');
 
-  /// Abre o app desligado do shell: matar o shell não fecha o app.
+  /// Abre o app num cgroup próprio (uma unidade `.scope` do systemd do
+  /// usuário): se o shell cair, o systemd não leva o app junto, e o log do
+  /// app sai separado no journal. Sem o systemd-run, abre direto.
   Future<void> launch() async {
-    final args = terminal ? ['foot', ...command] : command;
-    await Process.start(
-      args.first,
-      args.sublist(1),
-      mode: ProcessStartMode.detached,
+    final args = launchCommand(random: _random.nextInt(1 << 32));
+    try {
+      await Process.start(
+        args.first,
+        args.sublist(1),
+        mode: ProcessStartMode.detached,
+      );
+    } on ProcessException {
+      final direct = args.sublist(args.indexOf('--') + 1);
+      await Process.start(
+        direct.first,
+        direct.sublist(1),
+        mode: ProcessStartMode.detached,
+      );
+    }
+  }
+
+  static final _random = Random();
+
+  /// O `systemd-run` que abre o app. A unidade segue o nome da
+  /// especificação do XDG (`app-<launcher>-<id>-<aleatório>.scope`), pelo
+  /// qual o xdg-desktop-portal reconhece apps sem Flatpak.
+  List<String> launchCommand({required int random}) => [
+    'systemd-run',
+    '--user',
+    '--scope',
+    '--collect',
+    '--quiet',
+    '--unit=${unitName(id, random)}',
+    '--',
+    if (terminal) 'foot',
+    ...command,
+  ];
+}
+
+/// `app-psito-<id>-<aleatório>.scope`, com o id escapado como no
+/// `systemd-escape` (o `-` vira `\x2d`).
+String unitName(String id, int random) =>
+    'app-psito-${systemdEscape(id)}-${random.toRadixString(16)}.scope';
+
+/// O escape do `systemd-escape`: fora de `[A-Za-z0-9:_.]` (e o `.` no
+/// começo) vira `\xNN`.
+String systemdEscape(String text) {
+  final out = StringBuffer();
+  final bytes = utf8.encode(text);
+  for (var i = 0; i < bytes.length; i++) {
+    final c = bytes[i];
+    final plain =
+        (c >= 0x30 && c <= 0x39) ||
+        (c >= 0x41 && c <= 0x5a) ||
+        (c >= 0x61 && c <= 0x7a) ||
+        c == 0x3a ||
+        c == 0x5f ||
+        (c == 0x2e && i > 0);
+    out.write(
+      plain
+          ? String.fromCharCode(c)
+          : '\\x${c.toRadixString(16).padLeft(2, '0')}',
     );
   }
+  return out.toString();
 }
 
 /// Divide o `Exec` em argumentos, com as aspas duplas e o `\` da
