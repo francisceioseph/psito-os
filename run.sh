@@ -6,10 +6,10 @@ echo "🦜 Subindo o Psito OS (Debian + QEMU)..."
 # Garantir que estamos na raiz do repositório
 cd "$(dirname "$0")"
 
-# Variáveis opcionais: DISK, SSH_PORT, MEM, SMP, AUDIO, MONITOR, TABLET
+# Variáveis opcionais: DISK, SSH_PORT, MEM (3072: o Flutter compila na VM), SMP, AUDIO, MONITOR, TABLET
 DISK="${DISK:-qemu/psito-disk.qcow2}"
 SSH_PORT="${SSH_PORT:-2222}"
-MEM="${MEM:-2048}"
+MEM="${MEM:-3072}"
 SMP="${SMP:-2}"
 # Backend de som do host (pipewire, pa) ou none: a placa existe, sem saída
 AUDIO="${AUDIO:-pipewire}"
@@ -31,9 +31,9 @@ QEMU_ARGS=(
     -monitor "unix:$MONITOR,server,nowait"
 )
 
-# TABLET=1: ponteiro absoluto (tablet USB), que segue o mouse do host sem
-# captura. Sem ele, o mouse é PS/2 relativo.
-if [ "${TABLET:-0}" = 1 ]; then
+# Ponteiro absoluto (tablet USB), que segue o mouse do host sem captura: o
+# labwc e o mouse PS/2 relativo do QEMU se desencontram. TABLET=0 desliga.
+if [ "${TABLET:-1}" = 1 ]; then
     QEMU_ARGS+=(-device qemu-xhci -device usb-tablet)
 fi
 

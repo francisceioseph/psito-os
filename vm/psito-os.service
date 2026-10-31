@@ -1,5 +1,5 @@
 [Unit]
-Description=Psito OS Kiosk Engine
+Description=Psito OS: sessão do labwc com o shell do Psito
 After=systemd-user-sessions.service multi-user.target
 Conflicts=getty@tty1.service
 
@@ -12,12 +12,10 @@ TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
 UtmpIdentifier=tty1
-WorkingDirectory=/opt/psito-app
-# FLUTTER_PI_ARGS (ex.: --release) é escrito pelo deploy.sh conforme o modo do build
-EnvironmentFile=-/etc/default/psito-os
-# Carrega o libflutter_engine.so do bundle, que é do mesmo modo e versão do app.so
-Environment=LD_LIBRARY_PATH=/opt/psito-app
-ExecStart=/usr/local/bin/flutter-pi $FLUTTER_PI_ARGS /opt/psito-app
+# No plano de cursor do virtio-gpu, o wlroots desenha o cursor de cabeça para baixo
+Environment=WLR_NO_HARDWARE_CURSORS=1
+# O autostart do labwc (~/.config/labwc) sobe o shell pela unidade psito-shell
+ExecStart=/usr/bin/labwc
 Restart=always
 RestartSec=2
 StandardInput=tty

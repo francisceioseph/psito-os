@@ -1,36 +1,32 @@
 #!/bin/bash
+# Compila o shell (shell/) e o host dos apps (apps/) dentro da VM, com o
+# Flutter que o provision.sh instalou: o binário liga no GTK e no
+# gtk-layer-shell da VM. Leva junto o system_shell e o psito_sdk
+# (dependências de caminho), nos mesmos caminhos relativos.
+# Uso: ./build.sh [release|profile|debug]   (padrão: release)
+# A VM do spike: VM_PORT=2223 ./build.sh
 set -e
 
-# Uso: ./build.sh [release|profile|debug]   (padrão: release)
-MODE="${1:-release}"
-
-echo "🔨 [Psito OS] Compilando o shell em modo $MODE..."
-
-# Garantir que estamos no diretório do script (raiz do repositório)
 cd "$(dirname "$0")"
 
-export PATH="$PATH:$HOME/.pub-cache/bin"
-if ! command -v flutterpi_tool >/dev/null; then
-    echo "❌ flutterpi_tool não encontrado. Instale com:"
-    echo "   flutter pub global activate --source git https://github.com/ardera/flutterpi_tool"
-    exit 1
-fi
+MODE="${1:-release}"
+VM_PORT="${VM_PORT:-2222}"
+EXCLUDES=(--exclude build/ --exclude .dart_tool/ --exclude linux/flutter/ephemeral/)
 
-cd ./system_shell
-flutter pub get >/dev/null
+echo "📦 [Psito OS] Enviando o código..."
+for dir in shell apps system_shell packages/psito_sdk; do
+    ssh -p "$VM_PORT" psito@localhost "mkdir -p psito-src/$dir"
+    rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p $VM_PORT" \
+        "$dir/" "psito@localhost:psito-src/$dir/"
+done
 
-# Gera o bundle (assets + app.so AOT + engine do mesmo modo) para o flutter-pi
-flutterpi_tool build --arch=x64 "--$MODE"
-
-BUNDLE_DIR=$(find build/flutter-pi -mindepth 1 -maxdepth 1 -type d | head -n 1)
-if [ -z "$BUNDLE_DIR" ]; then
-    echo "❌ [Psito OS] Bundle do flutter-pi não encontrado em system_shell/build/flutter-pi"
-    exit 1
-fi
-
-# O deploy.sh lê isto para saber o que enviar e com qual modo iniciar o flutter-pi
-printf 'BUNDLE_DIR=%s\nMODE=%s\n' "$BUNDLE_DIR" "$MODE" > build/psito-build.env
-
-echo "📦 Bundle em system_shell/$BUNDLE_DIR:"
-ls -1 "$BUNDLE_DIR" | sed 's/^/   /'
-echo "✅ [Psito OS] Build concluído com sucesso!"
+echo "🔨 [Psito OS] flutter build linux --$MODE na VM..."
+ssh -p "$VM_PORT" psito@localhost "
+    set -e
+    for app in shell apps; do
+        cd ~/psito-src/\$app
+        ~/flutter/bin/flutter build linux --$MODE 2>&1 | grep -E 'error|warning|✓' | tail -n 20
+    done
+    echo $MODE > ~/psito-src/.mode
+"
+echo "✅ [Psito OS] Build concluído. Rode ./deploy.sh para instalar."

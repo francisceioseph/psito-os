@@ -1,36 +1,35 @@
 #!/bin/bash
+# Instala o que o build.sh compilou na VM: o shell em /opt/psito/shell, os
+# apps em /opt/psito/apps e os .desktop deles no ~/.local/share/applications
+# (o launcher e a dock do shell leem dali). Depois reinicia o shell, se a
+# sessão do labwc estiver rodando.
+# A VM do spike: VM_PORT=2223 ./deploy.sh
 set -e
 
-echo "🚀 [Psito OS] Iniciando deploy para a VM Debian..."
-
-# Garantir que estamos na raiz do repositório
 cd "$(dirname "$0")"
 
-VM_USER="psito"
-VM_HOST="localhost"
 VM_PORT="${VM_PORT:-2222}"
-DEST_DIR="/opt/psito-app"
-BUILD_ENV="system_shell/build/psito-build.env"
 
-# Verificar se existe um build do flutterpi_tool
-if [ ! -f "$BUILD_ENV" ]; then
-    echo "⚠️  [Psito OS] Bundle não encontrado! Rodando build.sh..."
+ssh -p "$VM_PORT" psito@localhost 'test -f ~/psito-src/.mode' || {
+    echo "⚠️  [Psito OS] Nada compilado na VM. Rodando o build.sh..."
     ./build.sh
-fi
-source "$BUILD_ENV"
+}
 
-# O flutter-pi do bundle não tem nosso patch: a VM usa o de /usr/local/bin.
-# flutter_engine/ é o cache de shaders que o engine grava na pasta do app.
-echo "📦 Transferindo bundle ($MODE) para $DEST_DIR na VM..."
-rsync -az --delete --exclude /flutter-pi --exclude /flutter_engine -e "ssh -p $VM_PORT" \
-    "system_shell/$BUNDLE_DIR/" "$VM_USER@$VM_HOST:$DEST_DIR/"
+echo "📦 [Psito OS] Instalando os .desktop dos apps..."
+rsync -az --delete -e "ssh -p $VM_PORT" apps/desktop/ \
+    psito@localhost:psito-src/apps-desktop/
 
-# Debug é o padrão do flutter-pi, que não aceita --debug
-FLUTTER_PI_ARGS="--$MODE"
-[ "$MODE" = debug ] && FLUTTER_PI_ARGS=""
-
-echo "🔄 Reiniciando o serviço do Psito OS na VM..."
-ssh -p "$VM_PORT" "$VM_USER@$VM_HOST" \
-    "echo 'FLUTTER_PI_ARGS=$FLUTTER_PI_ARGS' | sudo tee /etc/default/psito-os >/dev/null && sudo systemctl restart psito-os.service"
-
-echo "✨ [Psito OS] Deploy finalizado com sucesso!"
+echo "🚀 [Psito OS] Instalando e reiniciando o shell..."
+ssh -p "$VM_PORT" psito@localhost '
+    set -e
+    mode=$(cat ~/psito-src/.mode)
+    rsync -a --delete ~/psito-src/shell/build/linux/x64/$mode/bundle/ /opt/psito/shell/
+    rsync -a --delete ~/psito-src/apps/build/linux/x64/$mode/bundle/ /opt/psito/apps/
+    mkdir -p ~/.local/share/applications
+    rm -f ~/.local/share/applications/org.psito.*.desktop
+    cp ~/psito-src/apps-desktop/*.desktop ~/.local/share/applications/
+    if systemctl --user is-active -q psito-shell.service; then
+        systemctl --user restart psito-shell.service
+    fi
+'
+echo "✨ [Psito OS] Deploy finalizado ($(ssh -p "$VM_PORT" psito@localhost cat psito-src/.mode))."

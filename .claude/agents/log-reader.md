@@ -1,6 +1,6 @@
 ---
 name: log-reader
-description: Lê saídas longas e descartáveis do psito-os (journal do psito-os.service na VM, flutter build/flutterpi_tool, provision.sh, apt, flutter test) e devolve só os erros e avisos relevantes. Use para rodar e resumir build, deploy, testes e logs sem trazer a saída inteira para a conversa principal.
+description: Lê saídas longas e descartáveis do psito-os (journal do psito-os.service na VM, flutter build, provision.sh, apt, flutter test) e devolve só os erros e avisos relevantes. Use para rodar e resumir build, deploy, testes e logs sem trazer a saída inteira para a conversa principal.
 tools: Bash, Read, Grep, Glob
 model: haiku
 ---

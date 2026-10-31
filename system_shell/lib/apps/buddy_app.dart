@@ -77,7 +77,7 @@ class _BuddyViewState extends State<BuddyView> {
     } else if (lower.contains('piada') || lower.contains('engraçado')) {
       return 'Sabe qual é o pássaro que voa de noite? O calops-noite! (Ok, essa foi fraca, mas dou o meu melhor piado.)';
     } else if (lower.contains('sistema') || lower.contains('status')) {
-      return 'Sistema estável! `flutter-pi` rodando no DRM/KMS, sem perdas de pacotes e com as pálpebras abertas!';
+      return 'Sistema estável! O shell em Flutter rodando sobre o labwc, sem perdas de pacotes e com as pálpebras abertas!';
     }
     return 'Fiiu-fiil! Entendi perfeitamente. Como um bom assistente penoso, estou anotando isso no meu bico!';
   }

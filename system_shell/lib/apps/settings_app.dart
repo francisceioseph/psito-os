@@ -371,8 +371,8 @@ class _SettingsViewState extends State<SettingsView> {
   List<Widget> _about() => [
     const _Cell('Psito OS v0.0.1'),
     const _Cell(
-      'Shell em Flutter desenhado direto no DRM/KMS pelo flutter-pi, '
-      'sem X11 nem Wayland.',
+      'Shell em Flutter como cliente Wayland do labwc, '
+      'com cada app no seu processo.',
     ),
     const SizedBox(height: 16),
     ValueListenableBuilder(
