@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,6 +14,8 @@ import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
 import '../widgets/launcher.dart';
 import '../widgets/network_panel.dart';
+import '../widgets/volume_osd.dart';
+import '../widgets/volume_panel.dart';
 import '../widgets/notification_panel.dart';
 import '../widgets/notification_toasts.dart';
 import '../widgets/psito_dock.dart';
@@ -32,7 +36,7 @@ class DesktopScreen extends StatefulWidget {
 }
 
 /// Camadas abertas pela top bar; só uma fica aberta por vez.
-enum _Overlay { launcher, notifications, network }
+enum _Overlay { launcher, notifications, network, volume }
 
 class _DesktopScreenState extends State<DesktopScreen> {
   static const _topBarHeight = 40.0;
@@ -59,6 +63,12 @@ class _DesktopScreenState extends State<DesktopScreen> {
   final _mousePosition = ValueNotifier<Offset?>(null);
 
   final _overlay = ValueNotifier<_Overlay?>(null);
+
+  /// Aviso de volume depois de uma tecla de volume.
+  final _volumeOsd = ValueNotifier(false);
+  Timer? _volumeOsdTimer;
+  static const _volumeOsdDuration = Duration(milliseconds: 1500);
+  static const _volumeStep = 0.05;
   final _switcher = WindowSwitcher();
   final _superTap = SuperTapDetector();
 
@@ -77,6 +87,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
     if (widget.services == null) _services.dispose();
     _mousePosition.dispose();
     _overlay.dispose();
+    _volumeOsdTimer?.cancel();
+    _volumeOsd.dispose();
     _switcher.dispose();
     super.dispose();
   }
@@ -164,7 +176,30 @@ class _DesktopScreenState extends State<DesktopScreen> {
         if (focused != null) _toggleSnap(focused, SnapMode.right);
       case ShellAction.minimize:
         if (focused != null) _windows.minimize(focused.id);
+      case ShellAction.volumeUp:
+        _stepVolume(1, osd: true);
+      case ShellAction.volumeDown:
+        _stepVolume(-1, osd: true);
+      case ShellAction.volumeMute:
+        final audio = _services.audio;
+        audio.setMuted(!audio.state.value.muted);
+        _showVolumeOsd();
     }
+  }
+
+  void _stepVolume(int direction, {bool osd = false}) {
+    final audio = _services.audio;
+    final s = audio.state.value;
+    if (!s.available) return;
+    audio.setVolume(s.volume + direction * _volumeStep);
+    if (osd) _showVolumeOsd();
+  }
+
+  void _showVolumeOsd() {
+    if (!_services.audio.state.value.available) return;
+    _volumeOsd.value = true;
+    _volumeOsdTimer?.cancel();
+    _volumeOsdTimer = Timer(_volumeOsdDuration, () => _volumeOsd.value = false);
   }
 
   /// Repetir o snap do mesmo lado devolve a janela ao tamanho de antes.
@@ -263,12 +298,16 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       _notifications,
                       _settings,
                       _services.network.state,
+                      _services.audio.state,
                     ]),
                     builder: (context, _) => TopBar(
                       onMenuTap: _toggleLauncher,
                       onNotificationsTap: () => _toggle(_Overlay.notifications),
                       network: _services.network.state.value,
                       onNetworkTap: () => _toggle(_Overlay.network),
+                      audio: _services.audio.state.value,
+                      onVolumeTap: () => _toggle(_Overlay.volume),
+                      onVolumeScroll: _stepVolume,
                       unreadCount: _notifications.unreadCount,
                       use24h: _settings.value.use24h,
                       showSeconds: _settings.value.showSeconds,
@@ -323,6 +362,12 @@ class _DesktopScreenState extends State<DesktopScreen> {
                         onSetEnabled: _services.network.setEnabled,
                         onClose: _closeOverlay,
                       ),
+                      _Overlay.volume => VolumePanel(
+                        state: _services.audio.state,
+                        onVolume: _services.audio.setVolume,
+                        onMuted: _services.audio.setMuted,
+                        onClose: _closeOverlay,
+                      ),
                       _Overlay.launcher => Launcher(
                         apps: registeredApps,
                         onLaunch: (app) {
@@ -335,6 +380,24 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     if (child == null) return const SizedBox.shrink();
                     return Positioned.fill(child: child);
                   },
+                ),
+
+                // Aviso de volume, acima da dock
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: _dockReserve + 16,
+                  child: Center(
+                    child: ListenableBuilder(
+                      listenable: Listenable.merge([
+                        _volumeOsd,
+                        _services.audio.state,
+                      ]),
+                      builder: (context, _) => _volumeOsd.value
+                          ? VolumeOsd(state: _services.audio.state.value)
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
                 ),
 
                 // Seletor de janelas (Alt+Tab / Ctrl+Tab)

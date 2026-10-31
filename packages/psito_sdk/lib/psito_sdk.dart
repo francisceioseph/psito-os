@@ -88,7 +88,8 @@ class PsitoSystemInfo {
       other.hardware == hardware;
 
   @override
-  int get hashCode => Object.hash(available, hostname, osName, kernel, hardware);
+  int get hashCode =>
+      Object.hash(available, hostname, osName, kernel, hardware);
 }
 
 class PsitoNotification {
@@ -158,6 +159,12 @@ const psitoShortcuts = [
   PsitoShortcut('Maximizar', 'Super+↑', 'Alt+Shift+↑'),
   PsitoShortcut('Snap à esquerda / direita', 'Super+← / →', 'Alt+Shift+← / →'),
   PsitoShortcut('Minimizar', 'Super+↓', 'Alt+Shift+↓'),
+  PsitoShortcut(
+    'Subir / baixar o volume',
+    'Teclas de volume',
+    'Alt+Shift+PageUp / PageDown',
+  ),
+  PsitoShortcut('Silenciar', 'Tecla de mudo', 'Alt+Shift+M'),
   PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
 ];
 

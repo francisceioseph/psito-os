@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import '../services/audio_service.dart';
 import 'network_indicator.dart';
+import 'volume_indicator.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Botão do Menu Psito: abre e fecha o launcher.
@@ -21,6 +23,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Ícone de rede: abre e fecha o painel de rede.
   final VoidCallback? onNetworkTap;
 
+  final AudioState audio;
+
+  /// Ícone de volume: abre e fecha o painel de volume.
+  final VoidCallback? onVolumeTap;
+
+  /// Roda do mouse sobre o ícone de volume: +1 sobe, -1 desce.
+  final ValueChanged<int>? onVolumeScroll;
+
   const TopBar({
     super.key,
     this.onMenuTap,
@@ -31,6 +41,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.doNotDisturb = false,
     this.network = PsitoNetworkState.unavailable,
     this.onNetworkTap,
+    this.audio = AudioState.unavailable,
+    this.onVolumeTap,
+    this.onVolumeScroll,
   });
 
   static const height = 40.0;
@@ -92,7 +105,11 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               // Indicadores de Periféricos / Status
               NetworkIndicator(state: network, onTap: onNetworkTap),
               const SizedBox(width: 8),
-              _buildSystemTrayIcon(Icons.volume_up, 'Volume: 100%'),
+              VolumeIndicator(
+                state: audio,
+                onTap: onVolumeTap,
+                onScroll: onVolumeScroll,
+              ),
               const SizedBox(width: 12),
 
               // Indicador de Bateria / Energia do Psito Device
@@ -177,13 +194,6 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildSystemTrayIcon(IconData icon, String tooltip) {
-    return Tooltip(
-      message: tooltip,
-      child: Icon(icon, size: 16, color: Colors.white70),
     );
   }
 

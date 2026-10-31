@@ -15,6 +15,9 @@ enum ShellAction {
   snapLeft,
   snapRight,
   minimize,
+  volumeUp,
+  volumeDown,
+  volumeMute,
 }
 
 const _arrowUp = LogicalKeyboardKey.arrowUp;
@@ -37,6 +40,11 @@ const shellBindings = <SingleActivator, ShellAction>{
   SingleActivator(_arrowLeft, meta: true): ShellAction.snapLeft,
   SingleActivator(_arrowRight, meta: true): ShellAction.snapRight,
   SingleActivator(_arrowDown, meta: true): ShellAction.minimize,
+  SingleActivator(LogicalKeyboardKey.audioVolumeUp, includeRepeats: true):
+      ShellAction.volumeUp,
+  SingleActivator(LogicalKeyboardKey.audioVolumeDown, includeRepeats: true):
+      ShellAction.volumeDown,
+  SingleActivator(LogicalKeyboardKey.audioVolumeMute): ShellAction.volumeMute,
 
   // VM
   SingleActivator(LogicalKeyboardKey.space, control: true):
@@ -51,6 +59,20 @@ const shellBindings = <SingleActivator, ShellAction>{
   SingleActivator(_arrowLeft, alt: true, shift: true): ShellAction.snapLeft,
   SingleActivator(_arrowRight, alt: true, shift: true): ShellAction.snapRight,
   SingleActivator(_arrowDown, alt: true, shift: true): ShellAction.minimize,
+  SingleActivator(
+    LogicalKeyboardKey.pageUp,
+    alt: true,
+    shift: true,
+    includeRepeats: true,
+  ): ShellAction.volumeUp,
+  SingleActivator(
+    LogicalKeyboardKey.pageDown,
+    alt: true,
+    shift: true,
+    includeRepeats: true,
+  ): ShellAction.volumeDown,
+  SingleActivator(LogicalKeyboardKey.keyM, alt: true, shift: true):
+      ShellAction.volumeMute,
 };
 
 ShellAction? resolveShortcut(KeyEvent event, HardwareKeyboard keyboard) {
