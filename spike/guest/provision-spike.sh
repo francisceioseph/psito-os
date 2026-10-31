@@ -1,0 +1,34 @@
+#!/bin/bash
+# Roda DENTRO da VM do spike, como root, chamado pelo spike/provision.sh.
+set -e
+
+SRC="$(dirname "$(readlink -f "$0")")"
+APP_USER="${APP_USER:-psito}"
+FLUTTER_VERSION="${FLUTTER_VERSION:?}"
+FLUTTER_DIR="/home/$APP_USER/flutter"
+
+echo "📦 [spike] Pacotes..."
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq
+apt-get install -y -qq \
+    weston foot gtk-4-examples \
+    mesa-utils wayland-utils python3-evdev \
+    clang cmake ninja-build libgtk-3-dev curl unzip xz-utils >/dev/null
+
+echo "🐦 [spike] Flutter $FLUTTER_VERSION..."
+if [ ! -d "$FLUTTER_DIR/.git" ]; then
+    sudo -u "$APP_USER" git clone -q --depth 1 -b "$FLUTTER_VERSION" \
+        https://github.com/flutter/flutter "$FLUTTER_DIR"
+fi
+sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" --disable-analytics >/dev/null
+sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" precache --linux >/dev/null
+
+echo "⚙️  [spike] Sessão do spike no tty1..."
+# O spike usa o tty1 e o DRM: o shell da fase 2 não sobe nesta VM
+systemctl disable -q --now psito-os.service 2>/dev/null || true
+install -m 644 "$SRC/psito-spike.service" /etc/systemd/system/psito-spike.service
+install -d -m 755 /etc/psito-spike
+install -m 644 "$SRC/weston.ini" /etc/psito-spike/weston.ini
+systemctl daemon-reload
+
+echo "✅ [spike] Pronto. Suba um compositor com spike/session.sh weston."

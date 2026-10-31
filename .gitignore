@@ -18,3 +18,7 @@ system_shell/linux/flutter/ephemeral/
 # Documentação local (fora do git)
 docs/
 packages/*/pubspec.lock
+
+# Spike da fase 3: fontes de terceiros e logs brutos das medições
+spike/vendor/
+spike/results/raw/

@@ -36,6 +36,11 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). Os serviços reais são testados num barramento D-Bus privado (`test/services/dbus_test_bus.dart`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.
 - `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`, `PsitoSettings`, papéis de parede, cores e a tabela `psitoShortcuts`). Os apps só podem importar Flutter, pacotes externos e o `psito_sdk`. `test/app_boundary_test.dart` garante isso.
 - `docs/ROADMAP.md`: roteiro por fases (local, fora do git). `docs/FASE-1.md` detalha a fase atual. Consulte só quando a tarefa envolver planejamento.
+- `spike/`: bancada do spike do compositor da fase 3 (`docs/FASE-3.md`), numa VM própria (`qemu/psito-spike.qcow2`, SSH na 2223) sem o `psito-os.service`.
+  - `probe/`: app Flutter Linux de referência, compilado dentro da VM;
+  - `tools/`: injetor de teclas, amostragem de memória e CPU, cálculo de latência e fps;
+  - `guest/`: o que o `spike/provision.sh` instala na VM;
+  - `notas/` e `results/`: o que cada candidato mostrou e os números (`results/raw/` e `vendor/` ficam fora do git).
 - `vm/`: arquivos instalados na VM pelo `provision.sh`: o serviço, o script do guest e `polkit/`, com as permissões D-Bus do usuário `psito`
 - `patches/`: patches aplicados no flutter-pi da VM: virtio-gpu e text input (escape de JSON e offsets UTF-16)
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
@@ -48,6 +53,11 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `./provision.sh`: prepara a VM (deps, flutter-pi fixo + `patches/`, serviço de `vm/`). Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`), com placa de som (`AUDIO=pipewire|pa|none`) e monitor em `qemu/monitor.sock`
 - `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.
+- Spike (fase 3):
+  - `spike/vm.sh <script da raiz>` roda `create-disk.sh`, `install-os.sh`, `provision.sh` ou `run.sh` na VM do spike; `spike/vm.sh ssh` entra nela. Depois do `provision.sh`, rode `spike/provision.sh`.
+  - `spike/session.sh weston|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe.
+  - `spike/measure.sh <candidato> <processo>` mede e grava `spike/results/<candidato>.csv`.
+  - Não suba as duas VMs ao mesmo tempo.
 - `./logs.sh [n]`: últimas n linhas (padrão 40) do `journalctl -u psito-os` na VM
 - `./create-disk.sh`, `./install-os.sh`: criam e instalam a VM sem interação (`vm/preseed.cfg`). Todos os scripts aceitam `DISK`, `SSH_PORT`/`VM_PORT`, `MEM` (ex.: VM de teste na 2223).
 

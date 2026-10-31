@@ -1,0 +1,22 @@
+[Unit]
+Description=Psito OS spike: compositor da fase 3
+After=systemd-user-sessions.service multi-user.target
+Conflicts=getty@tty1.service psito-os.service
+
+[Service]
+Type=simple
+User=psito
+# Mesma sessão do logind no tty1 do psito-os.service: o libseat recebe a GPU e o input
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+UtmpIdentifier=tty1
+# SPIKE_CMD é escrito pelo spike/session.sh. O $$ deixa o sh expandir a
+# variável: com $SPIKE_CMD o systemd quebraria o comando em palavras
+EnvironmentFile=/etc/default/psito-spike
+ExecStart=/bin/sh -c 'exec $$SPIKE_CMD'
+Restart=no
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal

@@ -6,10 +6,11 @@ echo "🦜 Subindo o Psito OS (Debian + QEMU)..."
 # Garantir que estamos na raiz do repositório
 cd "$(dirname "$0")"
 
-# Variáveis opcionais: DISK, SSH_PORT, MEM, AUDIO, MONITOR
+# Variáveis opcionais: DISK, SSH_PORT, MEM, SMP, AUDIO, MONITOR
 DISK="${DISK:-qemu/psito-disk.qcow2}"
 SSH_PORT="${SSH_PORT:-2222}"
 MEM="${MEM:-2048}"
+SMP="${SMP:-2}"
 # Backend de som do host (pipewire, pa) ou none: a placa existe, sem saída
 AUDIO="${AUDIO:-pipewire}"
 MONITOR="${MONITOR:-qemu/monitor.sock}"
@@ -17,7 +18,7 @@ MONITOR="${MONITOR:-qemu/monitor.sock}"
 # Mapeamento moderno de rede usando netdev + virtio-net-pci
 QEMU_ARGS=(
     -m "$MEM"
-    -smp 2
+    -smp "$SMP"
     -drive "file=$DISK,format=qcow2"
     -device virtio-vga-gl
     -display gtk,gl=on
