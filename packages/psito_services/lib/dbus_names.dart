@@ -1,4 +1,4 @@
-// system_shell/lib/services/dbus_names.dart
+// packages/psito_services/lib/dbus_names.dart
 import 'package:dbus/dbus.dart';
 
 /// O serviço está rodando ou o barramento sobe ele na primeira chamada

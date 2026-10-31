@@ -58,7 +58,7 @@ packages:
     source: hosted
     version: "1.0.9"
   dbus:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: dbus
       sha256: f7db8504e715b835f5ebe5fe74604ccd961d504c73389a5d8e81bafc2e2f3612
@@ -66,7 +66,7 @@ packages:
     source: hosted
     version: "0.8.0"
   fake_async:
-    dependency: "direct dev"
+    dependency: transitive
     description:
       name: fake_async
       sha256: "5368f224a74523e8d2e7399ea1638b37aecfca824a3cc4dfdf77bf1fa905ac44"
@@ -172,7 +172,7 @@ packages:
     source: hosted
     version: "1.18.3"
   nm:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: nm
       sha256: "2ae480aa3379716b8bb58dfebb168e2919394c92b629efaaa0baaa5d140786e6"
@@ -199,6 +199,13 @@ packages:
     dependency: "direct main"
     description:
       path: "../packages/psito_sdk"
+      relative: true
+    source: path
+    version: "0.1.0"
+  psito_services:
+    dependency: "direct main"
+    description:
+      path: "../packages/psito_services"
       relative: true
     source: path
     version: "0.1.0"
@@ -256,7 +263,7 @@ packages:
     source: hosted
     version: "0.7.12"
   timezone:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: timezone
       sha256: "9f4e5a1a0e4fef7dd3424842c0575db01bfb7a11730e8d55753fcd5c5c98767b"

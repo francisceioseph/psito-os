@@ -1,4 +1,4 @@
-// system_shell/lib/services/time_service.dart
+// packages/psito_services/lib/time_service.dart
 //
 // Fuso e NTP pelo systemd-timedated. A hora local é calculada com o pacote
 // timezone: o DateTime.now() do Dart guarda o fuso de quando o processo

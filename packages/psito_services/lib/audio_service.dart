@@ -1,4 +1,4 @@
-// system_shell/lib/services/audio_service.dart
+// packages/psito_services/lib/audio_service.dart
 //
 // Volume do sink padrão do PipeWire. Sem binding D-Bus estável, usa o wpctl
 // para ler e ajustar e o `pactl subscribe` para saber de mudanças de fora.

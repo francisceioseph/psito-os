@@ -1,4 +1,4 @@
-// system_shell/lib/services/battery_service.dart
+// packages/psito_services/lib/battery_service.dart
 //
 // Bateria pelo DisplayDevice da UPower: o resumo de todas as baterias.
 import 'dart:async';

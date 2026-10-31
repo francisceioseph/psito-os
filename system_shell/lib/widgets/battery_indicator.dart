@@ -4,7 +4,7 @@
 // porcentagem é opcional e o clique abre o painel com os detalhes.
 import 'package:flutter/material.dart';
 
-import '../services/battery_service.dart';
+import 'package:psito_services/battery_service.dart';
 
 class BatteryIndicator extends StatelessWidget {
   final BatteryState state;

@@ -3,7 +3,7 @@
 // Aviso rápido do volume ao mudar pelo teclado.
 import 'package:flutter/material.dart';
 
-import '../services/audio_service.dart';
+import 'package:psito_services/audio_service.dart';
 import 'volume_indicator.dart';
 
 class VolumeOsd extends StatelessWidget {

@@ -4,6 +4,7 @@
 // Na fase 4 este contrato vira o protocolo entre processos, então tudo que um
 // app pede ao shell precisa passar pelo PsitoAppContext.
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Brightness, ColorScheme, ThemeData;
 import 'package:flutter/widgets.dart';
 
 /// Descrição de um app: o que aparece na dock/launcher e como construí-lo.
@@ -413,3 +414,13 @@ class PsitoTimeState {
   int get hashCode =>
       Object.hash(available, timezone, ntp, ntpSynchronized, canNtp);
 }
+
+/// Tema escuro do Psito com a cor de destaque das Configurações.
+ThemeData psitoTheme(Color accent) => ThemeData(
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: const Color(0xFF12181B),
+  colorScheme: ColorScheme.dark(
+    primary: accent, // Amarelo calopsita 🦜 por padrão
+    secondary: const Color(0xFFFF5722), // Bochecha alaranjada
+  ),
+);

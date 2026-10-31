@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/session_service.dart';
+import 'package:psito_services/session_service.dart';
 import 'top_bar.dart';
 
 class PowerPanel extends StatelessWidget {

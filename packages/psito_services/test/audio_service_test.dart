@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/services/audio_service.dart';
+import 'package:psito_services/audio_service.dart';
 
 /// wpctl falso: responde get-volume com [volume] e guarda as outras chamadas.
 class _FakeWpctl {

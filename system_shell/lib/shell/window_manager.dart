@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
-import '../services/time_service.dart';
+import 'package:psito_services/time_service.dart';
 
 enum SnapMode { left, right, maximized }
 

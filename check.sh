@@ -1,11 +1,11 @@
 #!/bin/bash
-# Roda o analyzer no system_shell, no shell e nos apps e imprime só os
+# Roda o analyzer nos pacotes, no system_shell, no shell e nos apps e imprime só os
 # problemas encontrados.
 
 cd "$(dirname "$0")"
 
 STATUS=0
-for dir in system_shell shell apps; do
+for dir in packages/psito_services packages/psito_runtime system_shell shell apps; do
     OUT=$(cd "$dir" && flutter analyze --no-pub 2>&1)
     CODE=$?
     ISSUES=$(echo "$OUT" | grep -E '^\s*(error|warning|info) •')

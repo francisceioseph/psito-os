@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
-import 'package:system_shell/services/system_info_service.dart';
-import 'package:system_shell/services/system_services.dart';
-import 'package:system_shell/services/time_service.dart';
+import 'package:psito_services/system_info_service.dart';
+import 'package:psito_services/system_services.dart';
+import 'package:psito_services/time_service.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 

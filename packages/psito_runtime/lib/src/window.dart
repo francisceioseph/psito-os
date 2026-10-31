@@ -1,7 +1,7 @@
-// apps/lib/window.dart
+// packages/psito_runtime/lib/src/window.dart
 //
 // A janela GTK do app, pelo runner (canal psito/window): título, tamanho e
-// fechar.
+// fechar. O lado C é o plugin (linux/psito_runtime_plugin.cc).
 import 'package:flutter/services.dart';
 
 /// O menor tamanho de janela em que todo app do Psito cabe.

@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:system_shell/services/system_services.dart';
+import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/notification_center.dart';
 import 'package:system_shell/shell/settings_store.dart';

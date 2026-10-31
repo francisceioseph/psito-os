@@ -4,7 +4,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../services/audio_service.dart';
+import 'package:psito_services/audio_service.dart';
 
 class VolumeIndicator extends StatelessWidget {
   final AudioState state;

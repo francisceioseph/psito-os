@@ -1,6 +1,6 @@
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/services/session_service.dart';
+import 'package:psito_services/session_service.dart';
 
 import 'dbus_test_bus.dart';
 

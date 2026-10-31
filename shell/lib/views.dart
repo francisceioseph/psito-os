@@ -5,7 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
-import 'package:system_shell/app.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
 import 'package:system_shell/widgets/launcher.dart';

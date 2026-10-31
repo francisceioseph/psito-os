@@ -1,4 +1,4 @@
-// apps/lib/notifier.dart
+// packages/psito_runtime/lib/src/notifier.dart
 //
 // As notificações dos apps vão ao org.freedesktop.Notifications da sessão,
 // que é o shell do Psito. O desktop-entry faz o shell achar o app (ícone,

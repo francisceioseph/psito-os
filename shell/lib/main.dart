@@ -8,11 +8,12 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/widgets.dart';
-import 'package:system_shell/services/system_services.dart';
+import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
 import 'bridge/bridge.dart';
 import 'notifications_server.dart';
+import 'settings_bus.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
 import 'toplevels.dart';
@@ -24,7 +25,7 @@ Future<void> main() async {
   FlutterError.onError = (details) =>
       debugPrint('🦜 erro: ${details.exceptionAsString()}\n${details.stack}');
   final settings = await SettingsStore.load(defaultSettingsFile());
-  // As Configurações rodam no próprio processo (apps/) e gravam o arquivo
+  // Quem edita o arquivo à mão (ou um shell de outra sessão) também conta
   unawaited(settings.watch());
   final state = ShellState(
     settings: settings,
@@ -44,6 +45,11 @@ Future<void> main() async {
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');
     return;
+  }
+  try {
+    await publishSettings(bus, SettingsBusObject(settings));
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
   }
   final server = NotificationsServer(
     onNotify: state.notify,

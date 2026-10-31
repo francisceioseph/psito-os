@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
-import 'package:system_shell/services/time_service.dart';
+import 'package:psito_services/time_service.dart';
 import 'package:system_shell/shell/window_manager.dart';
 
 import 'helpers.dart';

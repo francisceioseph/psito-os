@@ -1,0 +1,28 @@
+name: psito_runtime
+description: "O runtime dos apps do Psito: runPsitoApp roda um PsitoApp no próprio processo, numa janela do labwc."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.3
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dbus: ^0.8.0
+  psito_sdk:
+    path: ../psito_sdk
+  psito_services:
+    path: ../psito_services
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      linux:
+        pluginClass: PsitoRuntimePlugin

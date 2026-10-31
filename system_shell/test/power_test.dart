@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/services/battery_service.dart';
-import 'package:system_shell/services/session_service.dart';
-import 'package:system_shell/services/system_services.dart';
+import 'package:psito_services/battery_service.dart';
+import 'package:psito_services/session_service.dart';
+import 'package:psito_services/system_services.dart';
 import 'package:system_shell/widgets/battery_indicator.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/power_confirm_dialog.dart';

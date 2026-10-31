@@ -1,4 +1,4 @@
-// system_shell/lib/services/system_info_service.dart
+// packages/psito_services/lib/system_info_service.dart
 //
 // Nome do computador e versões do sistema, lidos do systemd-hostnamed.
 import 'dart:async';

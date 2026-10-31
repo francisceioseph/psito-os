@@ -1,4 +1,4 @@
-// system_shell/lib/services/network_service.dart
+// packages/psito_services/lib/network_service.dart
 //
 // Estado da rede pelo NetworkManager (pacote nm). Ligar e desligar usa o
 // método Enable direto pelo D-Bus, que o pacote não expõe.

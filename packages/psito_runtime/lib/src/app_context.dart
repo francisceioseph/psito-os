@@ -1,14 +1,13 @@
-// apps/lib/app_context.dart
+// packages/psito_runtime/lib/src/app_context.dart
 //
 // O PsitoAppContext de um app no próprio processo: os serviços do sistema
-// direto pelo D-Bus, as configurações pelo settings.json (que o shell vigia)
-// e as notificações pelo servidor do shell.
+// direto pelo D-Bus, as configurações pelo shell (org.psito.Settings) e as
+// notificações pelo servidor do shell.
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
-import 'package:system_shell/services/network_service.dart';
-import 'package:system_shell/services/system_info_service.dart';
-import 'package:system_shell/services/time_service.dart';
-import 'package:system_shell/shell/settings_store.dart';
+import 'package:psito_services/network_service.dart';
+import 'package:psito_services/system_info_service.dart';
+import 'package:psito_services/time_service.dart';
 
 import 'window.dart';
 
@@ -28,9 +27,14 @@ class AppServices {
 
 class ProcessAppContext implements PsitoAppContext {
   final PsitoApp app;
-  final SettingsStore store;
   final AppServices services;
   final AppWindow window;
+
+  @override
+  final ValueListenable<PsitoSettings> settings;
+
+  /// Pede ao shell para gravar as configurações.
+  final void Function(PsitoSettings) onUpdateSettings;
 
   /// Manda a notificação ao shell.
   final void Function(PsitoNotification) onNotify;
@@ -40,8 +44,9 @@ class ProcessAppContext implements PsitoAppContext {
 
   ProcessAppContext({
     required this.app,
-    required this.store,
+    required this.settings,
     required this.services,
+    required this.onUpdateSettings,
     required this.onNotify,
     this.window = const AppWindow(),
     required this.windowId,
@@ -60,9 +65,6 @@ class ProcessAppContext implements PsitoAppContext {
   void notify(PsitoNotification notification) => onNotify(notification);
 
   @override
-  ValueListenable<PsitoSettings> get settings => store;
-
-  @override
   ValueListenable<PsitoSystemInfo> get systemInfo => services.systemInfo.info;
 
   @override
@@ -77,7 +79,8 @@ class ProcessAppContext implements PsitoAppContext {
   @override
   Future<List<String>> timezones() => services.time.timezones();
 
-  /// Só apps com [PsitoApp.canChangeSettings] mexem no sistema.
+  /// Só apps com [PsitoApp.canChangeSettings] mexem no sistema. No sandbox,
+  /// o filtro do D-Bus também barra os outros.
   bool _mayChange(String what) {
     if (app.canChangeSettings) return true;
     debugPrint('🦜 ${app.id} não pode alterar $what');
@@ -96,6 +99,6 @@ class ProcessAppContext implements PsitoAppContext {
 
   @override
   void updateSettings(PsitoSettings settings) {
-    if (_mayChange('as configurações')) store.update(settings);
+    if (_mayChange('as configurações')) onUpdateSettings(settings);
   }
 }

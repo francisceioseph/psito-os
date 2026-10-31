@@ -1,7 +1,5 @@
 #include "my_application.h"
 
-#include <cstring>
-
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
@@ -15,9 +13,6 @@ static const char* kBackground = "#12181B";
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
-  GtkWindow* window;
-  GtkHeaderBar* header_bar;
-  FlMethodChannel* window_channel;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -27,44 +22,11 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
-// Canal psito/window: o Dart define o título e o tamanho e fecha a janela.
-static void window_method_cb(FlMethodChannel* channel, FlMethodCall* call,
-                             gpointer user_data) {
-  MyApplication* self = MY_APPLICATION(user_data);
-  const gchar* method = fl_method_call_get_name(call);
-  FlValue* args = fl_method_call_get_args(call);
-  g_autoptr(FlMethodResponse) response = nullptr;
-  if (strcmp(method, "setTitle") == 0 &&
-      fl_value_get_type(args) == FL_VALUE_TYPE_STRING) {
-    const gchar* title = fl_value_get_string(args);
-    if (self->header_bar != nullptr) {
-      gtk_header_bar_set_title(self->header_bar, title);
-    }
-    gtk_window_set_title(self->window, title);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-  } else if (strcmp(method, "setSize") == 0 &&
-             fl_value_get_type(args) == FL_VALUE_TYPE_LIST &&
-             fl_value_get_length(args) == 2) {
-    int width = fl_value_get_int(fl_value_get_list_value(args, 0));
-    int height = fl_value_get_int(fl_value_get_list_value(args, 1));
-    gtk_window_set_default_size(self->window, width, height);
-    gtk_window_resize(self->window, width, height);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-  } else if (strcmp(method, "close") == 0) {
-    gtk_window_close(self->window);
-    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
-  } else {
-    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
-  }
-  fl_method_call_respond(call, response, nullptr);
-}
-
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-  self->window = window;
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -89,18 +51,12 @@ static void my_application_activate(GApplication* application) {
     gtk_header_bar_set_title(header_bar, "Psito");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
-    self->header_bar = header_bar;
   } else {
     gtk_window_set_title(window, "Psito");
   }
 
-  // O tamanho inicial vem do Dart (PsitoApp.defaultSize); todo app do Psito
-  // cabe em 240x160
+  // O tamanho inicial e o mínimo vêm do Dart, pelo plugin do psito_runtime
   gtk_window_set_default_size(window, 480, 360);
-  GdkGeometry hints = {};
-  hints.min_width = 240;
-  hints.min_height = 160;
-  gtk_window_set_geometry_hints(window, nullptr, &hints, GDK_HINT_MIN_SIZE);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
@@ -122,13 +78,6 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
-
-  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
-  self->window_channel = fl_method_channel_new(
-      fl_engine_get_binary_messenger(fl_view_get_engine(view)), "psito/window",
-      FL_METHOD_CODEC(codec));
-  fl_method_channel_set_method_call_handler(self->window_channel,
-                                            window_method_cb, self, nullptr);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
@@ -176,7 +125,6 @@ static void my_application_shutdown(GApplication* application) {
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
-  g_clear_object(&self->window_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

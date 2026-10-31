@@ -1,4 +1,4 @@
-// system_shell/lib/services/system_services.dart
+// packages/psito_services/lib/system_services.dart
 //
 // Os serviços do sistema que o shell consome. Reais via D-Bus ou falsos,
 // para testes e para rodar onde os serviços não existem

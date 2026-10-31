@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
-import '../services/system_services.dart';
+import 'package:psito_services/system_services.dart';
 import '../shell/app_entry.dart';
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';

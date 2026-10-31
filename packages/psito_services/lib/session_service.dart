@@ -1,4 +1,4 @@
-// system_shell/lib/services/session_service.dart
+// packages/psito_services/lib/session_service.dart
 //
 // Desligar, reiniciar e suspender pelo systemd-logind.
 import 'package:dbus/dbus.dart';

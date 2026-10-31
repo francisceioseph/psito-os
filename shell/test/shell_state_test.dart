@@ -5,7 +5,7 @@ import 'package:psito_shell/notifications_server.dart';
 import 'package:psito_shell/shell_state.dart';
 import 'package:psito_shell/surfaces.dart';
 import 'package:psito_shell/toplevels.dart';
-import 'package:system_shell/services/system_services.dart';
+import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 import 'package:system_shell/shell/shortcuts.dart';
 

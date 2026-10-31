@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
-import 'services/system_services.dart';
+import 'package:psito_services/system_services.dart';
 import 'shell/settings_store.dart';
 
 Future<void> main() async {

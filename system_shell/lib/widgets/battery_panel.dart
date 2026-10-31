@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/battery_service.dart';
+import 'package:psito_services/battery_service.dart';
 import 'battery_indicator.dart';
 import 'top_bar.dart';
 
