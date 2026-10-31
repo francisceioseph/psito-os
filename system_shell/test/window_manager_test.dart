@@ -3,29 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/window_manager.dart';
 
-class _FakeApp extends PsitoApp {
-  @override
-  final String id;
-  @override
-  final bool singleInstance;
-  @override
-  final bool canChangeSettings;
-
-  const _FakeApp(
-    this.id, {
-    this.singleInstance = false,
-    this.canChangeSettings = false,
-  });
-
-  @override
-  String get name => id;
-  @override
-  IconData get icon => const IconData(0);
-  @override
-  Color get color => const Color(0xFFFFFFFF);
-  @override
-  Widget build(PsitoAppContext context) => const SizedBox();
-}
+import 'helpers.dart';
 
 const _area = Rect.fromLTRB(0, 40, 1000, 700);
 
@@ -34,8 +12,8 @@ WindowManager _manager() => WindowManager()..workArea = _area;
 void main() {
   test('abrir foca e põe na frente; fechar devolve o foco', () {
     final wm = _manager();
-    final a = wm.open(const _FakeApp('a'));
-    final b = wm.open(const _FakeApp('b'));
+    final a = wm.open(const FakeApp('a'));
+    final b = wm.open(const FakeApp('b'));
     expect(wm.focusedId, b.id);
 
     wm.focus(a.id);
@@ -50,8 +28,8 @@ void main() {
 
   test('minimizar passa o foco para a visível de cima', () {
     final wm = _manager();
-    final a = wm.open(const _FakeApp('a'));
-    final b = wm.open(const _FakeApp('b'));
+    final a = wm.open(const FakeApp('a'));
+    final b = wm.open(const FakeApp('b'));
     wm.minimize(b.id);
     expect(b.minimized, isTrue);
     expect(wm.focusedId, a.id);
@@ -63,20 +41,20 @@ void main() {
 
   test('singleInstance e activateApp não duplicam janelas', () {
     final wm = _manager();
-    final single = wm.open(const _FakeApp('s', singleInstance: true));
+    final single = wm.open(const FakeApp('s', singleInstance: true));
     expect(wm.open(single.app), same(single));
 
-    wm.activateApp(const _FakeApp('n'));
-    wm.activateApp(const _FakeApp('n'));
+    wm.activateApp(const FakeApp('n'));
+    wm.activateApp(const FakeApp('n'));
     expect(wm.windows.where((w) => w.app.id == 'n'), hasLength(1));
 
-    wm.open(const _FakeApp('n'));
+    wm.open(const FakeApp('n'));
     expect(wm.windows.where((w) => w.app.id == 'n'), hasLength(2));
   });
 
   test('snap usa a área útil e restore volta ao tamanho de antes', () {
     final wm = _manager();
-    final w = wm.open(const _FakeApp('a'));
+    final w = wm.open(const FakeApp('a'));
     final original = w.bounds;
 
     wm.snap(w.id, SnapMode.left);
@@ -101,7 +79,7 @@ void main() {
 
   test('arrastar até a borda aplica o snap; arrastar com snap restaura', () {
     final wm = _manager();
-    final w = wm.open(const _FakeApp('a'));
+    final w = wm.open(const FakeApp('a'));
     final size = w.bounds.size;
 
     wm.move(w.id, const Offset(-10, 0), pointer: const Offset(1, 300));
@@ -118,7 +96,7 @@ void main() {
 
   test('resize respeita o tamanho mínimo e desfaz o snap', () {
     final wm = _manager();
-    final w = wm.open(const _FakeApp('a'));
+    final w = wm.open(const FakeApp('a'));
     wm.snap(w.id, SnapMode.left);
 
     wm.resize(w.id, ResizeEdge.bottomRight, const Offset(-2000, -2000));
@@ -133,7 +111,7 @@ void main() {
 
   test('a barra de título nunca sai da área útil', () {
     final wm = _manager();
-    final w = wm.open(const _FakeApp('a'));
+    final w = wm.open(const FakeApp('a'));
 
     wm.move(w.id, const Offset(0, -5000));
     expect(w.bounds.top, _area.top);
@@ -147,7 +125,7 @@ void main() {
 
   test('setTitle pelo contexto do app', () {
     final wm = _manager();
-    final w = wm.open(const _FakeApp('a'));
+    final w = wm.open(const FakeApp('a'));
     w.context.setTitle('novo');
     expect(w.title, 'novo');
     w.context.close();
@@ -157,8 +135,8 @@ void main() {
   test('só apps com permissão alteram as configurações', () {
     final received = <PsitoSettings>[];
     final wm = WindowManager(onUpdateSettings: received.add)..workArea = _area;
-    final normal = wm.open(const _FakeApp('a'));
-    final settings = wm.open(const _FakeApp('s', canChangeSettings: true));
+    final normal = wm.open(const FakeApp('a'));
+    final settings = wm.open(const FakeApp('s', canChangeSettings: true));
     const changed = PsitoSettings(use24h: false);
 
     normal.context.updateSettings(changed);

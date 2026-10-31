@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/widgets/launcher.dart';
 
-Future<void> _pumpDesktop(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(const MaterialApp(home: DesktopScreen()));
-}
+import 'helpers.dart';
 
 Future<void> _openByMenu(WidgetTester tester) async {
   await tester.tap(find.text('Menu'));
@@ -29,7 +23,7 @@ Future<void> _submit(WidgetTester tester) async {
 
 void main() {
   testWidgets('o botão Menu abre com a busca em foco', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _openByMenu(tester);
 
     expect(_launcher, findsOneWidget);
@@ -40,7 +34,7 @@ void main() {
   });
 
   testWidgets('digitar filtra e Enter abre o app', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _openByMenu(tester);
 
     await tester.enterText(_search, 'NÓTE');
@@ -54,7 +48,7 @@ void main() {
   });
 
   testWidgets('a seta escolhe outro app', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _openByMenu(tester);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -64,7 +58,7 @@ void main() {
   });
 
   testWidgets('Esc fecha', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _openByMenu(tester);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -73,7 +67,7 @@ void main() {
   });
 
   testWidgets('Super sozinho alterna; Super+↑ não abre', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.metaLeft);
     await tester.pump();
@@ -92,7 +86,7 @@ void main() {
   testWidgets('o launcher abre uma segunda janela do mesmo app', (
     tester,
   ) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await tester.tap(find.byIcon(Icons.edit_note_rounded).first);
     await tester.pump();
 

@@ -1,19 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/app.dart';
-import 'package:system_shell/shell/settings_store.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 
-Future<SettingsStore> _pumpOS(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  final store = SettingsStore.memory();
-  addTearDown(store.dispose);
-  await tester.pumpWidget(PsitoOSApp(settings: store));
-  return store;
-}
+import 'helpers.dart';
 
 /// Abre Configurações pela busca do launcher, sem acento.
 Future<void> _openSettings(WidgetTester tester) async {
@@ -37,7 +27,7 @@ final _topBarClock = find.descendant(
 
 void main() {
   testWidgets('desligar 24 horas muda o relógio da top bar', (tester) async {
-    final store = await _pumpOS(tester);
+    final store = await pumpOS(tester);
     await _openSettings(tester);
     expect(find.text('Configurações'), findsOneWidget);
 
@@ -52,7 +42,7 @@ void main() {
   });
 
   testWidgets('a cor de destaque muda o tema', (tester) async {
-    final store = await _pumpOS(tester);
+    final store = await pumpOS(tester);
     await _openSettings(tester);
 
     const blue = Color(0xFF2196F3);
@@ -67,7 +57,7 @@ void main() {
   });
 
   testWidgets('o papel de parede muda o fundo', (tester) async {
-    await _pumpOS(tester);
+    await pumpOS(tester);
     await _openSettings(tester);
 
     await tester.tap(find.byKey(const ValueKey('wallpaper-card-oceano')));
@@ -76,7 +66,7 @@ void main() {
   });
 
   testWidgets('Não perturbe guarda a notificação sem toast', (tester) async {
-    await _pumpOS(tester);
+    await pumpOS(tester);
     await _openSettings(tester);
 
     await tester.tap(find.text('Notificações').first);
@@ -101,7 +91,7 @@ void main() {
   });
 
   testWidgets('Configurações abre uma janela só', (tester) async {
-    await _pumpOS(tester);
+    await pumpOS(tester);
     await _openSettings(tester);
     await _openSettings(tester);
     expect(find.text('Configurações'), findsOneWidget);

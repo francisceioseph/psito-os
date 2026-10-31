@@ -96,68 +96,83 @@ class _ClockViewState extends State<ClockView> {
     final monthStr = months[_currentTime.month - 1];
     final year = _currentTime.year;
 
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Ícone temático
-          const Icon(
-            Icons.access_time_filled_rounded,
-            size: 40,
-            color: Color(0xFFFF9800), // Laranja
-          ),
-          const SizedBox(height: 12),
-          // Horário Grande
-          Text(
-            '$hour:$minute:$second',
-            style: const TextStyle(
-              fontSize: 42,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2.0,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Data Completa
-          Text(
-            '$weekDayStr, $day de $monthStr de $year',
-            style: const TextStyle(fontSize: 14, color: Colors.white60),
-          ),
-          const SizedBox(height: 24),
-          const Divider(color: Colors.white24),
-          const SizedBox(height: 12),
-          // Timer de demonstração das notificações
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
+    // Desenhado numa largura fixa e reduzido por inteiro em janelas pequenas
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: SizedBox(
+          width: 380,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                // Ícone temático
                 const Icon(
-                  Icons.timer_outlined,
-                  size: 18,
-                  color: Color(0xFFFFC107),
+                  Icons.access_time_filled_rounded,
+                  size: 40,
+                  color: Color(0xFFFF9800), // Laranja
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _remaining == null
-                        ? 'Timer de 10 s'
-                        : 'Faltam $_remaining s',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                const SizedBox(height: 12),
+                // Horário Grande
+                Text(
+                  '$hour:$minute:$second',
+                  style: const TextStyle(
+                    fontSize: 42,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2.0,
+                    color: Colors.white,
                   ),
                 ),
-                TextButton(
-                  onPressed: _remaining == null ? _startTimer : null,
-                  child: const Text('Iniciar timer'),
+                const SizedBox(height: 8),
+                // Data Completa
+                Text(
+                  '$weekDayStr, $day de $monthStr de $year',
+                  style: const TextStyle(fontSize: 14, color: Colors.white60),
+                ),
+                const SizedBox(height: 24),
+                const Divider(color: Colors.white24),
+                const SizedBox(height: 12),
+                // Timer de demonstração das notificações
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 18,
+                        color: Color(0xFFFFC107),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _remaining == null
+                              ? 'Timer de 10 s'
+                              : 'Faltam $_remaining s',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _remaining == null ? _startTimer : null,
+                        child: const Text('Iniciar timer'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

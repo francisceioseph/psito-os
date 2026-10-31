@@ -4,16 +4,25 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 
 ## Layout
 - `system_shell/`: o shell em Flutter (app `system_shell`)
-  - `lib/app.dart`: tema (amarelo `#FFC107`, laranja `#FF5722`, fundo `#12181B`)
-  - `lib/screens/desktop_screen.dart`: desktop
-  - `lib/widgets/`: `top_bar`, `psito_dock`, `desktop_background`
-  - `lib/apps/`: apps de exemplo, ainda no mesmo processo. Cada arquivo tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`.
-  - `lib/shell/`: lógica do shell sem UI (`app_registry.dart`: lista de apps da dock)
-  - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`)
-- `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`). Os apps só podem importar Flutter, pacotes externos e o `psito_sdk`. `test/app_boundary_test.dart` garante isso.
+  - `lib/main.dart`: carrega as configurações e sobe o `PsitoOSApp`. `lib/app.dart` monta o tema a partir da cor de destaque salva (o padrão é amarelo `#FFC107` com fundo `#12181B`).
+  - `lib/screens/desktop_screen.dart`: só composição, com as camadas e os atalhos globais do `_onKey`.
+  - `lib/shell/`: lógica sem UI.
+    - `app_registry`: os apps da dock;
+    - `window_manager`: foco, z-order, snap, resize e o `PsitoAppContext` de cada janela;
+    - `window_switcher`: o seletor de janelas do Alt+Tab;
+    - `shortcuts`: as combinações nativas e de VM;
+    - `notification_center`;
+    - `settings_store`: o JSON em `~/.config/psito/settings.json`;
+    - `app_search`.
+  - `lib/widgets/`:
+    - `psito_window` (a moldura), `top_bar`, `psito_dock`, `desktop_background`;
+    - `launcher`, `notification_toasts`, `notification_panel`, `window_switcher_overlay`.
+  - `lib/apps/`: apps de exemplo, ainda no mesmo processo. Cada arquivo tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`. O app de Configurações é o único com `canChangeSettings`.
+  - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.
+- `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`, `PsitoSettings`, papéis de parede, cores e a tabela `psitoShortcuts`). Os apps só podem importar Flutter, pacotes externos e o `psito_sdk`. `test/app_boundary_test.dart` garante isso.
 - `docs/ROADMAP.md`: roteiro por fases (local, fora do git). `docs/FASE-1.md` detalha a fase atual. Consulte só quando a tarefa envolver planejamento.
 - `vm/`: arquivos instalados na VM pelo `provision.sh` (serviço, script do guest)
-- `patches/`: patches aplicados em dependências da VM (ex.: flutter-pi pro virtio-gpu)
+- `patches/`: patches aplicados no flutter-pi da VM: virtio-gpu e text input (escape de JSON e offsets UTF-16)
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
@@ -28,4 +37,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 ## Regras
 - Não ler `build/`, `.dart_tool/`, `linux/flutter/ephemeral/`, `qemu/`, `debian/`.
 - Prefira `./check.sh` e `./logs.sh` a builds e logs completos.
+- A UI não tem emojis, porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
+- Todo atalho global tem uma combinação nativa e uma de VM (`lib/shell/shortcuts.dart`, mais `psitoShortcuts` no SDK). O host Cinnamon fica com Super, Alt+Tab, Alt+\`, Ctrl+Alt+setas e Ctrl+Alt+Shift+setas, e o QEMU fica com Ctrl+Alt+G/F/Q/M/1–9. A lista completa está em `docs/FASE-1.md`.
+- Apps precisam caber no tamanho mínimo de janela (240×160). O `desktop_test` verifica todos.
 - Direção da arquitetura: shell como compositor Wayland em Flutter, com apps em processos separados. Evite acoplar os apps ao shell além do necessário.

@@ -45,10 +45,16 @@ class _NotepadViewState extends State<NotepadView> {
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
-              const Spacer(),
-              const Text(
-                'Nota salva localmente',
-                style: TextStyle(color: Colors.white38, fontSize: 11),
+              const SizedBox(width: 8),
+              // Some com reticências em janelas estreitas
+              const Expanded(
+                child: Text(
+                  'Nota salva localmente',
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                ),
               ),
             ],
           ),

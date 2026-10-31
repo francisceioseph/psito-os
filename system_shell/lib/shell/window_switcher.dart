@@ -20,15 +20,21 @@ class WindowSwitcher extends ChangeNotifier {
   String? get selectedId => isOpen ? _windows[_index].id : null;
 
   /// [zOrder] como em [WindowManager.windows]: a última é a mais recente.
+  /// A focada vem primeiro: uma janela recém-minimizada continua no topo do
+  /// z-order, mas é a próxima a escolher.
   /// Com menos de 2 janelas não há o que alternar e o seletor não abre.
   /// [holdKeys] são as teclas do modificador cuja soltura confirma.
   void start(
     List<ShellWindow> zOrder, {
     required Set<LogicalKeyboardKey> holdKeys,
+    String? focusedId,
     bool reverse = false,
   }) {
     if (zOrder.length < 2) return;
-    _windows = zOrder.reversed.toList();
+    final order = zOrder.reversed.toList();
+    final focused = order.indexWhere((w) => w.id == focusedId);
+    if (focused > 0) order.insert(0, order.removeAt(focused));
+    _windows = order;
     _index = reverse ? _windows.length - 1 : 1;
     _holdKeys = holdKeys;
     notifyListeners();

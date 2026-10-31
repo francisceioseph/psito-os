@@ -34,16 +34,24 @@ class _SettingsViewState extends State<SettingsView> {
 
   @override
   Widget build(BuildContext context) {
+    // Janela estreita: o menu lateral fica só com os ícones
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _buildBody(compact: constraints.maxWidth < 480),
+    );
+  }
+
+  Widget _buildBody({required bool compact}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildNav(),
+        _buildNav(compact: compact),
         const VerticalDivider(width: 1, color: Colors.white12),
         Expanded(
           child: ValueListenableBuilder(
             valueListenable: widget.appContext.settings,
             builder: (context, settings, _) => ListView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(compact ? 12 : 24),
               children: [
                 Text(
                   _section.label,
@@ -68,31 +76,42 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  Widget _buildNav() {
+  Widget _buildNav({required bool compact}) {
     final accent = Theme.of(context).colorScheme.primary;
     // Material (e não Container com cor): os ListTile pintam o realce nele
     return Material(
       color: Colors.black.withValues(alpha: 0.15),
-      child: Container(
-        width: 180,
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Column(
+      child: SizedBox(
+        width: compact ? 56 : 180,
+        child: ListView(
+          padding: EdgeInsets.symmetric(
+            vertical: compact ? 4 : 12,
+            horizontal: compact ? 4 : 8,
+          ),
           children: [
             for (final section in _Section.values)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: ListTile(
-                  dense: true,
-                  selected: section == _section,
-                  selectedColor: accent,
-                  selectedTileColor: accent.withValues(alpha: 0.12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  leading: Icon(section.icon, size: 18),
-                  title: Text(section.label),
-                  onTap: () => setState(() => _section = section),
-                ),
+                child: compact
+                    ? IconButton(
+                        tooltip: section.label,
+                        isSelected: section == _section,
+                        color: section == _section ? accent : null,
+                        icon: Icon(section.icon, size: 18),
+                        onPressed: () => setState(() => _section = section),
+                      )
+                    : ListTile(
+                        dense: true,
+                        selected: section == _section,
+                        selectedColor: accent,
+                        selectedTileColor: accent.withValues(alpha: 0.12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        leading: Icon(section.icon, size: 18),
+                        title: Text(section.label),
+                        onTap: () => setState(() => _section = section),
+                      ),
               ),
           ],
         ),

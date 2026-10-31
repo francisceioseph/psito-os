@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/shell/window_manager.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/psito_window.dart';
 import 'package:system_shell/widgets/window_switcher_overlay.dart';
+
+import 'helpers.dart';
 
 const _ctrl = LogicalKeyboardKey.controlLeft;
 const _alt = LogicalKeyboardKey.altLeft;
@@ -14,10 +15,7 @@ const _tab = LogicalKeyboardKey.tab;
 
 /// Abre Calculadora, Relógio e Arquivos pela dock; Arquivos fica em foco.
 Future<WindowManager> _pumpWithWindows(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(const MaterialApp(home: DesktopScreen()));
+  await pumpDesktop(tester);
   for (final icon in [
     Icons.calculate_outlined,
     Icons.access_time_rounded,

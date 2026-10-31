@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/notification_panel.dart';
 
-Future<void> _pumpDesktop(WidgetTester tester) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-  await tester.pumpWidget(const MaterialApp(home: DesktopScreen()));
-}
+import 'helpers.dart';
 
 /// Abre o Clock e deixa o timer de 10 s terminar.
 Future<void> _finishClockTimer(WidgetTester tester) async {
@@ -31,7 +25,7 @@ void main() {
   testWidgets('o timer do Clock mostra um toast que some sozinho', (
     tester,
   ) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _finishClockTimer(tester);
 
     expect(_title, findsOneWidget);
@@ -46,7 +40,7 @@ void main() {
   });
 
   testWidgets('o painel lista, zera o badge e dispensa', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _finishClockTimer(tester);
     await tester.pump(const Duration(seconds: 6));
 
@@ -68,7 +62,7 @@ void main() {
   });
 
   testWidgets('Limpar tudo esvazia o painel', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _finishClockTimer(tester);
     await tester.tap(find.text('Iniciar timer'));
     for (var i = 0; i < 16; i++) {
@@ -85,7 +79,7 @@ void main() {
   });
 
   testWidgets('clicar no painel restaura a janela minimizada', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _finishClockTimer(tester);
     await tester.pump(const Duration(seconds: 6));
 
@@ -104,7 +98,7 @@ void main() {
   testWidgets('clicar no painel reabre o app se a janela fechou', (
     tester,
   ) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await _finishClockTimer(tester);
     await tester.pump(const Duration(seconds: 6));
 
@@ -120,7 +114,7 @@ void main() {
   });
 
   testWidgets('abrir o launcher fecha o painel', (tester) async {
-    await _pumpDesktop(tester);
+    await pumpDesktop(tester);
     await tester.tap(_bell);
     await tester.pump();
     expect(_panel, findsOneWidget);

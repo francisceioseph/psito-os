@@ -141,6 +141,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                   LogicalKeyboardKey.controlLeft,
                   LogicalKeyboardKey.controlRight,
                 },
+          focusedId: _windows.focusedId,
           reverse: action == ShellAction.switchPrev,
         );
       case ShellAction.closeWindow:

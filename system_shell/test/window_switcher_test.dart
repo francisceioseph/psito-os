@@ -1,31 +1,15 @@
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/window_manager.dart';
 import 'package:system_shell/shell/window_switcher.dart';
 
-class _FakeApp extends PsitoApp {
-  @override
-  final String id;
-
-  const _FakeApp(this.id);
-
-  @override
-  String get name => id;
-  @override
-  IconData get icon => const IconData(0);
-  @override
-  Color get color => const Color(0xFFFFFFFF);
-  @override
-  Widget build(PsitoAppContext context) => const SizedBox();
-}
+import 'helpers.dart';
 
 final _ctrl = {LogicalKeyboardKey.controlLeft};
 
 List<ShellWindow> _zOrder(List<String> ids) => [
   for (final id in ids)
-    ShellWindow(id: id, app: _FakeApp(id), bounds: Rect.zero),
+    ShellWindow(id: id, app: FakeApp(id), bounds: Rect.zero),
 ];
 
 void main() {
@@ -34,6 +18,13 @@ void main() {
       ..start(_zOrder(['a', 'b', 'c']), holdKeys: _ctrl);
     expect(s.windows.map((w) => w.id), ['c', 'b', 'a']);
     expect(s.selectedId, 'b');
+  });
+
+  test('a focada vem primeiro mesmo fora do topo do z-order', () {
+    final s = WindowSwitcher()
+      ..start(_zOrder(['a', 'b', 'c']), holdKeys: _ctrl, focusedId: 'b');
+    expect(s.windows.map((w) => w.id), ['b', 'c', 'a']);
+    expect(s.selectedId, 'c');
   });
 
   test('reverse começa na mais antiga e step dá a volta', () {

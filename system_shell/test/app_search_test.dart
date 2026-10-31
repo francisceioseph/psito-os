@@ -1,29 +1,13 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_search.dart';
 
-class _FakeApp extends PsitoApp {
-  @override
-  final String id;
-  @override
-  final String name;
-
-  const _FakeApp(this.id, this.name);
-
-  @override
-  IconData get icon => const IconData(0);
-  @override
-  Color get color => const Color(0xFFFFFFFF);
-  @override
-  Widget build(PsitoAppContext context) => const SizedBox();
-}
+import 'helpers.dart';
 
 const _apps = [
-  _FakeApp('calculator', 'Calculator'),
-  _FakeApp('notepad', 'Notepad'),
-  _FakeApp('config', 'Configurações'),
-  _FakeApp('files', 'Arquivos'),
+  FakeApp('calculator', name: 'Calculator'),
+  FakeApp('notepad', name: 'Notepad'),
+  FakeApp('config', name: 'Configurações'),
+  FakeApp('files', name: 'Arquivos'),
 ];
 
 List<String> _ids(String query) =>

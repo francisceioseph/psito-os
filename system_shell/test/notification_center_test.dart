@@ -4,24 +4,11 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/notification_center.dart';
 import 'package:system_shell/shell/window_manager.dart';
 
-class _FakeApp extends PsitoApp {
-  const _FakeApp();
-
-  @override
-  String get id => 'fake';
-  @override
-  String get name => 'Fake';
-  @override
-  IconData get icon => const IconData(0);
-  @override
-  Color get color => const Color(0xFFFFFFFF);
-  @override
-  Widget build(PsitoAppContext context) => const SizedBox();
-}
+import 'helpers.dart';
 
 final _window = ShellWindow(
   id: 'fake#0',
-  app: const _FakeApp(),
+  app: const FakeApp('fake', name: 'Fake'),
   bounds: Rect.zero,
 );
 
