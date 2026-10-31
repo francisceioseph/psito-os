@@ -233,25 +233,26 @@ void main() {
     expect(detectCompositor({}), Compositor.unknown);
   });
 
-  test('o color-scheme escuro vai para o gsettings só quando muda', () async {
+  test('o escuro e os botões vão para o gsettings só quando mudam', () async {
     final calls = <List<String>>[];
-    var current = "'default'";
+    final current = <String, String>{'color-scheme': "'prefer-dark'"};
     Future<ProcessResult> run(String cmd, List<String> args) async {
       calls.add([cmd, ...args]);
-      if (args.first == 'set') current = "'${args.last}'";
-      return ProcessResult(0, 0, args.first == 'get' ? '$current\n' : '', '');
+      if (args.first == 'set') current[args[2]] = "'${args.last}'";
+      final value = current[args[2]] ?? "'default'";
+      return ProcessResult(0, 0, args.first == 'get' ? '$value\n' : '', '');
     }
 
-    expect(await applyColorScheme(run: run), isTrue);
+    expect(await applyGnomeSettings(run: run), ['button-layout']);
     expect(calls.last, [
       'gsettings',
       'set',
-      'org.gnome.desktop.interface',
-      'color-scheme',
-      'prefer-dark',
+      'org.gnome.desktop.wm.preferences',
+      'button-layout',
+      'appmenu:minimize,maximize,close',
     ]);
     calls.clear();
-    expect(await applyColorScheme(run: run), isFalse);
-    expect(calls.single[1], 'get');
+    expect(await applyGnomeSettings(run: run), isEmpty);
+    expect(calls.map((c) => c[1]), ['get', 'get']);
   });
 }
