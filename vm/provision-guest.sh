@@ -20,13 +20,8 @@ apt-get install -y -qq --no-install-recommends \
 apt-get install -y -qq \
     git rsync curl unzip xz-utils clang cmake ninja-build pkg-config \
     libgtk-3-dev libgtk-layer-shell-dev libwayland-bin >/dev/null
-# Para empacotar os apps (tools/psito-deb) e para os ícones SVG dos apps no tema
-apt-get install -y -qq --no-install-recommends patchelf librsvg2-common >/dev/null
-
-# O sandbox dos apps e os portais (fase 4): o color-scheme vai pelo gsettings
-apt-get install -y -qq --no-install-recommends \
-    bubblewrap xdg-dbus-proxy xdg-desktop-portal xdg-desktop-portal-gtk \
-    gsettings-desktop-schemas dconf-gsettings-backend >/dev/null
+# Para empacotar o shell e os apps (tools/psito-deb)
+apt-get install -y -qq --no-install-recommends patchelf >/dev/null
 
 # Serviços que o shell consome via D-Bus (fase 2)
 apt-get install -y -qq \
@@ -41,23 +36,15 @@ fi
 sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" --disable-analytics >/dev/null
 sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" precache --linux >/dev/null
 
-echo "🪟 [VM] Sessão: labwc e o shell como unidade do usuário..."
-# O flutter-pi das versões antigas sai
-rm -f /usr/local/bin/flutter-pi /etc/default/psito-os
-rm -rf /opt/psito-app
-install -d -o "$APP_USER" -g "$APP_USER" /opt/psito
-install -m 755 "$SRC/session/psito-shell-start" /usr/local/bin/psito-shell-start
-install -m 755 "$SRC/session/psito-sandbox" /usr/local/bin/psito-sandbox
-# No home, e não no /etc: a ponte edita o rc.xml com o labwc rodando
-install -d -o "$APP_USER" -g "$APP_USER" "$CONF" "$CONF/labwc" "$CONF/systemd" \
-    "$CONF/systemd/user" "$CONF/xdg-desktop-portal"
-# A seção <keyboard> e o tema voltam ao neutro; o shell aplica de novo ao subir
-install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC"/session/labwc/* "$CONF/labwc/"
-install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC/session/psito-shell.service" \
-    "$CONF/systemd/user/psito-shell.service"
-# Os portais do labwc pelo backend do GTK (o do Debian prefere o wlr)
-install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC/session/labwc-portals.conf" \
+echo "🪟 [VM] Sessão: o labwc no tty1..."
+# A sessão (psito-session, a unidade psito-shell, o sandbox e os portais) vem
+# do pacote psito-shell, que o deploy.sh instala. O que as versões antigas
+# punham à mão sai, para não ganhar do pacote.
+rm -f /usr/local/bin/flutter-pi /etc/default/psito-os \
+    /usr/local/bin/psito-shell-start /usr/local/bin/psito-sandbox \
+    "$CONF/systemd/user/psito-shell.service" \
     "$CONF/xdg-desktop-portal/labwc-portals.conf"
+rm -rf /opt/psito-app /opt/psito
 install -m 644 "$SRC/psito-os.service" /etc/systemd/system/psito-os.service
 systemctl daemon-reload
 systemctl enable -q psito-os.service

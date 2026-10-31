@@ -12,7 +12,8 @@ class FilesView extends StatefulWidget {
 }
 
 class _FilesViewState extends State<FilesView> {
-  String _currentPath = '/opt/psito'; // Começa na pasta do Psito na VM
+  // Começa no home (com files:home, o de verdade)
+  String _currentPath = Platform.environment['HOME'] ?? '/';
   List<FileSystemEntity> _contents = [];
   bool _isLoading = true;
   String? _errorMessage;

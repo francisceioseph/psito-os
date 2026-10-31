@@ -25,8 +25,12 @@ A ideia é parecida com a do Fuchsia: tudo que é do Psito é Flutter. Mas o Psi
 | 2 | Os serviços do sistema pelo D-Bus: rede, áudio, bateria, energia, hora e Configurações | feita |
 | 3 | A base do compositor (o labwc) e o shell como cliente layer-shell | feita |
 | 4 | Apps em processos separados: pacotes `.deb`, manifesto, sandbox e portais | feita |
-| 5 | Imagem do sistema | planejada |
-| 6 | Hardware real | planejada |
+| 5 | O shell como pacote (`psito-shell` e o metapacote `psito-desktop`) | planejada |
+| 6 | O Psito Files, um gerenciador de arquivos como o Finder | planejada |
+| 7 | Uma dock de verdade: pôr e tirar apps, pastas, arquivos e a lixeira | planejada |
+| 8 | A área de trabalho com arquivos e atalhos de programas | planejada |
+| 9 | Imagem do sistema | planejada |
+| 10 | Hardware real | planejada |
 
 Os números da fase 3 (memória, CPU e latência de cada compositor e do shell) ficam em [`spike/results/`](spike/results/), e as leituras em [`spike/notas/`](spike/notas/). A fase 0 usava o `flutter-pi` direto no DRM/KMS; ele saiu na fase 3.
 
@@ -36,16 +40,16 @@ Os números da fase 3 (memória, CPU e latência de cada compositor e do shell) 
 
 | Pasta | O que tem |
 |---|---|
-| `shell/` | O shell do Psito: top bar, dock, launcher, notificações, Alt+Tab e OSD como superfícies layer-shell do labwc, mais a ponte que gera a configuração do compositor e o tema GTK |
+| `shell/` | O shell do Psito: top bar, dock, launcher, notificações, Alt+Tab e OSD como superfícies layer-shell do labwc, mais a ponte que gera a configuração do compositor e o tema GTK. Com a sessão (`session/`: o labwc, o sandbox dos apps e os portais), vira o pacote `psito-shell` |
 | `apps/<id>/` | Os apps do Psito, um projeto Flutter por app, cada um no próprio processo e numa janela comum. O `.desktop` de cada um é o manifesto (cor, ícone e permissões) |
 | `examples/` | Um app de terceiro (`hello_psito`), fora da árvore do sistema, instalado sem recompilar o shell |
-| `tools/` | O `psito-deb` (empacota um app ou o runtime) e a medição dos apps na VM |
+| `tools/` | O `psito-deb` (empacota um app, o shell, o runtime ou o metapacote) e a medição dos apps na VM |
 | `system_shell/` | Os widgets e um laboratório de UX que roda no host, com os apps dentro do processo |
 | `packages/psito_sdk/` | O contrato entre o shell e os apps (`PsitoApp`, `PsitoAppContext`, notificações, configurações e atalhos) |
 | `packages/psito_runtime/` | O runtime dos apps: `runPsitoApp` e o canal da janela |
 | `packages/psito_services/` | Os serviços do sistema pelo D-Bus (rede, áudio, bateria, energia, hora e o cliente das configurações) |
 | `spike/` | A bancada da fase 3: o app de referência (`probe/`), as medições e a configuração de cada compositor comparado |
-| `vm/` | O que vai para a VM: `preseed.cfg`, o serviço `psito-os` (o labwc no tty1), a sessão (`session/`, com o `psito-sandbox`) e as regras do polkit |
+| `vm/` | O que vai para a VM de desenvolvimento: `preseed.cfg`, o serviço `psito-os` (a sessão no tty1) e as regras do polkit |
 | Raiz | Scripts do host: criar, instalar e subir a VM, compilar, publicar e ver os logs |
 
 ---
@@ -75,7 +79,7 @@ PSITO_SERVICES=fake flutter run -d linux
 ./run.sh             # sobe a VM (SSH em localhost:2222), em outro terminal
 ./provision.sh       # labwc, gtk-layer-shell, Flutter e a sessão do Psito
 ./build.sh           # compila o shell e os apps dentro da VM
-./deploy.sh          # instala o shell e os pacotes dos apps, e reinicia o shell
+./deploy.sh          # instala o shell e os apps como pacotes (psito-desktop) e reinicia o shell
 ./logs.sh            # o log do shell na VM
 ```
 

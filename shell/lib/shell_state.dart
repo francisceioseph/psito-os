@@ -51,7 +51,7 @@ class ShellState {
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
   final String? sandbox;
 
-  static const sandboxPath = '/usr/local/bin/psito-sandbox';
+  static const sandboxPath = '/usr/bin/psito-sandbox';
 
   /// O sandbox, se estiver instalado e o `PSITO_SANDBOX` não for `0` (para
   /// medir sem ele).

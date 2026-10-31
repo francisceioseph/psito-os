@@ -8,6 +8,6 @@ StartLimitIntervalSec=30
 StartLimitBurst=5
 
 [Service]
-ExecStart=/opt/psito/shell/psito_shell
+ExecStart=/usr/lib/psito/shell/psito_shell
 Restart=always
 RestartSec=1

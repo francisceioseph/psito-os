@@ -11,7 +11,7 @@
 # e notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. O --dry-run imprime os comandos do
 # proxy e do bwrap, um argumento por linha, e não roda nada.
-# Instalado em /usr/local/bin pelo provision-guest.sh.
+# Vai no pacote psito-shell, em /usr/bin.
 set -e
 
 APP=

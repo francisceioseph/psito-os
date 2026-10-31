@@ -1,10 +1,10 @@
-// O psito-sandbox (vm/session/) pelo --dry-run: os argumentos do proxy do
+// O psito-sandbox (session/) pelo --dry-run: os argumentos do proxy do
 // D-Bus e do bwrap para cada permissão.
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-const _script = '../vm/session/psito-sandbox';
+const _script = 'session/psito-sandbox';
 const _env = {'HOME': '/home/psito', 'XDG_RUNTIME_DIR': '/run/user/1000'};
 
 typedef _Plan = ({List<String> proxy, List<String> bwrap});

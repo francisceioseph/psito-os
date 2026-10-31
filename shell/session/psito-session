@@ -1,0 +1,13 @@
+#!/bin/sh
+# A sessão do Psito: o labwc com o shell. Garante a configuração do labwc no
+# home (a ponte do shell edita o rc.xml, então ela não pode ficar no /usr) e
+# sobe o compositor. O que já existe no ~/.config/labwc fica como está.
+# Vai no pacote psito-shell; o psito-os.service da VM chama este script.
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
+mkdir -p "$CONF"
+for file in /usr/share/psito/labwc/*; do
+    [ -e "$CONF/$(basename "$file")" ] || cp "$file" "$CONF/"
+done
+# Os portais escolhem a configuração pelo primeiro nome (psito-portals.conf)
+export XDG_CURRENT_DESKTOP=Psito:labwc
+exec labwc "$@"

@@ -14,8 +14,9 @@ TTYVHangup=yes
 UtmpIdentifier=tty1
 # No plano de cursor do virtio-gpu, o wlroots desenha o cursor de cabeça para baixo
 Environment=WLR_NO_HARDWARE_CURSORS=1
-# O autostart do labwc (~/.config/labwc) sobe o shell pela unidade psito-shell
-ExecStart=/usr/bin/labwc
+# O psito-session (pacote psito-shell) garante a configuração do labwc no
+# home e sobe o labwc; o autostart dele sobe o shell pela unidade psito-shell
+ExecStart=/usr/bin/psito-session
 Restart=always
 RestartSec=2
 StandardInput=tty

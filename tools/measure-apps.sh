@@ -27,7 +27,7 @@ open_app() {
     local mode="$1" id="$2" exe="/usr/lib/psito/apps/org.psito.$2/psito_$2" cmd
     local unit="app-psito-org.psito.$id-$(printf %x $((RANDOM * 32768 + RANDOM))).scope"
     case "$mode" in
-        sandbox) cmd=(/usr/local/bin/psito-sandbox --app "org.psito.$id" --permissions "$(perms "$id")" -- "$exe") ;;
+        sandbox) cmd=(/usr/bin/psito-sandbox --app "org.psito.$id" --permissions "$(perms "$id")" -- "$exe") ;;
         direto) cmd=("$exe") ;;
         bundle) cmd=("$HOME/psito-src/apps/$id/build/linux/x64/release/bundle/psito_$id") ;;
     esac
