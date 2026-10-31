@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/services/system_info_service.dart';
 import 'package:system_shell/services/system_services.dart';
+import 'package:system_shell/services/time_service.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 
@@ -112,6 +113,69 @@ void main() {
       find.text('Informações do sistema indisponíveis (hostnamed)'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Data e hora: NTP e troca de fuso', (tester) async {
+    final time = FakeTimeService();
+    final services = SystemServices.fake(time: time);
+    addTearDown(services.dispose);
+    await pumpOS(tester, services: services);
+    await _openSettings(tester);
+    await tester.tap(find.text('Data e hora').first);
+    await tester.pump();
+
+    expect(find.text('America · Fortaleza'), findsOneWidget);
+    expect(find.text('Sincronizado com a internet'), findsOneWidget);
+
+    await tester.tap(find.text('Ajustar automaticamente'));
+    await tester.pump();
+    expect(time.state.value.ntp, isFalse);
+    expect(find.text('Desligado'), findsOneWidget);
+
+    await tester.tap(find.text('Alterar'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Buscar fuso (ex.: sao paulo)'),
+      'sao paulo',
+    );
+    await tester.pump();
+    expect(find.text('Asia · Tokyo'), findsNothing);
+
+    await tester.tap(find.text('America · Sao Paulo'));
+    await tester.pump();
+    expect(time.state.value.timezone, 'America/Sao_Paulo');
+    expect(find.text('America · Sao Paulo'), findsOneWidget);
+    expect(find.text('Alterar'), findsOneWidget);
+  });
+
+  testWidgets('Data e hora sem timedated mostra a nota', (tester) async {
+    final services = SystemServices.fake(
+      time: FakeTimeService(initial: PsitoTimeState.unavailable),
+    );
+    addTearDown(services.dispose);
+    await pumpOS(tester, services: services);
+    await _openSettings(tester);
+    await tester.tap(find.text('Data e hora').first);
+    await tester.pump();
+    expect(
+      find.text('Data e hora do sistema indisponíveis (timedated)'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('top bar e Clock usam a hora do sistema', (tester) async {
+    final fixed = DateTime(2026, 10, 30, 16, 41);
+    final services = SystemServices.fake(
+      time: FakeTimeService(clock: () => fixed),
+    );
+    addTearDown(services.dispose);
+    await pumpOS(tester, services: services);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Sex, 30 de out, 16:41'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.access_time_rounded).first);
+    await tester.pump();
+    expect(find.text('16:41:00'), findsOneWidget);
   });
 
   testWidgets('Configurações abre uma janela só', (tester) async {

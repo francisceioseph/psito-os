@@ -54,6 +54,23 @@ abstract class PsitoAppContext {
 
   /// Estado da rede; só leitura (ligar e desligar fica com o shell).
   ValueListenable<PsitoNetworkState> get network;
+
+  /// Fuso e sincronização do relógio do sistema.
+  ValueListenable<PsitoTimeState> get time;
+
+  /// Hora local no fuso atual do sistema. Use no lugar de `DateTime.now()`,
+  /// cujo fuso fica congelado depois que o processo começa.
+  DateTime now();
+
+  /// Fusos que o sistema aceita (ex.: America/Sao_Paulo).
+  Future<List<String>> timezones();
+
+  /// Ignorado se o app não tiver [PsitoApp.canChangeSettings].
+  void setTimezone(String timezone);
+
+  /// Liga o ajuste automático (NTP). Ignorado sem
+  /// [PsitoApp.canChangeSettings].
+  void setNtp(bool enabled);
 }
 
 /// O que o sistema diz de si (hostnamed no Linux).
@@ -355,4 +372,44 @@ class PsitoNetworkState {
     primary,
     Object.hashAll(devices),
   );
+}
+
+/// Relógio do sistema (systemd-timedated no Linux).
+@immutable
+class PsitoTimeState {
+  /// False enquanto carrega ou se o serviço não existe.
+  final bool available;
+
+  /// Nome IANA, ex.: America/Fortaleza.
+  final String timezone;
+
+  /// Ajuste automático pela rede ligado.
+  final bool ntp;
+  final bool ntpSynchronized;
+
+  /// O sistema tem um serviço de NTP para ligar.
+  final bool canNtp;
+
+  const PsitoTimeState({
+    required this.available,
+    this.timezone = '',
+    this.ntp = false,
+    this.ntpSynchronized = false,
+    this.canNtp = false,
+  });
+
+  static const unavailable = PsitoTimeState(available: false);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoTimeState &&
+      other.available == available &&
+      other.timezone == timezone &&
+      other.ntp == ntp &&
+      other.ntpSynchronized == ntpSynchronized &&
+      other.canNtp == canNtp;
+
+  @override
+  int get hashCode =>
+      Object.hash(available, timezone, ntp, ntpSynchronized, canNtp);
 }

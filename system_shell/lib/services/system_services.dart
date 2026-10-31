@@ -13,6 +13,7 @@ import 'battery_service.dart';
 import 'network_service.dart';
 import 'session_service.dart';
 import 'system_info_service.dart';
+import 'time_service.dart';
 
 class SystemServices {
   final SystemInfoService systemInfo;
@@ -20,6 +21,7 @@ class SystemServices {
   final AudioService audio;
   final BatteryService battery;
   final SessionService session;
+  final TimeService time;
 
   /// Conexão com o barramento de sistema; null nos falsos.
   final DBusClient? _systemBus;
@@ -30,6 +32,7 @@ class SystemServices {
     required this.audio,
     required this.battery,
     required this.session,
+    required this.time,
     this._systemBus,
   });
 
@@ -39,12 +42,14 @@ class SystemServices {
     AudioService? audio,
     BatteryService? battery,
     SessionService? session,
+    TimeService? time,
   }) : this._(
          systemInfo: systemInfo ?? FakeSystemInfoService(),
          network: network ?? FakeNetworkService(),
          audio: audio ?? FakeAudioService(),
          battery: battery ?? FakeBatteryService(),
          session: session ?? FakeSessionService(),
+         time: time ?? FakeTimeService(),
        );
 
   /// Não bloqueia o boot: cada serviço conecta e carrega em segundo plano e
@@ -61,12 +66,14 @@ class SystemServices {
     final audio = PipewireAudioService();
     final battery = UPowerBatteryService(bus);
     final session = LogindSessionService(bus);
+    final time = TimedatedTimeService(bus);
     Future.wait([
       systemInfo.ready,
       network.ready,
       audio.ready,
       battery.ready,
       session.ready,
+      time.ready,
     ]).then((_) {
       String status(bool ok) => ok ? 'ok' : 'indisponível';
       debugPrint(
@@ -75,6 +82,7 @@ class SystemServices {
         'network=${status(network.state.value.available)} '
         'audio=${status(audio.state.value.available)} '
         'battery=${status(battery.state.value.available)} '
+        'time=${status(time.state.value.available)} '
         'session=${session.capabilities.value}',
       );
     });
@@ -84,6 +92,7 @@ class SystemServices {
       audio: audio,
       battery: battery,
       session: session,
+      time: time,
       systemBus: bus,
     );
   }
@@ -94,6 +103,7 @@ class SystemServices {
     await audio.dispose();
     await battery.dispose();
     await session.dispose();
+    await time.dispose();
     await _systemBus?.close();
   }
 }

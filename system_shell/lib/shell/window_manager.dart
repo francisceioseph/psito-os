@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import '../services/time_service.dart';
+
 enum SnapMode { left, right, maximized }
 
 /// Borda ou canto sendo arrastado: -1, 0 ou 1 em cada eixo.
@@ -59,7 +61,9 @@ class WindowManager extends ChangeNotifier {
     this.onUpdateSettings,
     ValueListenable<PsitoSystemInfo>? systemInfo,
     ValueListenable<PsitoNetworkState>? network,
-  }) : settings = settings ?? ValueNotifier(PsitoSettings.defaults),
+    TimeService? time,
+  }) : time = time ?? FakeTimeService(initial: PsitoTimeState.unavailable),
+       settings = settings ?? ValueNotifier(PsitoSettings.defaults),
        systemInfo = systemInfo ?? ValueNotifier(PsitoSystemInfo.unavailable),
        network = network ?? ValueNotifier(PsitoNetworkState.unavailable);
 
@@ -77,6 +81,9 @@ class WindowManager extends ChangeNotifier {
 
   /// O que os apps leem por [PsitoAppContext.network].
   final ValueListenable<PsitoNetworkState> network;
+
+  /// Relógio do sistema: [PsitoAppContext.now], fuso e NTP.
+  final TimeService time;
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -366,13 +373,37 @@ class _WindowContext implements PsitoAppContext {
   ValueListenable<PsitoNetworkState> get network => _manager.network;
 
   @override
-  void updateSettings(PsitoSettings settings) {
+  ValueListenable<PsitoTimeState> get time => _manager.time.state;
+
+  @override
+  DateTime now() => _manager.time.now();
+
+  @override
+  Future<List<String>> timezones() => _manager.time.timezones();
+
+  /// Só apps com [PsitoApp.canChangeSettings] mexem no sistema.
+  bool _mayChange(String what) {
     final window = _manager._byId(windowId);
-    if (window == null) return;
-    if (!window.app.canChangeSettings) {
-      debugPrint('🦜 ${window.app.id} não pode alterar as configurações');
-      return;
+    if (window == null) return false;
+    if (window.app.canChangeSettings) return true;
+    debugPrint('🦜 ${window.app.id} não pode alterar $what');
+    return false;
+  }
+
+  @override
+  void setTimezone(String timezone) {
+    if (_mayChange('o fuso')) _manager.time.setTimezone(timezone);
+  }
+
+  @override
+  void setNtp(bool enabled) {
+    if (_mayChange('o NTP')) _manager.time.setNtp(enabled);
+  }
+
+  @override
+  void updateSettings(PsitoSettings settings) {
+    if (_mayChange('as configurações')) {
+      _manager.onUpdateSettings?.call(settings);
     }
-    _manager.onUpdateSettings?.call(settings);
   }
 }

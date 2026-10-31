@@ -22,7 +22,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
       - `system_info_service` (hostnamed);
       - `network_service` (NetworkManager pelo pacote `nm`);
       - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
-      - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell.
+      - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell;
+      - `time_service` (timedated: fuso e NTP).
     - O estado de cada serviço é um tipo do SDK (`PsitoSystemInfo`, `PsitoNetworkState`), que os apps leem pelo `PsitoAppContext`.
   - `lib/widgets/`:
     - `psito_window` (a moldura), `top_bar`, `psito_dock`, `desktop_background`;
@@ -52,6 +53,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 ## Regras
 - Não ler `build/`, `.dart_tool/`, `linux/flutter/ephemeral/`, `qemu/`, `debian/`.
 - Prefira `./check.sh` e `./logs.sh` a builds e logs completos.
+- Para mostrar a hora, use `ctx.now()` (apps) ou `TimeService.now` (shell), nunca `DateTime.now()`. O fuso do `DateTime.now()` fica congelado depois que o processo começa, porque o glibc não relê o `/etc/localtime`.
 - A UI não tem emojis, porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - Todo atalho global tem uma combinação nativa e uma de VM (`lib/shell/shortcuts.dart`, mais `psitoShortcuts` no SDK). O host Cinnamon fica com Super, Alt+Tab, Alt+\`, Ctrl+Alt+setas e Ctrl+Alt+Shift+setas, e o QEMU fica com Ctrl+Alt+G/F/Q/M/1–9. A lista completa está em `docs/FASE-1.md`.
 - Apps precisam caber no tamanho mínimo de janela (240×160). O `desktop_test` verifica todos.

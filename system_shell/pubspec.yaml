@@ -39,6 +39,7 @@ dependencies:
     path: ../packages/psito_sdk
   dbus: ^0.8.0
   nm: ^0.6.0
+  timezone: ^0.11.2
 
 dev_dependencies:
   flutter_test:

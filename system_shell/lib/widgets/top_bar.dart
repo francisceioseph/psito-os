@@ -42,6 +42,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Botão de energia: abre e fecha o menu de energia.
   final VoidCallback? onPowerTap;
 
+  /// Hora local no fuso do sistema (o TimeService), não o DateTime.now().
+  final DateTime Function() now;
+
   const TopBar({
     super.key,
     this.onMenuTap,
@@ -59,6 +62,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBatteryPercentage = true,
     this.onBatteryTap,
     this.onPowerTap,
+    this.now = DateTime.now,
   });
 
   static const height = 40.0;
@@ -145,14 +149,14 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               StreamBuilder<DateTime>(
                 stream: Stream.periodic(
                   const Duration(seconds: 1),
-                  (_) => DateTime.now(),
+                  (_) => now(),
                 ),
                 builder: (context, snapshot) {
-                  final now = snapshot.data ?? DateTime.now();
+                  final time = snapshot.data ?? now();
 
                   // Formatação amigável da data em português (ex: Sáb, 12 de set, 16:41)
                   final formattedDateTime = formatClock(
-                    now,
+                    time,
                     use24h: use24h,
                     showSeconds: showSeconds,
                   );

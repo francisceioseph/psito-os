@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/services/time_service.dart';
 import 'package:system_shell/shell/window_manager.dart';
 
 import 'helpers.dart';
@@ -145,5 +146,23 @@ void main() {
     settings.context.updateSettings(changed);
     expect(received, [changed]);
     expect(normal.context.settings.value, PsitoSettings.defaults);
+  });
+
+  test('só apps com permissão mudam o fuso e o NTP', () async {
+    final time = FakeTimeService();
+    final wm = WindowManager(time: time)..workArea = _area;
+    final normal = wm.open(const FakeApp('a'));
+    final settings = wm.open(const FakeApp('s', canChangeSettings: true));
+
+    normal.context.setTimezone('Asia/Tokyo');
+    normal.context.setNtp(false);
+    expect(time.state.value, FakeTimeService.sample);
+
+    settings.context.setTimezone('Asia/Tokyo');
+    settings.context.setNtp(false);
+    await Future<void>.delayed(Duration.zero);
+    expect(time.state.value.timezone, 'Asia/Tokyo');
+    expect(time.state.value.ntp, isFalse);
+    expect(normal.context.time.value.timezone, 'Asia/Tokyo');
   });
 }

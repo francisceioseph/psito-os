@@ -63,6 +63,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     onUpdateSettings: _settings.update,
     systemInfo: _services.systemInfo.info,
     network: _services.network.state,
+    time: _services.time,
   );
 
   // Fora do setState: mover o mouse só redesenha o cursor
@@ -337,6 +338,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                           _settings.value.showBatteryPercentage,
                       onBatteryTap: () => _toggle(_Overlay.battery),
                       onPowerTap: () => _toggle(_Overlay.power),
+                      now: _services.time.now,
                       unreadCount: _notifications.unreadCount,
                       use24h: _settings.value.use24h,
                       showSeconds: _settings.value.showSeconds,

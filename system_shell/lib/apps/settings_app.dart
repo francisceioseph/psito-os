@@ -31,6 +31,18 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   _Section _section = _Section.appearance;
 
+  /// Escolha de fuso aberta na seção Data e hora.
+  bool _pickingTimezone = false;
+  String _timezoneQuery = '';
+  late final Future<List<String>> _timezones = widget.appContext.timezones();
+
+  /// "America/Sao_Paulo" vira "America · Sao Paulo".
+  static String timezoneLabel(String name) =>
+      name.replaceAll('_', ' ').split('/').join(' · ');
+
+  static String _fold(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'[_/·\s]+'), ' ').trim();
+
   void _update(PsitoSettings settings) =>
       widget.appContext.updateSettings(settings);
 
@@ -179,11 +191,109 @@ class _SettingsViewState extends State<SettingsView> {
       value: s.showSeconds,
       onChanged: (v) => _update(s.copyWith(showSeconds: v)),
     ),
-    const _Note(
-      'Ajustar a data e a hora do sistema chega na fase 2, junto com os '
-      'serviços via D-Bus.',
+    const SizedBox(height: 8),
+    ValueListenableBuilder(
+      valueListenable: widget.appContext.time,
+      builder: (context, time, _) {
+        if (!time.available) {
+          return const _Note(
+            'Data e hora do sistema indisponíveis (timedated)',
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SwitchListTile(
+              title: const Text('Ajustar automaticamente'),
+              subtitle: Text(
+                !time.ntp
+                    ? 'Desligado'
+                    : time.ntpSynchronized
+                    ? 'Sincronizado com a internet'
+                    : 'Aguardando sincronização',
+              ),
+              value: time.ntp,
+              onChanged: time.canNtp ? widget.appContext.setNtp : null,
+            ),
+            if (_pickingTimezone)
+              _timezonePicker(time.timezone)
+            else
+              ListTile(
+                title: const Text('Fuso horário'),
+                subtitle: Text(timezoneLabel(time.timezone)),
+                trailing: TextButton(
+                  onPressed: () => setState(() => _pickingTimezone = true),
+                  child: const Text('Alterar'),
+                ),
+              ),
+            const _Note('Com o ajuste automático ligado, a hora vem da rede.'),
+          ],
+        );
+      },
     ),
   ];
+
+  Widget _timezonePicker(String current) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                autofocus: true,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search, size: 18),
+                  hintText: 'Buscar fuso (ex.: sao paulo)',
+                  isDense: true,
+                ),
+                onChanged: (q) => setState(() => _timezoneQuery = q),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Cancelar',
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () => setState(() {
+                _pickingTimezone = false;
+                _timezoneQuery = '';
+              }),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        FutureBuilder(
+          future: _timezones,
+          builder: (context, snapshot) {
+            final query = _fold(_timezoneQuery);
+            final matches = (snapshot.data ?? const <String>[])
+                .where((name) => _fold(name).contains(query))
+                .take(50)
+                .toList();
+            return SizedBox(
+              height: 220,
+              child: ListView(
+                children: [
+                  for (final name in matches)
+                    ListTile(
+                      dense: true,
+                      selected: name == current,
+                      title: Text(timezoneLabel(name)),
+                      onTap: () {
+                        widget.appContext.setTimezone(name);
+                        setState(() {
+                          _pickingTimezone = false;
+                          _timezoneQuery = '';
+                        });
+                      },
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   List<Widget> _network() => [
     ValueListenableBuilder(

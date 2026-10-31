@@ -18,7 +18,10 @@ class ClockView extends StatefulWidget {
 
 class _ClockViewState extends State<ClockView> {
   late Timer _timer;
-  DateTime _currentTime = DateTime.now();
+  late DateTime _currentTime = _now();
+
+  /// Hora no fuso do sistema; sem contexto (testes), a do processo.
+  DateTime _now() => widget.appContext?.now() ?? DateTime.now();
 
   /// Segundos que faltam no timer; null quando parado.
   int? _remaining;
@@ -48,7 +51,7 @@ class _ClockViewState extends State<ClockView> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          _currentTime = DateTime.now();
+          _currentTime = _now();
         });
       }
     });
