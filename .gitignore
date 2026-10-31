@@ -5,12 +5,12 @@ build/
 *.qcow2
 *.img
 qemu/
-os_image/rootfs/
+debian/
 
 # Flutter/IDE gerados
 .idea/
 *.iml
-system_shell/linux/flutter/ephemeral/
+.claude/settings.local.json
 
 # Saídas locais dos scripts
 *.log
