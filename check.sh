@@ -1,18 +1,23 @@
 #!/bin/bash
-# Roda o analyzer e imprime só os problemas encontrados.
+# Roda o analyzer no system_shell, no shell e nos apps e imprime só os
+# problemas encontrados.
 
-cd "$(dirname "$0")/system_shell"
+cd "$(dirname "$0")"
 
-OUT=$(flutter analyze --no-pub 2>&1)
-STATUS=$?
+STATUS=0
+for dir in system_shell shell apps; do
+    OUT=$(cd "$dir" && flutter analyze --no-pub 2>&1)
+    CODE=$?
+    ISSUES=$(echo "$OUT" | grep -E '^\s*(error|warning|info) •')
+    if [ -n "$ISSUES" ]; then
+        echo "$dir:"
+        echo "$ISSUES"
+    elif [ $CODE -ne 0 ]; then
+        echo "$dir:"
+        echo "$OUT" | tail -n 20
+    fi
+    [ $CODE -ne 0 ] && STATUS=$CODE
+done
 
-ISSUES=$(echo "$OUT" | grep -E '^\s*(error|warning|info) •')
-if [ -n "$ISSUES" ]; then
-    echo "$ISSUES"
-elif [ $STATUS -ne 0 ]; then
-    echo "$OUT" | tail -n 20
-else
-    echo "✅ Nenhum problema."
-fi
-
+[ $STATUS -eq 0 ] && echo "✅ Nenhum problema."
 exit $STATUS

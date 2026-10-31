@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mede o shell do Psito (spike/shell_client) rodando no labwc da VM do spike e
+# Mede o shell do Psito (shell/) rodando no labwc da VM do spike e
 # grava spike/results/shell.csv.
 # Uso: spike/session.sh labwc && spike/measure-shell.sh
 # Cenários:

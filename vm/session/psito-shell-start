@@ -1,0 +1,17 @@
+#!/bin/sh
+# Sobe o shell do Psito na sessão do compositor que chamou (o autostart do
+# labwc e do Wayfire). O systemd do usuário é um só para todas as sessões:
+# o ambiente de uma sessão anterior sai antes de entrar o desta. A ponte do
+# shell reconhece o compositor pelo LABWC_PID ou pelo WAYFIRE_SOCKET.
+# Sem o shell instalado (./deploy.sh), a VM do spike usa o waybar como painel.
+systemctl --user unset-environment LABWC_PID WAYFIRE_SOCKET
+systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP \
+    LABWC_PID WAYFIRE_SOCKET 2>/dev/null
+if [ -x /opt/psito/shell/psito_shell ]; then
+    systemctl --user reset-failed psito-shell.service 2>/dev/null
+    exec systemctl --user restart psito-shell.service
+fi
+if command -v waybar >/dev/null; then
+    mkdir -p /tmp/spike
+    exec waybar >/tmp/spike/waybar.log 2>&1
+fi

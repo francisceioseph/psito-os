@@ -1,0 +1,13 @@
+# O shell do Psito (shell/) como unidade do systemd do usuário: se cair, volta
+# sozinho, e as janelas continuam no compositor. Quem sobe é o
+# psito-shell-start, no autostart do labwc (e do Wayfire, no spike).
+[Unit]
+Description=Shell do Psito (cliente layer-shell)
+# Sem compositor o shell não sobe: para de tentar em vez de ficar em laço
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+ExecStart=/opt/psito/shell/psito_shell
+Restart=always
+RestartSec=1
