@@ -1,0 +1,28 @@
+diff --git a/src/output.cpp b/src/output.cpp
+index 31f069e..940b695 100644
+--- a/src/output.cpp
++++ b/src/output.cpp
+@@ -1,3 +1,5 @@
++#include <cstdio>
++#include <cstdlib>
+ #include "output.hpp"
+ #include "server.hpp"
+ #include "embedder_callbacks.hpp"
+@@ -220,6 +222,17 @@ bool ZenithOutput::enable() {
+ 	wlr_output_enable(wlr_output, true);
+ 	// Set the preferred resolution and refresh rate of the monitor which will probably be the highest one.
+ 	wlr_output_mode* mode = wlr_output_preferred_mode(wlr_output);
++	// Spike do Psito: ZENITH_MODE=LxA escolhe o modo (o virtio-gpu prefere 640x480)
++	int want_w, want_h;
++	const char* want = std::getenv("ZENITH_MODE");
++	if (want != nullptr && std::sscanf(want, "%dx%d", &want_w, &want_h) == 2) {
++		wlr_output_mode* m;
++		wl_list_for_each(m, &wlr_output->modes, link) {
++			if (m->width == want_w && m->height == want_h && (mode->width != want_w || m->refresh > mode->refresh)) {
++				mode = m;
++			}
++		}
++	}
+ 	wlr_output_set_mode(wlr_output, mode);
+ 
+ 	if (!wlr_output_commit(wlr_output)) {

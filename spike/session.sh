@@ -1,6 +1,6 @@
 #!/bin/bash
 # Sobe um compositor do spike no tty1 da VM do spike.
-# Uso: spike/session.sh weston | stop | status
+# Uso: spike/session.sh weston | zenith | stop | status
 set -e
 
 VM_PORT="${VM_PORT:-2223}"
@@ -8,7 +8,10 @@ vm() { ssh -p "$VM_PORT" psito@localhost "$@"; }
 
 case "$1" in
     weston)
-        CMD="weston --backend=drm --config=/etc/psito-spike/weston.ini"
+        CMD="exec weston --backend=drm --config=/etc/psito-spike/weston.ini"
+        ;;
+    zenith)
+        CMD="cd /home/psito/vendor/zenith/build/zenith/release/bundle && ZENITH_MODE=1440x900 exec stdbuf -oL -eL ./zenith"
         ;;
     stop)
         vm "sudo systemctl stop psito-spike.service"
@@ -19,7 +22,7 @@ case "$1" in
         exit 0
         ;;
     *)
-        echo "Uso: spike/session.sh weston | stop | status"
+        echo "Uso: spike/session.sh weston | zenith | stop | status"
         exit 1
         ;;
 esac

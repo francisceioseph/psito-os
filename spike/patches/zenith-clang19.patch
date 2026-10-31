@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index 46bed22..d903c15 100644
+--- a/Makefile
++++ b/Makefile
+@@ -45,7 +45,7 @@ INC_FLAGS := $(addprefix -I,$(INC_DIRS))
+ 
+ ASAN := -g -fno-omit-frame-pointer -fsanitize=address
+ WARNINGS := -Wall -Wextra -Werror \
+-			-Wno-unused-parameter -Wno-unused-variable -Wno-invalid-offsetof -Wno-unknown-pragmas
++			-Wno-unused-parameter -Wno-unused-variable -Wno-invalid-offsetof -Wno-unknown-pragmas -Wno-vla-cxx-extension
+ 
+ # The -MMD and -MP flags together generate Makefiles for us!
+ # These files will have .d instead of .o as the output.

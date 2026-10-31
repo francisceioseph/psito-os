@@ -36,6 +36,14 @@ open_client() {
 # Soma de uma coluna das linhas do sample.sh
 column() { awk -F, -v c="$1" '{s += $c} END {print s + 0}'; }
 metric() { echo "$1,$2" | tee -a "$OUT"; }
+# Um compositor que cai no meio invalida o resto: registra e para
+alive() {
+    if ! vm "kill -0 $comp" 2>/dev/null; then
+        metric caiu_durante "$1"
+        echo "❌ $COMPOSITOR caiu durante: $1"
+        exit 1
+    fi
+}
 
 comp=$(vm "pgrep -o -x $COMPOSITOR") || {
     echo "❌ $COMPOSITOR não está rodando (spike/session.sh)."
@@ -95,11 +103,13 @@ for n in 1 5; do
     pid=$(PROBE_NAME=latencia PROBE_LOG=/tmp/spike/probe-lat$n.csv open_client "$PROBE")
     vm "sudo python3 /tmp/spike/tools/inject.py > /tmp/spike/inject$n.csv"
     sleep 1
+    alive "latencia_$n"
     vm "kill $pid"
 
     echo "🎞️  fps com $n cliente(s)..."
     pid=$(PROBE_NAME=fps PROBE_ANIMATE=1 PROBE_LOG=/tmp/spike/probe-fps$n.csv open_client "$PROBE")
     sleep 10
+    alive "fps_$n"
     vm "kill $pid"
 done
 close_clients

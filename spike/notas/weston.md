@@ -25,7 +25,7 @@ Sem clientes, o Weston tem 26,9 MB de PSS anônimo e 81,5 MB de PSS total.
 ## Leitura
 - **Entrega da tecla:** fica abaixo de 1 ms (do `uinput` até o probe, passando pelo libinput, pelo Weston, pelo GTK e pelo engine). Um p95 de 6,9 ms apareceu numa das rodadas e não se repetiu.
 - **Tecla até o frame pronto:** de 14 a 15 ms, quase todos gastos no próprio probe (build e raster) e na espera do próximo frame.
-- **fps:** oscila entre rodadas, por volta de 30 ou de 53, porque o probe gasta cerca de 15 ms por frame no VirGL, no limite dos 16,7 ms de 60 Hz. Quando perde o vsync, cai para 30. O fps é limitado pelo cliente, não pelo Weston. Como o probe é o mesmo para todos os candidatos, a comparação continua valendo, mas é preciso repetir as rodadas (etapa 5).
+- **fps:** (veja a correção em [`zenith.md`](zenith.md): os ~15 ms por frame do probe parecem ser espera do callback de frame do Weston, não trabalho.) Oscila entre rodadas, por volta de 30 ou de 53, porque o probe gasta cerca de 15 ms por frame no VirGL, no limite dos 16,7 ms de 60 Hz. Quando perde o vsync, cai para 30. O fps é limitado pelo cliente, não pelo Weston. Como o probe é o mesmo para todos os candidatos, a comparação continua valendo, mas é preciso repetir as rodadas (etapa 5).
 - **Memória:** o PSS total do compositor cai quando abrem clientes (81 → 46 MB), porque as bibliotecas compartilhadas do Mesa se dividem entre mais processos. Para comparar compositores, use o PSS anônimo.
 - **CPU parada:** zero, porque nada muda na tela. É a referência para ver se um compositor em Flutter desenha frames sem necessidade.
 

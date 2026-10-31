@@ -12,10 +12,11 @@ TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
 UtmpIdentifier=tty1
-# SPIKE_CMD é escrito pelo spike/session.sh. O $$ deixa o sh expandir a
-# variável: com $SPIKE_CMD o systemd quebraria o comando em palavras
+# SPIKE_CMD é escrito pelo spike/session.sh e termina num exec do compositor.
+# O $$ deixa o sh expandir a variável: com $SPIKE_CMD o systemd quebraria o
+# comando em palavras
 EnvironmentFile=/etc/default/psito-spike
-ExecStart=/bin/sh -c 'exec $$SPIKE_CMD'
+ExecStart=/bin/sh -c 'eval "$$SPIKE_CMD"'
 Restart=no
 StandardInput=tty
 StandardOutput=journal
