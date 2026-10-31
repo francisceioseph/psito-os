@@ -65,6 +65,9 @@ class Bridge {
     } on FileSystemException catch (e) {
       debugPrint('🦜 ponte: tema GTK falhou ($e)');
     }
+    if (await applyColorScheme()) {
+      debugPrint('🦜 ponte: color-scheme escuro no gsettings');
+    }
     debugPrint('🦜 ponte: ${compositor.name}, destaque ${accent.toARGB32()}');
   }
 }

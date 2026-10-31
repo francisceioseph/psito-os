@@ -1,6 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Calculator
-Exec=/opt/psito/apps/calculator/psito_calculator
+Exec=/usr/lib/psito/apps/org.psito.calculator/psito_calculator
+Icon=org.psito.calculator
 StartupWMClass=org.psito.calculator
 X-Psito-App=calculator
+X-Psito-Color=#2196F3
+X-Psito-Permissions=

@@ -3,6 +3,7 @@
 // O estado do shell, um só para todas as superfícies: as views da top bar,
 // da dock e da sobreposição leem e mudam este mesmo objeto.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +34,7 @@ class ShellState {
     required this.toplevels,
     this.surfaces = const Surfaces(),
     this.osdDuration = const Duration(milliseconds: 1500),
+    this.sandbox,
   }) {
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
@@ -45,6 +47,31 @@ class ShellState {
   final SystemServices services;
   final ToplevelList toplevels;
   final Surfaces surfaces;
+
+  /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
+  final String? sandbox;
+
+  static const sandboxPath = '/usr/local/bin/psito-sandbox';
+
+  /// O sandbox, se estiver instalado e o `PSITO_SANDBOX` não for `0` (para
+  /// medir sem ele).
+  static String? sandboxFor(Map<String, String> env) =>
+      env['PSITO_SANDBOX'] != '0' && File(sandboxPath).existsSync()
+      ? sandboxPath
+      : null;
+
+  /// Se o app pode gravar as configurações: os do Psito só com a permissão
+  /// `settings` no manifesto. Quem não é um app do Psito instalado (o shell,
+  /// um terminal, um app de fora) pode.
+  bool maySetSettings(String? appId) {
+    if (appId == null) return true;
+    for (final app in apps.value) {
+      if (app.id == appId && app.psitoApp != null) {
+        return app.permissions.contains('settings');
+      }
+    }
+    return true;
+  }
 
   late final notifications = NotificationCenter(
     silent: () => settings.value.doNotDisturb,
@@ -90,6 +117,27 @@ class ShellState {
     );
   }
 
+  /// Carrega os apps e recarrega quando um pacote põe ou tira um `.desktop`:
+  /// um app instalado com o apt aparece sem reiniciar o shell. Os eventos de
+  /// uma instalação vêm em rajada, então espera [appsReloadDelay].
+  Future<void> watchApps(Map<String, String> env) async {
+    final dirs = desktopEntryDirs(env);
+    // A pasta do usuário pode ainda não existir, e o watch precisa dela
+    await Directory(dirs.first).create(recursive: true);
+    Timer? pending;
+    for (final path in dirs) {
+      final dir = Directory(path);
+      if (!await dir.exists()) continue;
+      dir.watch().listen((_) {
+        pending?.cancel();
+        pending = Timer(appsReloadDelay, () => unawaited(loadApps(env)));
+      }, onError: (Object e) => debugPrint('🦜 shell: sem vigiar $path ($e)'));
+    }
+    await loadApps(env);
+  }
+
+  static const appsReloadDelay = Duration(milliseconds: 500);
+
   /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
   void toggle(ShellOverlay value) {
     overlay.value = overlay.value == value ? null : value;
@@ -124,7 +172,7 @@ class ShellState {
   void tapDock(DockSlot slot) {
     switch (tapAction(slot)) {
       case LaunchApp(:final entry):
-        unawaited(entry.launch());
+        unawaited(entry.launch(sandbox: sandbox));
       case ActivateWindow(:final id):
         unawaited(toplevels.activate(id));
       case MinimizeWindow(:final id):
@@ -136,7 +184,7 @@ class ShellState {
 
   void launch(DesktopEntry entry) {
     closeOverlay();
-    unawaited(entry.launch());
+    unawaited(entry.launch(sandbox: sandbox));
   }
 
   /// Uma ação pedida pelo compositor (os atalhos que a ponte gerou).
@@ -306,7 +354,7 @@ class ShellState {
     if (windows.isNotEmpty) {
       unawaited(toplevels.activate(windows.last.id));
     } else if (_desktopEntry(n.appId) case final entry?) {
-      unawaited(entry.launch());
+      unawaited(entry.launch(sandbox: sandbox));
     }
   }
 

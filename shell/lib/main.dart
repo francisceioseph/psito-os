@@ -31,23 +31,32 @@ Future<void> main() async {
     settings: settings,
     services: SystemServices.start(),
     toplevels: ToplevelList(),
+    sandbox: ShellState.sandboxFor(Platform.environment),
   );
   final viewIds = await state.surfaces.viewIds();
   runWidget(ShellViews(state: state, viewIds: viewIds));
 
   unawaited(state.toplevels.start());
-  unawaited(state.loadApps(Platform.environment));
+  unawaited(state.watchApps(Platform.environment));
   Bridge(settings).start();
 
-  final DBusClient bus;
   try {
-    bus = await publishShell(ShellBusObject(onRun: state.run));
+    await publishShell(ShellBusObject(onRun: state.run));
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');
     return;
   }
+  // Uma conexão por nome: o filtro do sandbox decide por conexão
   try {
-    await publishSettings(bus, SettingsBusObject(settings));
+    final settingsBus = DBusClient.session();
+    await publishSettings(
+      settingsBus,
+      SettingsBusObject(
+        settings,
+        mayUpdate: (sender) async =>
+            state.maySetSettings(await senderAppId(settingsBus, sender)),
+      ),
+    );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
   }
@@ -62,7 +71,7 @@ Future<void> main() async {
     unawaited(server.invokeDefault(id));
   };
   try {
-    await publishNotifications(bus, server);
+    await publishNotifications(DBusClient.session(), server);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o servidor de notificações ($e)');
   }

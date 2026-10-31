@@ -55,16 +55,45 @@ void main() {
     });
   });
 
-  test('o .desktop de cada app bate com o PsitoApp', () {
+  test('o .desktop (o manifesto) de cada app bate com o PsitoApp', () {
     for (final app in registeredApps) {
-      final text = File('../apps/${app.id}/org.psito.${app.id}.desktop')
-          .readAsStringSync();
+      final appId = 'org.psito.${app.id}';
+      final text = File('../apps/${app.id}/$appId.desktop').readAsStringSync();
+      final rgb = (app.color.toARGB32() & 0xFFFFFF)
+          .toRadixString(16)
+          .padLeft(6, '0')
+          .toUpperCase();
       expect(text, contains('Name=${app.name}\n'));
       expect(
         text,
-        contains('Exec=/opt/psito/apps/${app.id}/psito_${app.id}\n'),
+        contains('Exec=/usr/lib/psito/apps/$appId/psito_${app.id}\n'),
       );
-      expect(text, contains('StartupWMClass=org.psito.${app.id}\n'));
+      expect(text, contains('Icon=$appId\n'));
+      expect(text, contains('StartupWMClass=$appId\n'));
+      expect(text, contains('X-Psito-App=${app.id}\n'));
+      expect(text, contains('X-Psito-Color=#$rgb\n'));
+      expect(File('../apps/${app.id}/icon.svg').existsSync(), isTrue);
+    }
+  });
+
+  test('as permissões são conhecidas, e settings só com canChangeSettings', () {
+    const known = {'network', 'settings', 'files:home', 'notifications'};
+    final line = RegExp(r'^X-Psito-Permissions=(.*)$', multiLine: true);
+    for (final app in registeredApps) {
+      final text = File('../apps/${app.id}/org.psito.${app.id}.desktop')
+          .readAsStringSync();
+      final permissions = line
+          .firstMatch(text)!
+          .group(1)!
+          .split(';')
+          .where((p) => p.isNotEmpty)
+          .toSet();
+      expect(known.containsAll(permissions), isTrue, reason: app.id);
+      expect(
+        permissions.contains('settings'),
+        app.canChangeSettings,
+        reason: app.id,
+      );
     }
   });
 

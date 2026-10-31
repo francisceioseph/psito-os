@@ -4,9 +4,7 @@
 // lê SVG) e devolve um PNG, então o Dart não precisa de pacote de SVG.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_entry.dart';
-import 'package:system_shell/shell/app_registry.dart';
 
 import 'desktop_entries.dart';
 
@@ -59,21 +57,8 @@ class AppIcon extends StatelessWidget {
   }
 }
 
-/// O prefixo do `app_id` e do `.desktop` dos apps do Psito (`apps/`).
-const psitoAppPrefix = 'org.psito.';
-
-/// O app do Psito com esse `app_id` (`org.psito.<id>`), se for um.
-PsitoApp? psitoAppFor(String appId) {
-  if (!appId.startsWith(psitoAppPrefix)) return null;
-  final id = appId.substring(psitoAppPrefix.length);
-  for (final app in registeredApps) {
-    if (app.id == id) return app;
-  }
-  return null;
-}
-
-/// Um app para os widgets do system_shell: os do Psito com o ícone e a cor
-/// deles; os de fora com o ícone do tema.
+/// Um app para os widgets do system_shell, com o ícone do tema. Os do Psito
+/// têm a cor do manifesto (`X-Psito-Color`); os de fora, a de destaque.
 AppEntry appEntry(
   String id,
   String name,
@@ -81,19 +66,11 @@ AppEntry appEntry(
   Color color, {
   String? icon,
 }) {
-  final psito = psitoAppFor(id);
-  if (psito != null) {
-    return AppEntry(
-      id: id,
-      name: psito.name,
-      color: psito.color,
-      icon: (size) => Icon(psito.icon, size: size, color: psito.color),
-    );
-  }
+  final psitoColor = desktop?.color;
   return AppEntry(
     id: id,
     name: name,
-    color: color,
+    color: psitoColor != null ? Color(psitoColor) : color,
     icon: (size) => AppIcon(desktop?.icon ?? icon, size: size),
   );
 }

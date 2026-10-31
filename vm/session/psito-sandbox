@@ -1,0 +1,149 @@
+#!/bin/bash
+# Abre um app do Psito no sandbox: o bubblewrap com as permissões do manifesto
+# (o X-Psito-Permissions do .desktop) e o D-Bus filtrado por um xdg-dbus-proxy
+# só dele. O shell chama dentro do systemd-run do app, então o proxy fica no
+# mesmo escopo e morre junto.
+#
+#   psito-sandbox --app <app-id> [--permissions "a;b"] [--dry-run] -- <comando...>
+#
+# Permissões: network (a rede e o NetworkManager), settings (o Update do
+# org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade)
+# e notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
+# ~/.local/share/psito/apps/<app-id>/. O --dry-run imprime os comandos do
+# proxy e do bwrap, um argumento por linha, e não roda nada.
+# Instalado em /usr/local/bin pelo provision-guest.sh.
+set -e
+
+APP=
+PERMISSIONS=
+DRY_RUN=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --app) APP="$2"; shift 2 ;;
+        --permissions) PERMISSIONS="$2"; shift 2 ;;
+        --dry-run) DRY_RUN=1; shift ;;
+        --) shift; break ;;
+        *) echo "psito-sandbox: argumento desconhecido: $1" >&2; exit 2 ;;
+    esac
+done
+if [ -z "$APP" ] || [ $# -eq 0 ]; then
+    echo "uso: psito-sandbox --app <app-id> [--permissions \"a;b\"] -- <comando...>" >&2
+    exit 2
+fi
+# O id vira um caminho: nada de / nem ..
+if ! [[ "$APP" =~ ^[A-Za-z0-9._-]+$ ]] || [[ "$APP" == *..* ]]; then
+    echo "psito-sandbox: id de app inválido: $APP" >&2
+    exit 2
+fi
+
+has() { [[ ";$PERMISSIONS;" == *";$1;"* ]]; }
+
+RUN="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+WAYLAND="${WAYLAND_DISPLAY:-wayland-0}"
+SESSION_BUS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$RUN/bus}"
+SYSTEM_BUS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/run/dbus/system_bus_socket}"
+SOCKETS="$RUN/psito-sandbox/$APP-$$"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}/psito/apps/$APP"
+
+SETTINGS=(org.psito.Settings org.psito.Settings /org/psito/Settings)
+proxy=(xdg-dbus-proxy
+    "$SESSION_BUS" "$SOCKETS/bus" --filter
+    --talk=org.freedesktop.portal.Desktop
+    --talk=org.freedesktop.portal.Documents
+    "--call=${SETTINGS[0]}=${SETTINGS[1]}.Get@${SETTINGS[2]}"
+    "--broadcast=${SETTINGS[0]}=${SETTINGS[1]}.Changed@${SETTINGS[2]}"
+)
+has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[2]}")
+has notifications && proxy+=(--talk=org.freedesktop.Notifications)
+
+# O sistema: ler o nome e a hora é de todos (o systemInfo e o time do
+# contexto); mudar o fuso, o NTP e o nome só com settings
+proxy+=("$SYSTEM_BUS" "$SOCKETS/system_bus" --filter)
+for service in hostname1 timedate1; do
+    name=org.freedesktop.$service
+    if has settings; then
+        proxy+=("--talk=$name")
+    else
+        proxy+=("--call=$name=org.freedesktop.DBus.Properties.*@/org/freedesktop/$service"
+            "--broadcast=$name=org.freedesktop.DBus.Properties.PropertiesChanged@/org/freedesktop/$service")
+    fi
+done
+has settings || proxy+=("--call=org.freedesktop.timedate1=org.freedesktop.timedate1.ListTimezones@/org/freedesktop/timedate1")
+has network && proxy+=(--talk=org.freedesktop.NetworkManager)
+
+sandbox=(bwrap
+    --unshare-all
+    --die-with-parent --new-session --cap-drop ALL
+    --ro-bind /usr /usr
+    --symlink usr/bin /bin --symlink usr/sbin /sbin
+    --symlink usr/lib /lib --symlink usr/lib64 /lib64
+    --ro-bind /etc /etc
+    --ro-bind-try /var/cache/fontconfig /var/cache/fontconfig
+    --proc /proc --dev /dev
+    --dev-bind-try /dev/dri /dev/dri
+    --ro-bind-try /sys/dev /sys/dev
+    --ro-bind-try /sys/devices /sys/devices
+    --ro-bind-try /sys/class /sys/class
+    --ro-bind-try /sys/bus /sys/bus
+    --tmpfs /tmp
+    --dir "$RUN" --chmod 0700 "$RUN"
+    --ro-bind "$RUN/$WAYLAND" "$RUN/$WAYLAND"
+    --bind "$SOCKETS/bus" "$RUN/bus"
+    --bind "$SOCKETS/system_bus" /run/dbus/system_bus_socket
+    --symlink ../run /var/run
+)
+has network && sandbox+=(--share-net)
+if has files:home; then
+    sandbox+=(--bind "$HOME" "$HOME")
+else
+    # As cores da ponte (o tema GTK) entram só para leitura
+    sandbox+=(--bind "$DATA" "$HOME"
+        --ro-bind-try "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-3.0")
+fi
+sandbox+=(--chdir "$HOME"
+    --unsetenv DISPLAY
+    --unsetenv DBUS_SYSTEM_BUS_ADDRESS
+    --setenv DBUS_SESSION_BUS_ADDRESS "unix:path=$RUN/bus"
+    --setenv NO_AT_BRIDGE 1
+    --setenv PSITO_APP_ID "$APP"
+    -- "$@")
+
+if [ "$DRY_RUN" = 1 ]; then
+    echo "proxy:"; printf '%s\n' "${proxy[@]}"
+    echo "bwrap:"; printf '%s\n' "${sandbox[@]}"
+    exit 0
+fi
+
+for tool in bwrap xdg-dbus-proxy; do
+    if ! command -v "$tool" >/dev/null; then
+        # Sem o sandbox o app não abre: nunca cai para sem isolamento
+        echo "psito-sandbox: falta o $tool; $APP não abre" >&2
+        exit 127
+    fi
+done
+
+# O que um sandbox morto com SIGKILL deixou: a pasta leva o pid no nome
+for old in "$RUN"/psito-sandbox/*-*; do
+    [ -d "$old" ] && ! kill -0 "${old##*-}" 2>/dev/null && rm -rf "$old"
+done
+mkdir -p -m 700 "$DATA" "$SOCKETS"
+"${proxy[@]}" &
+PROXY=$!
+cleanup() {
+    kill "$PROXY" 2>/dev/null || true
+    rm -rf "$SOCKETS"
+}
+trap cleanup EXIT
+# O systemctl stop do escopo manda TERM: sem isto o bash sai sem o trap EXIT
+trap 'exit 143' TERM INT HUP
+for _ in $(seq 100); do
+    [ -S "$SOCKETS/bus" ] && [ -S "$SOCKETS/system_bus" ] && break
+    kill -0 "$PROXY" 2>/dev/null || { echo "psito-sandbox: o proxy do D-Bus saiu" >&2; exit 1; }
+    sleep 0.02
+done
+
+# Filho, e não exec: quando o app sai, o proxy sai junto (o trap)
+set +e
+"${sandbox[@]}"
+status=$?
+exit $status

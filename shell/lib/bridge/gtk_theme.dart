@@ -4,6 +4,8 @@
 // própria moldura, e só seguem as cores do Psito pelo tema do GTK. As cores
 // nomeadas do Adwaita são trocadas por CSS em ~/.config/gtk-3.0 e gtk-4.0,
 // como o Budgie faz. Vale para os apps abertos depois: o GTK lê ao iniciar.
+// O escuro também vai para o gsettings (color-scheme), que o portal de
+// configurações (xdg-desktop-portal-gtk) publica ao Firefox e à libadwaita.
 import 'dart:io';
 import 'dart:ui';
 
@@ -84,4 +86,28 @@ Future<List<String>> applyGtkTheme(Directory configHome, Color accent) async {
     }
   }
   return skipped;
+}
+
+/// O `color-scheme` do GNOME, que o portal lê. Grava só se mudou, para não
+/// acordar quem acompanha. Devolve se gravou; sem o gsettings, false.
+Future<bool> applyColorScheme({
+  Future<ProcessResult> Function(String, List<String>) run = Process.run,
+}) async {
+  const schema = 'org.gnome.desktop.interface';
+  try {
+    final current = await run('gsettings', ['get', schema, 'color-scheme']);
+    if (current.exitCode == 0 &&
+        (current.stdout as String).trim() == "'prefer-dark'") {
+      return false;
+    }
+    final set = await run('gsettings', [
+      'set',
+      schema,
+      'color-scheme',
+      'prefer-dark',
+    ]);
+    return set.exitCode == 0;
+  } on ProcessException {
+    return false;
+  }
 }

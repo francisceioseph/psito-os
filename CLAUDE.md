@@ -1,6 +1,6 @@
 # Psito OS
 
-SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuchsia). Hoje é um mock: Debian 13 numa VM QEMU, com o labwc no tty1 (`psito-os.service`) e o shell em Flutter como cliente layer-shell dele. Cada app do Psito roda no próprio processo. A decisão está em `docs/decisao-compositor.md`.
+SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuchsia). Hoje é um mock: Debian 13 numa VM QEMU, com o labwc no tty1 (`psito-os.service`) e o shell em Flutter como cliente layer-shell dele. Cada app do Psito é um pacote `.deb` e roda no próprio processo, num sandbox. A decisão está em `docs/decisao-compositor.md`.
 
 ## Layout
 - `shell/`: o shell do Psito (`psito_shell`), cliente layer-shell do labwc. São seis views do Flutter num engine, uma por superfície (fundo, top bar, dock, sobreposição, toasts, OSD), com os widgets e os serviços do `system_shell` por dependência de caminho.
@@ -8,13 +8,16 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - O runner em C tem o layer-shell, a ponte do foreign-toplevel (`toplevels.cc`, canal `psito/toplevels`) e os ícones do tema.
   - O compositor chama o shell pelo D-Bus da sessão (`org.psito.Shell.Run '<ShellAction>'`), e o shell é o servidor `org.freedesktop.Notifications`.
   - `lib/bridge/`: a ponte. A `shellBindings` vira os atalhos do labwc (seção `<keyboard>` do `rc.xml` e `--reconfigure`) ou do Wayfire (IPC), e as cores viram a moldura e o tema GTK (`~/.config/gtk-3.0` e `gtk-4.0`).
-  - Os apps `org.psito.<id>` aparecem com o ícone e a cor do `PsitoApp` (`app_icon.dart`); os de fora, com o ícone do tema.
+  - Os apps vêm dos `.desktop` instalados (`desktop_entries.dart`), que o shell vigia: um pacote instalado ou removido aparece sem reiniciar. Os do Psito têm o manifesto (`X-Psito-App`, `X-Psito-Color`, `X-Psito-Permissions`); todos têm o ícone do tema.
+  - Cada app abre num escopo próprio (`systemd-run --user --scope`, unidade `app-psito-<id>-<aleatório>.scope`, com o log em `journalctl --user -u <unidade>`). Os do Psito passam pelo `psito-sandbox` com as permissões do manifesto (`PSITO_SANDBOX=0` no ambiente do shell desliga).
+  - O shell publica o `org.psito.Shell`, o `org.freedesktop.Notifications` e o `org.psito.Settings` em conexões separadas, porque o filtro do sandbox decide por conexão. O `Update` das configurações confere o cgroup de quem chama: um app do Psito sem `settings` é recusado.
   - Roda como a unidade `psito-shell` do systemd do usuário (`Restart`), subida pelo `psito-shell-start` no `autostart` do labwc. Log: `journalctl --user -u psito-shell` na VM.
-- `apps/<id>/`: um projeto Flutter Linux por app do Psito (`psito_<id>`, `APPLICATION_ID` `org.psito.<id>`), com o runner do `flutter create`.
+- `apps/<id>/`: um projeto Flutter Linux por app do Psito (`psito_<id>`, `APPLICATION_ID` `org.psito.<id>`), com o runner do `flutter create`. Na VM, cada um é o pacote `psito-app-<id>`, em `/usr/lib/psito/apps/org.psito.<id>/`.
   - `lib/<id>_app.dart` tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`; o `main.dart` é só `runPsitoApp(XxxApp())`.
-  - `org.psito.<id>.desktop` é o `.desktop` do app (o `app_boundary_test` do `system_shell` confere com o `PsitoApp` e o CMake).
+  - `org.psito.<id>.desktop` é o manifesto: o `.desktop` com `X-Psito-App`, `X-Psito-Color`, `X-Psito-Permissions` (`network`, `settings`, `files:home`, `notifications`) e o `Icon` (o `icon.svg` do projeto, no tema `hicolor`). O `app_boundary_test` do `system_shell` confere com o `PsitoApp` e o CMake.
+  - As permissões de hoje: Configurações `settings;network`, Arquivos `files:home`, Relógio `notifications`, e a Calculadora e o Bloco de notas nenhuma (o Bloco de notas grava em `~/nota.txt`, que no sandbox é o `$HOME` privado).
   - O app de Configurações é o único com `canChangeSettings`.
-- `packages/psito_runtime/`: o runtime dos apps. `runPsitoApp` sobe o app no próprio processo com o `ProcessAppContext` (serviços do D-Bus, notificações ao shell, configurações pelo `org.psito.Settings`). É um plugin Linux: o canal `psito/window` (título, tamanho mínimo e inicial, fechar) entra em qualquer app sem mexer no runner.
+- `packages/psito_runtime/`: o runtime dos apps. `runPsitoApp` sobe o app no próprio processo com o `ProcessAppContext` (serviços do D-Bus, notificações ao shell, configurações pelo `org.psito.Settings`) e registra o `🦜 primeiro quadro` no log. É um plugin Linux: o canal `psito/window` (título, tamanho mínimo e inicial, fechar e o id da aplicação) entra em qualquer app sem mexer no runner.
 - `packages/psito_services/`: os serviços do sistema, que o shell, o laboratório e o runtime consomem.
   - Reais via D-Bus (`dbus`) e falsos (`Fake*`), juntos em `SystemServices`.
   - Começam indisponíveis e carregam em segundo plano, então nunca seguram o boot.
@@ -56,15 +59,20 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `guest/wayfire.ini`, `guest/weston.ini` e `guest/waybar/`: a configuração dos outros candidatos (a do labwc é a de `vm/session/`);
   - `zenith/`: instala as dependências do Zenith e compila (wlroots 0.15.1 e Flutter 3.10.6 na VM); `patches/`: os patches dele. As fontes de terceiros ficam em `~/vendor/` na VM;
   - `notas/` e `results/`: o que cada candidato mostrou e os números (`results/raw/` e `vendor/` ficam fora do git).
-- `vm/`: arquivos instalados na VM pelo `provision.sh`: o `psito-os.service` (o labwc no tty1), o script do guest, `polkit/` (as permissões D-Bus do usuário `psito`) e `session/` (a configuração do labwc, o `psito-shell-start` e a unidade `psito-shell`)
+- `examples/hello_psito/`: um app de terceiro (`com.example.hello_psito`, permissões `network;notifications`), fora da árvore do sistema. O `./install-app.sh` instala sem recompilar o shell.
+- `tools/`:
+  - `psito-deb [-o pasta] [--runtime] <projeto>`: empacota um app (`psito-app-<id>`, sem o `libflutter`, com o `RUNPATH` para o runtime via `patchelf`) ou o `psito-flutter-runtime` (`/usr/lib/psito/flutter/<versão>/`). Roda na VM, a partir do bundle de release;
+  - `measure-apps.sh`: memória e tempo até o primeiro quadro dos apps, com e sem sandbox e com bundles separados (`ssh -p 2222 psito@localhost 'bash -s' < tools/measure-apps.sh`).
+- `vm/`: arquivos instalados na VM pelo `provision.sh`: o `psito-os.service` (o labwc no tty1), o script do guest, `polkit/` (as permissões D-Bus do usuário `psito`) e `session/` (a configuração do labwc, o `psito-shell-start`, a unidade `psito-shell`, o `psito-sandbox` e a configuração dos portais). O `psito-sandbox --app <id> --permissions "a;b" [--dry-run] -- <cmd>` monta o `bwrap` (`$HOME` em `~/.local/share/psito/apps/<id>/`, sem rede sem `network`) e um `xdg-dbus-proxy` por app
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
 - `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): o laboratório de UX no host, com os serviços falsos. Sem a variável, usa os serviços reais do host. Em `apps/<id>/`, `flutter run -d linux` abre o app sozinho.
-- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/` e em cada `apps/<id>/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
+- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/`, em cada `apps/<id>/` e nos `examples/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
 - `./test.sh [pasta...]`: o `flutter test` de cada projeto (ou só dos indicados), mostrando só as falhas. São 2 processos de teste (`TEST_JOBS`) num escopo do systemd com 2G de limite e sem swap (`TEST_MEM`; `0` tira o limite). Assim cabe no host com a VM ligada, e se estourar só os testes morrem. Não rode o `flutter test` direto com a VM ligada: ele abre um processo por núcleo.
 - `./build.sh [release|profile|debug]`: envia o código e compila o `shell/` e cada `apps/<id>/` dentro da VM (padrão release), com o Flutter dela.
-- `./deploy.sh`: instala o shell em `/opt/psito/shell`, cada app em `/opt/psito/apps/<id>` e os `.desktop` no `~/.local/share/applications`, e reinicia a unidade `psito-shell`
+- `./deploy.sh`: instala o shell em `/opt/psito/shell`, empacota os apps (`tools/psito-deb`) e instala o runtime e os `psito-app-*` com o `apt`, e reinicia a unidade `psito-shell`. Só em release: em profile ou debug os apps instalados ficam.
+- `./install-app.sh <projeto>`: compila, empacota e instala um app de fora (`examples/hello_psito`) na VM, sem tocar no shell.
 - `./provision.sh`: prepara a VM (labwc, `gtk-layer-shell`, Flutter 3.47.4, os serviços da fase 2 e a sessão de `vm/`). Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`, 3 GB), com tablet USB, placa de som (`AUDIO=pipewire|pa|none`) e monitor em `qemu/monitor.sock`
 - `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.

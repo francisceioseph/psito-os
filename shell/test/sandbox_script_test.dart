@@ -1,0 +1,106 @@
+// O psito-sandbox (vm/session/) pelo --dry-run: os argumentos do proxy do
+// D-Bus e do bwrap para cada permissão.
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+const _script = '../vm/session/psito-sandbox';
+const _env = {'HOME': '/home/psito', 'XDG_RUNTIME_DIR': '/run/user/1000'};
+
+typedef _Plan = ({List<String> proxy, List<String> bwrap});
+
+Future<_Plan> _dryRun(String permissions) async {
+  final result = await Process.run('bash', [
+    _script,
+    '--app',
+    'org.psito.x',
+    '--permissions',
+    permissions,
+    '--dry-run',
+    '--',
+    '/usr/lib/psito/apps/org.psito.x/x',
+  ], environment: _env);
+  expect(result.exitCode, 0, reason: '${result.stderr}');
+  final lines = (result.stdout as String).trim().split('\n');
+  final split = lines.indexOf('bwrap:');
+  return (proxy: lines.sublist(1, split), bwrap: lines.sublist(split + 1));
+}
+
+/// O valor depois de [flag] (a primeira vez), ou os dois depois dele.
+List<String> _after(List<String> args, String flag, [int count = 1]) {
+  final i = args.indexOf(flag);
+  return i < 0 ? const [] : args.sublist(i + 1, i + 1 + count);
+}
+
+const _update =
+    '--call=org.psito.Settings=org.psito.Settings.Update@/org/psito/Settings';
+
+void main() {
+  test(
+    'sem permissões: sem rede, \$HOME privado e só leitura no D-Bus',
+    () async {
+      final plan = await _dryRun('');
+      expect(plan.bwrap, contains('--unshare-all'));
+      expect(plan.bwrap, isNot(contains('--share-net')));
+      expect(plan.bwrap.indexOf('--bind'), greaterThan(0));
+      expect(
+        plan.bwrap.join(' '),
+        contains(
+          '--bind /home/psito/.local/share/psito/apps/org.psito.x /home/psito',
+        ),
+      );
+      expect(_after(plan.bwrap, '--unsetenv'), ['DISPLAY']);
+      expect(plan.proxy, isNot(contains(_update)));
+      expect(
+        plan.proxy,
+        isNot(contains('--talk=org.freedesktop.Notifications')),
+      );
+      expect(
+        plan.proxy,
+        isNot(contains('--talk=org.freedesktop.NetworkManager')),
+      );
+      expect(plan.proxy, isNot(contains('--talk=org.freedesktop.timedate1')));
+      expect(plan.proxy, contains('--filter'));
+      expect(plan.bwrap.last, '/usr/lib/psito/apps/org.psito.x/x');
+    },
+  );
+
+  test('cada permissão abre só o que é dela', () async {
+    final network = await _dryRun('network');
+    expect(network.bwrap, contains('--share-net'));
+    expect(network.proxy, contains('--talk=org.freedesktop.NetworkManager'));
+    expect(network.proxy, isNot(contains(_update)));
+
+    final settings = await _dryRun('settings');
+    expect(settings.proxy, contains(_update));
+    expect(settings.proxy, contains('--talk=org.freedesktop.timedate1'));
+    expect(settings.bwrap, isNot(contains('--share-net')));
+
+    final notifications = await _dryRun('notifications');
+    expect(
+      notifications.proxy,
+      contains('--talk=org.freedesktop.Notifications'),
+    );
+
+    final home = await _dryRun('files:home');
+    expect(home.bwrap.join(' '), contains('--bind /home/psito /home/psito'));
+  });
+
+  test('o org.psito.Shell não passa para ninguém', () async {
+    final all = await _dryRun('network;settings;files:home;notifications');
+    expect(all.proxy.where((a) => a.contains('org.psito.Shell')), isEmpty);
+  });
+
+  test('um id com .. ou / é recusado', () async {
+    for (final id in ['../x', 'a/b', '']) {
+      final result = await Process.run('bash', [
+        _script,
+        '--app',
+        id,
+        '--',
+        'true',
+      ], environment: _env);
+      expect(result.exitCode, 2, reason: id);
+    }
+  });
+}

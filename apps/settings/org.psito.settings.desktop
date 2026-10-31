@@ -1,6 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Configurações
-Exec=/opt/psito/apps/settings/psito_settings
+Exec=/usr/lib/psito/apps/org.psito.settings/psito_settings
+Icon=org.psito.settings
 StartupWMClass=org.psito.settings
 X-Psito-App=settings
+X-Psito-Color=#607D8B
+X-Psito-Permissions=settings;network;

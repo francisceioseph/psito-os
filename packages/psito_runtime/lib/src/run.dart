@@ -16,6 +16,7 @@ import 'package:psito_services/time_service.dart';
 
 import 'app_context.dart';
 import 'notifier.dart';
+import 'window.dart';
 
 /// Os serviços reais pelo barramento de sistema, ou os falsos com
 /// PSITO_SERVICES=fake (como no shell).
@@ -41,10 +42,11 @@ Future<void> runPsitoApp(PsitoApp app) async {
       debugPrint('🦜 erro: ${details.exceptionAsString()}\n${details.stack}');
   final session = DBusClient.session();
   final settings = SettingsClient(session);
+  const window = AppWindow();
   final notifier = Notifier(
     session,
     appName: app.name,
-    desktopEntry: 'org.psito.${app.id}',
+    desktopEntry: await window.applicationId() ?? 'org.psito.${app.id}',
   );
   final context = ProcessAppContext(
     app: app,
@@ -52,12 +54,23 @@ Future<void> runPsitoApp(PsitoApp app) async {
     services: startServices(Platform.environment),
     onUpdateSettings: (s) => unawaited(settings.update(s)),
     onNotify: (n) => unawaited(notifier.notify(n)),
+    window: window,
     windowId: '${app.id}#$pid',
   );
   await context.window.setTitle(app.name);
   await context.window.setSize(app.defaultSize);
   runApp(PsitoAppHost(app: app, context: context));
   app.onOpen(context);
+  unawaited(logFirstFrame());
+}
+
+/// Registra no journal quando o primeiro quadro chega à tela, em
+/// milissegundos de época: o tools/measure-apps.sh mede o tempo de abrir a
+/// partir daí. É medição, não hora mostrada, então o DateTime.now() serve (a
+/// época não depende do fuso).
+Future<void> logFirstFrame() async {
+  await WidgetsBinding.instance.waitUntilFirstFrameRasterized;
+  debugPrint('🦜 primeiro quadro: ${DateTime.now().millisecondsSinceEpoch}');
 }
 
 /// O app com o tema do Psito, que acompanha a cor de destaque.

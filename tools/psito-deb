@@ -1,0 +1,170 @@
+#!/bin/bash
+# Empacota um app do Psito (um projeto Flutter Linux compilado em release) como
+# .deb, ou o runtime do Flutter que os apps compartilham.
+#
+#   tools/psito-deb [-o pasta] <projeto>             o pacote psito-app-<id>
+#   tools/psito-deb [-o pasta] --runtime <projeto>   o psito-flutter-runtime, a
+#                                                    partir do bundle do projeto
+#
+# O pacote do app não leva o libflutter: o RUNPATH do binário passa a apontar
+# para /usr/lib/psito/flutter/<versão>/, e o data/icudtl.dat vira um link para
+# o do runtime. O manifesto é o .desktop do projeto (X-Psito-App, a cor e as
+# permissões), e o ícone, o icon.svg.
+# Roda onde o bundle foi compilado (a VM): precisa do dpkg-deb, do patchelf e
+# do Flutter (FLUTTER, padrão ~/flutter/bin/flutter), de onde vem a versão.
+set -e
+
+OUT=.
+RUNTIME=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) OUT="$2"; shift 2 ;;
+        --runtime) RUNTIME=1; shift ;;
+        -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -*) echo "psito-deb: opção desconhecida: $1" >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+[ $# -eq 1 ] || { echo "uso: psito-deb [-o pasta] [--runtime] <projeto>" >&2; exit 2; }
+
+PROJECT="$(cd "$1" && pwd)"
+FLUTTER="${FLUTTER:-$HOME/flutter/bin/flutter}"
+BUNDLE="$PROJECT/build/linux/x64/release/bundle"
+ARCH="$(dpkg --print-architecture)"
+
+die() { echo "psito-deb: $*" >&2; exit 1; }
+
+for tool in dpkg-deb patchelf readelf; do
+    command -v "$tool" >/dev/null || die "falta o $tool"
+done
+[ -x "$FLUTTER" ] || die "Flutter não encontrado em $FLUTTER (use FLUTTER=...)"
+[ -f "$BUNDLE/lib/libapp.so" ] ||
+    die "sem bundle de release em $BUNDLE (rode flutter build linux --release)"
+
+FLUTTER_VERSION="$("$FLUTTER" --version --machine 2>/dev/null |
+    sed -n 's/.*"frameworkVersion": *"\([^"]*\)".*/\1/p')"
+[ -n "$FLUTTER_VERSION" ] || die "não consegui ler a versão do Flutter"
+ENGINE_STAMP="$(dirname "$FLUTTER")/cache/engine.stamp"
+RUNTIME_DIR="/usr/lib/psito/flutter/$FLUTTER_VERSION"
+
+# Os pacotes das bibliotecas de que os arquivos dependem direto (NEEDED), pelo
+# ldd e pelo dpkg -S. As que não estão instaladas (o libflutter, que vem do
+# runtime) ficam de fora.
+deps_of() {
+    local file lib path
+    for file in "$@"; do
+        for lib in $(readelf -d "$file" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p'); do
+            path="$(ldd "$file" | awk -v lib="$lib" '$1 == lib && $3 ~ /^\// { print $3 }')"
+            [ -n "$path" ] || continue
+            dpkg -S "$(readlink -f "$path")" 2>/dev/null | cut -d: -f1
+        done
+    done | sort -u
+}
+
+# Um campo de primeiro nível do pubspec.yaml, sem as aspas
+pubspec_field() { sed -n "s/^$1: *//p" "$2" | head -n 1 | sed 's/^"\(.*\)"$/\1/'; }
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+mkdir -p "$TMP/DEBIAN" "$OUT"
+
+build_deb() {
+    local package="$1" version="$2"
+    chmod -R u+rwX,go+rX,go-w "$TMP"
+    sed -i "s/^Installed-Size:.*/Installed-Size: $(du -sk --exclude=DEBIAN "$TMP" | cut -f1)/" \
+        "$TMP/DEBIAN/control"
+    dpkg-deb --root-owner-group --build "$TMP" \
+        "$OUT/${package}_${version}_${ARCH}.deb" >/dev/null
+    echo "$OUT/${package}_${version}_${ARCH}.deb"
+}
+
+if [ "$RUNTIME" = 1 ]; then
+    dest="$TMP$RUNTIME_DIR"
+    mkdir -p "$dest"
+    cp "$BUNDLE/lib/libflutter_linux_gtk.so" "$BUNDLE/data/icudtl.dat" "$dest/"
+    [ -f "$ENGINE_STAMP" ] && cp "$ENGINE_STAMP" "$dest/engine.stamp"
+    depends="$(deps_of "$dest/libflutter_linux_gtk.so" | paste -sd, | sed 's/,/, /g')"
+    cat > "$TMP/DEBIAN/control" <<EOF
+Package: psito-flutter-runtime
+Version: $FLUTTER_VERSION
+Architecture: $ARCH
+Maintainer: Psito OS <psito@localhost>
+Installed-Size: 0
+Depends: $depends
+Section: libs
+Priority: optional
+Description: Runtime do Flutter $FLUTTER_VERSION para os apps do Psito
+ O libflutter_linux_gtk.so e o icudtl.dat de release, uma vez só para todos os
+ apps do Psito (os pacotes psito-app-*).
+EOF
+    build_deb psito-flutter-runtime "$FLUTTER_VERSION"
+    exit 0
+fi
+
+# O manifesto
+desktops=("$PROJECT"/*.desktop)
+[ ${#desktops[@]} -eq 1 ] && [ -f "${desktops[0]}" ] ||
+    die "o projeto precisa de um .desktop (o manifesto) na raiz"
+DESKTOP="${desktops[0]}"
+APP_ID="$(basename "$DESKTOP" .desktop)"
+field() { sed -n "s/^$1=//p" "$DESKTOP" | head -n 1; }
+SHORT_ID="$(field X-Psito-App)"
+[ -n "$SHORT_ID" ] || die "$DESKTOP não tem X-Psito-App"
+EXEC="$(field Exec)"
+BINARY="$(basename "${EXEC%% *}")"
+[ "${EXEC%% *}" = "/usr/lib/psito/apps/$APP_ID/$BINARY" ] ||
+    die "o Exec precisa ser /usr/lib/psito/apps/$APP_ID/<binário> (é $EXEC)"
+[ -x "$BUNDLE/$BINARY" ] || die "o bundle não tem o binário $BINARY"
+[ "$(field Icon)" = "$APP_ID" ] || die "o Icon precisa ser $APP_ID"
+[ -f "$PROJECT/icon.svg" ] || die "falta o icon.svg"
+[[ "$(field X-Psito-Color)" =~ ^#[0-9A-Fa-f]{6}$ ]] ||
+    die "o X-Psito-Color precisa ser #RRGGBB"
+
+PACKAGE="psito-app-$(echo "$SHORT_ID" | tr '_A-Z' '-a-z')"
+PUBSPEC="$PROJECT/pubspec.yaml"
+VERSION="$(pubspec_field version "$PUBSPEC")"
+[ -n "$VERSION" ] || die "o pubspec.yaml não tem version"
+SUMMARY="$(pubspec_field description "$PUBSPEC")"
+NAME="$(field Name)"
+
+dest="$TMP/usr/lib/psito/apps/$APP_ID"
+mkdir -p "$(dirname "$dest")" "$TMP/usr/share/applications" \
+    "$TMP/usr/share/icons/hicolor/scalable/apps"
+cp -a "$BUNDLE" "$dest"
+rm -f "$dest/lib/libflutter_linux_gtk.so"
+ln -sf "$RUNTIME_DIR/icudtl.dat" "$dest/data/icudtl.dat"
+patchelf --set-rpath "\$ORIGIN/lib:$RUNTIME_DIR" "$dest/$BINARY"
+plugins=()
+for lib in "$dest"/lib/*.so; do
+    [ "$(basename "$lib")" = libapp.so ] && continue
+    patchelf --set-rpath "$RUNTIME_DIR" "$lib"
+    plugins+=("$lib")
+done
+cp "$DESKTOP" "$TMP/usr/share/applications/$APP_ID.desktop"
+cp "$PROJECT/icon.svg" "$TMP/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
+
+# O que o runtime já traz não se repete
+runtime_deps=" $(deps_of "$BUNDLE/lib/libflutter_linux_gtk.so" | tr '\n' ' ') "
+depends="psito-flutter-runtime (= $FLUTTER_VERSION)"
+for dep in $(deps_of "$dest/$BINARY" "${plugins[@]}"); do
+    [[ "$runtime_deps" == *" $dep "* ]] || depends="$depends, $dep"
+done
+
+if [ -f "$RUNTIME_DIR/engine.stamp" ] && [ -f "$ENGINE_STAMP" ] &&
+    ! cmp -s "$RUNTIME_DIR/engine.stamp" "$ENGINE_STAMP"; then
+    echo "psito-deb: aviso: o runtime instalado é de outro engine" >&2
+fi
+
+cat > "$TMP/DEBIAN/control" <<EOF
+Package: $PACKAGE
+Version: $VERSION
+Architecture: $ARCH
+Maintainer: Psito OS <psito@localhost>
+Installed-Size: 0
+Depends: $depends
+Section: x11
+Priority: optional
+Description: $NAME
+ ${SUMMARY:+$SUMMARY }App do Psito $APP_ID, sobre o psito-flutter-runtime.
+EOF
+build_deb "$PACKAGE" "$VERSION"

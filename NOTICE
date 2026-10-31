@@ -14,6 +14,10 @@ não a Apache-2.0:
 - spike/patches/zenith-*.patch: patches do Zenith
   (https://github.com/roscale/zenith), licença GPL-2.0.
 
+Os ícones dos apps (apps/*/icon.svg e examples/*/icon.svg) são glifos do
+Material Icons (https://github.com/google/material-design-icons), licença
+Apache-2.0, pintados com a cor de cada app.
+
 As dependências Dart e Flutter são baixadas pelo pub e têm as próprias
 licenças, listadas nos pubspec.lock. Debian, labwc, Wayfire e as
 demais ferramentas instaladas na VM pelos scripts não fazem parte deste

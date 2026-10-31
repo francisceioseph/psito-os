@@ -1,7 +1,7 @@
 // packages/psito_runtime/linux/psito_runtime_plugin.cc
 //
 // O lado C do runtime dos apps do Psito: o canal psito/window, sobre a
-// GtkWindow em que o runner pôs a view. Como é um plugin, entra em qualquer
+// GtkWindow em que o runner pôs a view, e o id da aplicação. Como é um plugin, entra em qualquer
 // app que dependa do psito_runtime sem mexer no runner dele.
 #include "include/psito_runtime/psito_runtime_plugin.h"
 
@@ -45,7 +45,15 @@ static void method_call_cb(FlMethodChannel* channel, FlMethodCall* call,
   FlValue* args = fl_method_call_get_args(call);
   GtkWindow* window = plugin_window(self);
   g_autoptr(FlMethodResponse) response = nullptr;
-  if (window == nullptr) {
+  if (strcmp(method, "applicationId") == 0) {
+    // O APPLICATION_ID do runner, que é o id do .desktop do app
+    GApplication* app = g_application_get_default();
+    const gchar* id =
+        app != nullptr ? g_application_get_application_id(app) : nullptr;
+    g_autoptr(FlValue) result =
+        id != nullptr ? fl_value_new_string(id) : fl_value_new_null();
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+  } else if (window == nullptr) {
     response = FL_METHOD_RESPONSE(fl_method_error_response_new(
         "no_window", "a view não está numa GtkWindow", nullptr));
   } else if (strcmp(method, "setTitle") == 0 &&

@@ -232,4 +232,26 @@ void main() {
     expect(detectCompositor({'WAYFIRE_SOCKET': '/tmp/s'}), Compositor.wayfire);
     expect(detectCompositor({}), Compositor.unknown);
   });
+
+  test('o color-scheme escuro vai para o gsettings só quando muda', () async {
+    final calls = <List<String>>[];
+    var current = "'default'";
+    Future<ProcessResult> run(String cmd, List<String> args) async {
+      calls.add([cmd, ...args]);
+      if (args.first == 'set') current = "'${args.last}'";
+      return ProcessResult(0, 0, args.first == 'get' ? '$current\n' : '', '');
+    }
+
+    expect(await applyColorScheme(run: run), isTrue);
+    expect(calls.last, [
+      'gsettings',
+      'set',
+      'org.gnome.desktop.interface',
+      'color-scheme',
+      'prefer-dark',
+    ]);
+    calls.clear();
+    expect(await applyColorScheme(run: run), isFalse);
+    expect(calls.single[1], 'get');
+  });
 }

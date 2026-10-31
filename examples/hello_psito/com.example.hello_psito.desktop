@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Hello Psito
+Exec=/usr/lib/psito/apps/com.example.hello_psito/hello_psito
+Icon=com.example.hello_psito
+StartupWMClass=com.example.hello_psito
+X-Psito-App=hello_psito
+X-Psito-Color=#9C27B0
+X-Psito-Permissions=network;notifications;

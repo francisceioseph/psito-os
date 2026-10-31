@@ -2,7 +2,8 @@
 # Compila o shell (shell/) e cada app (apps/<id>/) dentro da VM, com o
 # Flutter que o provision.sh instalou: o binário liga no GTK e no
 # gtk-layer-shell da VM. Leva junto o system_shell e os packages/
-# (dependências de caminho), nos mesmos caminhos relativos.
+# (dependências de caminho), nos mesmos caminhos relativos, e o tools/ (o
+# psito-deb, que o deploy.sh usa).
 # Uso: ./build.sh [release|profile|debug]   (padrão: release)
 # A VM do spike: VM_PORT=2223 ./build.sh
 set -e
@@ -14,7 +15,7 @@ VM_PORT="${VM_PORT:-2222}"
 EXCLUDES=(--exclude build/ --exclude .dart_tool/ --exclude linux/flutter/ephemeral/)
 
 echo "📦 [Psito OS] Enviando o código..."
-for dir in shell apps system_shell packages; do
+for dir in shell apps system_shell packages tools; do
     ssh -p "$VM_PORT" psito@localhost "mkdir -p psito-src/$dir"
     rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p $VM_PORT" \
         "$dir/" "psito@localhost:psito-src/$dir/"

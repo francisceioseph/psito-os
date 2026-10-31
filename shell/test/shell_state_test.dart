@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_shell/desktop_entries.dart';
@@ -168,5 +170,42 @@ void main() {
 
     state.notifications.dismissToast(id);
     expect(surfaceCalls.last, isMethodCall('hide', arguments: 'toasts'));
+  });
+
+  test('um .desktop novo aparece sem recarregar à mão', () async {
+    final tmp = await Directory.systemTemp.createTemp('psito-watch');
+    addTearDown(() => tmp.delete(recursive: true));
+    final env = {'HOME': tmp.path, 'XDG_DATA_DIRS': ''};
+    await state.watchApps(env);
+    expect(state.apps.value, isEmpty);
+    await File('${tmp.path}/.local/share/applications/org.psito.x.desktop')
+        .writeAsString('[Desktop Entry]\nName=X\nExec=x\nX-Psito-App=x');
+    for (var i = 0; i < 40 && state.apps.value.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(state.apps.value.single.psitoApp, 'x');
+  });
+
+  test('só os apps do Psito com settings gravam as configurações', () {
+    state.apps.value = const [
+      DesktopEntry(
+        id: 'org.psito.settings',
+        name: 'Configurações',
+        command: ['s'],
+        psitoApp: 'settings',
+        permissions: ['settings', 'network'],
+      ),
+      DesktopEntry(
+        id: 'org.psito.calculator',
+        name: 'Calculator',
+        command: ['c'],
+        psitoApp: 'calculator',
+      ),
+      DesktopEntry(id: 'foot', name: 'Foot', command: ['foot']),
+    ];
+    expect(state.maySetSettings('org.psito.settings'), isTrue);
+    expect(state.maySetSettings('org.psito.calculator'), isFalse);
+    expect(state.maySetSettings('foot'), isTrue);
+    expect(state.maySetSettings(null), isTrue);
   });
 }

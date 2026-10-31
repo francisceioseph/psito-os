@@ -14,11 +14,12 @@ void main() {
   late DBusClient shellBus;
   late DBusClient appBus;
   late SettingsStore store;
+  late DBusAddress address;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('psito_settings_bus_');
     server = DBusServer();
-    final address = await server.listenAddress(DBusAddress.unix(dir: dir));
+    address = await server.listenAddress(DBusAddress.unix(dir: dir));
     shellBus = DBusClient(address);
     appBus = DBusClient(address);
     store = SettingsStore.memory(
@@ -73,6 +74,31 @@ void main() {
     final client = SettingsClient(appBus);
     await client.ready;
     expect(client.value, PsitoSettings.defaults);
+    client.dispose();
+  });
+
+  test('sem a permissão, o Update é recusado e nada muda', () async {
+    // O nome passa para um shell com a trava
+    await shellBus.releaseName(settingsBusName);
+    final guarded = DBusClient(address);
+    addTearDown(guarded.close);
+    final denied = <String>[];
+    await publishSettings(
+      guarded,
+      SettingsBusObject(
+        store,
+        mayUpdate: (sender) async {
+          denied.add(sender);
+          return false;
+        },
+      ),
+    );
+    final client = SettingsClient(appBus);
+    await client.ready;
+    final before = store.value;
+    expect(await client.update(before.copyWith(showSeconds: true)), isFalse);
+    expect(store.value, before);
+    expect(denied, [appBus.uniqueName]);
     client.dispose();
   });
 }

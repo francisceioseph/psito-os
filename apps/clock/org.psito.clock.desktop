@@ -1,6 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Clock
-Exec=/opt/psito/apps/clock/psito_clock
+Exec=/usr/lib/psito/apps/org.psito.clock/psito_clock
+Icon=org.psito.clock
 StartupWMClass=org.psito.clock
 X-Psito-App=clock
+X-Psito-Color=#FF9800
+X-Psito-Permissions=notifications;

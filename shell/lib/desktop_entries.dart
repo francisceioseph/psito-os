@@ -1,7 +1,9 @@
 // shell/lib/desktop_entries.dart
 //
-// Os apps de fora do Psito, lidos dos arquivos .desktop (Desktop Entry
-// Specification), e como abrir cada um.
+// Os apps instalados, lidos dos arquivos .desktop (Desktop Entry
+// Specification), e como abrir cada um. O .desktop de um app do Psito é
+// também o manifesto dele: as chaves X-Psito-* dizem o id curto, a cor e as
+// permissões.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -19,12 +21,26 @@ class DesktopEntry {
   final String? icon;
   final bool terminal;
 
+  /// O `X-Psito-App`: o id curto do app do Psito (o `PsitoApp.id`). Null nos
+  /// apps de fora.
+  final String? psitoApp;
+
+  /// O `X-Psito-Color` (`#RRGGBB`) em ARGB.
+  final int? color;
+
+  /// O `X-Psito-Permissions`: `network`, `settings`, `files:home`,
+  /// `notifications`.
+  final List<String> permissions;
+
   const DesktopEntry({
     required this.id,
     required this.name,
     required this.command,
     this.icon,
     this.terminal = false,
+    this.psitoApp,
+    this.color,
+    this.permissions = const [],
   });
 
   /// Lê o grupo `[Desktop Entry]`. Devolve null para o que não aparece no
@@ -63,7 +79,21 @@ class DesktopEntry {
       command: command,
       icon: values['Icon'],
       terminal: values['Terminal'] == 'true',
+      psitoApp: values['X-Psito-App'],
+      color: _color(values['X-Psito-Color']),
+      permissions: [
+        for (final p in (values['X-Psito-Permissions'] ?? '').split(';'))
+          if (p.trim().isNotEmpty) p.trim(),
+      ],
     );
+  }
+
+  static final _hexColor = RegExp(r'^#([0-9a-fA-F]{6})$');
+
+  static int? _color(String? value) {
+    final match = _hexColor.firstMatch(value ?? '');
+    if (match == null) return null;
+    return 0xFF000000 | int.parse(match.group(1)!, radix: 16);
   }
 
   /// `Name[pt_BR]`, depois `Name[pt]`, depois `Name`.
@@ -87,9 +117,13 @@ class DesktopEntry {
 
   /// Abre o app num cgroup próprio (uma unidade `.scope` do systemd do
   /// usuário): se o shell cair, o systemd não leva o app junto, e o log do
-  /// app sai separado no journal. Sem o systemd-run, abre direto.
-  Future<void> launch() async {
-    final args = launchCommand(random: _random.nextInt(1 << 32));
+  /// app sai separado no journal. Sem o systemd-run, abre direto. Um app do
+  /// Psito abre no [sandbox] (o `psito-sandbox`), se for dado.
+  Future<void> launch({String? sandbox}) async {
+    final args = launchCommand(
+      random: _random.nextInt(1 << 32),
+      sandbox: sandbox,
+    );
     try {
       await Process.start(
         args.first,
@@ -110,8 +144,10 @@ class DesktopEntry {
 
   /// O `systemd-run` que abre o app. A unidade segue o nome da
   /// especificação do XDG (`app-<launcher>-<id>-<aleatório>.scope`), pelo
-  /// qual o xdg-desktop-portal reconhece apps sem Flatpak.
-  List<String> launchCommand({required int random}) => [
+  /// qual o xdg-desktop-portal reconhece apps sem Flatpak. Os apps do Psito
+  /// passam pelo [sandbox] com as permissões do manifesto; os de fora, não.
+  /// O log fica em `journalctl --user -u <unidade>`.
+  List<String> launchCommand({required int random, String? sandbox}) => [
     'systemd-run',
     '--user',
     '--scope',
@@ -119,6 +155,17 @@ class DesktopEntry {
     '--quiet',
     '--unit=${unitName(id, random)}',
     '--',
+    // A saída do app (e do sandbox) vai para o journal, na unidade dele
+    'systemd-cat',
+    '--identifier=$id',
+    if (sandbox != null && psitoApp != null) ...[
+      sandbox,
+      '--app',
+      id,
+      '--permissions',
+      permissions.join(';'),
+      '--',
+    ],
     if (terminal) 'foot',
     ...command,
   ];
@@ -128,6 +175,34 @@ class DesktopEntry {
 /// `systemd-escape` (o `-` vira `\x2d`).
 String unitName(String id, int random) =>
     'app-psito-${systemdEscape(id)}-${random.toRadixString(16)}.scope';
+
+/// O id do app dono de um processo, pelo `/proc/<pid>/cgroup`: a unidade
+/// `app-psito-<id>-<aleatório>.scope` de [unitName]. Null fora de um app.
+String? appIdFromCgroup(String cgroup) {
+  final match = RegExp(
+    r'/app-psito-(.+)-[0-9a-f]+\.scope(?:/|$)',
+    multiLine: true,
+  ).firstMatch(cgroup);
+  if (match == null) return null;
+  return systemdUnescape(match.group(1)!);
+}
+
+/// O inverso de [systemdEscape].
+String systemdUnescape(String text) {
+  final bytes = <int>[];
+  for (var i = 0; i < text.length; i++) {
+    if (text.startsWith(r'\x', i) && i + 3 < text.length) {
+      final byte = int.tryParse(text.substring(i + 2, i + 4), radix: 16);
+      if (byte != null) {
+        bytes.add(byte);
+        i += 3;
+        continue;
+      }
+    }
+    bytes.addAll(utf8.encode(text[i]));
+  }
+  return utf8.decode(bytes, allowMalformed: true);
+}
 
 /// O escape do `systemd-escape`: fora de `[A-Za-z0-9:_.]` (e o `.` no
 /// começo) vira `\xNN`.

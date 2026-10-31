@@ -1,0 +1,26 @@
+name: hello_psito
+description: "Hello Psito, um app de terceiro de exemplo."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.3
+
+# Fora deste repositório, o psito_sdk e o psito_runtime viriam por git:
+#   psito_runtime:
+#     git: {url: https://github.com/<dono>/psito-os, path: packages/psito_runtime}
+dependencies:
+  flutter:
+    sdk: flutter
+  psito_runtime:
+    path: ../../packages/psito_runtime
+  psito_sdk:
+    path: ../../packages/psito_sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
