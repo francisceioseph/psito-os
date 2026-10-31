@@ -41,6 +41,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)
+- `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): roda o shell no host, com os serviços falsos. Sem a variável, usa os serviços reais do host.
 - `./check.sh`: `flutter analyze` mostrando só os problemas. Rode depois de editar Dart, junto com `flutter test` (em `system_shell/`).
 - `./build.sh [release|profile|debug]`: `flutterpi_tool build --arch=x64` (padrão release/AOT). O bundle fica em `system_shell/build/flutter-pi/x64-generic`.
 - `./deploy.sh`: rsync do bundle para `/opt/psito-app`, grava o modo em `/etc/default/psito-os` e reinicia `psito-os.service`

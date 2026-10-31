@@ -31,30 +31,14 @@ Future<WindowManager> _pumpWithWindows(WidgetTester tester) async {
 
 String _appOf(WindowManager wm) => wm.focused!.app.id;
 
-/// Segura [modifiers], aperta [key] e solta tudo.
-Future<void> _combo(
-  WidgetTester tester,
-  List<LogicalKeyboardKey> modifiers,
-  LogicalKeyboardKey key,
-) async {
-  for (final m in modifiers) {
-    await tester.sendKeyDownEvent(m);
-  }
-  await tester.sendKeyEvent(key);
-  for (final m in modifiers.reversed) {
-    await tester.sendKeyUpEvent(m);
-  }
-  await tester.pump();
-}
-
 final _switcher = find.byType(WindowSwitcherOverlay);
 
 void main() {
   testWidgets('Ctrl+Espaço abre e fecha o launcher', (tester) async {
     await _pumpWithWindows(tester);
-    await _combo(tester, [_ctrl], LogicalKeyboardKey.space);
+    await pressCombo(tester, [_ctrl], LogicalKeyboardKey.space);
     expect(find.byType(Launcher), findsOneWidget);
-    await _combo(tester, [_ctrl], LogicalKeyboardKey.space);
+    await pressCombo(tester, [_ctrl], LogicalKeyboardKey.space);
     expect(find.byType(Launcher), findsNothing);
   });
 
@@ -83,9 +67,9 @@ void main() {
     tester,
   ) async {
     final wm = await _pumpWithWindows(tester);
-    await _combo(tester, [_alt], _tab);
+    await pressCombo(tester, [_alt], _tab);
     expect(_appOf(wm), 'clock');
-    await _combo(tester, [_alt], _tab);
+    await pressCombo(tester, [_alt], _tab);
     expect(_appOf(wm), 'files');
   });
 
@@ -122,7 +106,7 @@ void main() {
 
   testWidgets('Ctrl+Alt+W fecha a janela focada', (tester) async {
     final wm = await _pumpWithWindows(tester);
-    await _combo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
+    await pressCombo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
     expect(wm.windows.map((w) => w.app.id), ['calculator', 'clock']);
     expect(_appOf(wm), 'clock');
   });
@@ -133,22 +117,22 @@ void main() {
     final wm = await _pumpWithWindows(tester);
     final files = wm.focused!;
 
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
     expect(files.snap, SnapMode.left);
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
     expect(files.snap, isNull);
 
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowUp);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowUp);
     expect(files.snap, SnapMode.maximized);
 
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowDown);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowDown);
     expect(files.minimized, isTrue);
     expect(_appOf(wm), 'clock');
   });
 
   testWidgets('Super+→ nativo faz snap à direita', (tester) async {
     final wm = await _pumpWithWindows(tester);
-    await _combo(tester, [
+    await pressCombo(tester, [
       LogicalKeyboardKey.metaLeft,
     ], LogicalKeyboardKey.arrowRight);
     expect(wm.focused!.snap, SnapMode.right);
@@ -157,7 +141,11 @@ void main() {
 
   testWidgets('modificadores a mais não disparam o atalho', (tester) async {
     final wm = await _pumpWithWindows(tester);
-    await _combo(tester, [_ctrl, _alt, _shift], LogicalKeyboardKey.arrowLeft);
+    await pressCombo(tester, [
+      _ctrl,
+      _alt,
+      _shift,
+    ], LogicalKeyboardKey.arrowLeft);
     expect(wm.focused!.snap, isNull);
   });
 }

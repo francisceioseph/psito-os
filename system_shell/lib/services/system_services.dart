@@ -23,8 +23,12 @@ class SystemServices {
   final SessionService session;
   final TimeService time;
 
-  /// Conexão com o barramento de sistema; null nos falsos.
-  final DBusClient? _systemBus;
+  /// Completa quando todos terminaram a primeira carga, com ou sem sucesso.
+  final Future<void> ready;
+
+  /// Conexão com o barramento de sistema aberta por [start]; fecha no
+  /// [dispose]. Null nos falsos e quando o barramento vem de fora.
+  final DBusClient? _ownedBus;
 
   SystemServices._({
     required this.systemInfo,
@@ -33,7 +37,8 @@ class SystemServices {
     required this.battery,
     required this.session,
     required this.time,
-    this._systemBus,
+    required this.ready,
+    this._ownedBus,
   });
 
   SystemServices.fake({
@@ -50,37 +55,46 @@ class SystemServices {
          battery: battery ?? FakeBatteryService(),
          session: session ?? FakeSessionService(),
          time: time ?? FakeTimeService(),
+         ready: Future.value(),
        );
 
   /// Não bloqueia o boot: cada serviço conecta e carrega em segundo plano e
   /// fica indisponível se o serviço não responder.
-  static SystemServices start({Map<String, String>? environment}) {
+  ///
+  /// [systemBus] e [audio] trocam o barramento de sistema e o PipeWire nos
+  /// testes.
+  static SystemServices start({
+    Map<String, String>? environment,
+    DBusClient? systemBus,
+    PipewireAudioService? audio,
+  }) {
     final env = environment ?? Platform.environment;
     if (env['PSITO_SERVICES'] == 'fake') {
       debugPrint('🦜 serviços: falsos (PSITO_SERVICES=fake)');
       return SystemServices.fake();
     }
-    final bus = DBusClient.system();
+    final bus = systemBus ?? DBusClient.system();
     final systemInfo = HostnamedSystemInfoService(bus);
     final network = NetworkManagerService(bus);
-    final audio = PipewireAudioService();
+    audio ??= PipewireAudioService();
     final battery = UPowerBatteryService(bus);
     final session = LogindSessionService(bus);
     final time = TimedatedTimeService(bus);
-    Future.wait([
+    final ready = Future.wait([
       systemInfo.ready,
       network.ready,
       audio.ready,
       battery.ready,
       session.ready,
       time.ready,
-    ]).then((_) {
+    ]);
+    ready.then((_) {
       String status(bool ok) => ok ? 'ok' : 'indisponível';
       debugPrint(
         '🦜 serviços: '
         'systemInfo=${status(systemInfo.info.value.available)} '
         'network=${status(network.state.value.available)} '
-        'audio=${status(audio.state.value.available)} '
+        'audio=${status(audio!.state.value.available)} '
         'battery=${status(battery.state.value.available)} '
         'time=${status(time.state.value.available)} '
         'session=${session.capabilities.value}',
@@ -93,7 +107,8 @@ class SystemServices {
       battery: battery,
       session: session,
       time: time,
-      systemBus: bus,
+      ready: ready,
+      ownedBus: systemBus == null ? bus : null,
     );
   }
 
@@ -104,6 +119,6 @@ class SystemServices {
     await battery.dispose();
     await session.dispose();
     await time.dispose();
-    await _systemBus?.close();
+    await _ownedBus?.close();
   }
 }

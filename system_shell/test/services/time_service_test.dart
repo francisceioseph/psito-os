@@ -20,12 +20,6 @@ FakeDBusObject _timedate1(String timezone) {
   return object;
 }
 
-Future<void> _until(bool Function() condition) async {
-  for (var i = 0; i < 100 && !condition(); i++) {
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-  }
-}
-
 void main() {
   late DBusTestBus bus;
   late TimedatedTimeService service;
@@ -63,7 +57,7 @@ void main() {
     expect(service.now().timeZoneOffset, const Duration(hours: -3));
 
     await object.change(_iface, {'Timezone': const DBusString('Asia/Tokyo')});
-    await _until(() => service.state.value.timezone == 'Asia/Tokyo');
+    await until(() => service.state.value.timezone == 'Asia/Tokyo');
     expect(service.now().timeZoneOffset, const Duration(hours: 9));
 
     // O instante é o mesmo; só o fuso muda

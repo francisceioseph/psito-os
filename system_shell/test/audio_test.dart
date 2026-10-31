@@ -2,12 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/services/audio_service.dart';
 import 'package:system_shell/services/system_services.dart';
 import 'package:system_shell/widgets/network_panel.dart';
 import 'package:system_shell/widgets/volume_osd.dart';
 import 'package:system_shell/widgets/volume_panel.dart';
+
+import 'helpers.dart';
 
 final _indicator = find.byKey(const ValueKey('volume-indicator'));
 final _panel = find.byType(VolumePanel);
@@ -17,34 +18,16 @@ Future<FakeAudioService> _pump(
   WidgetTester tester, [
   AudioState initial = FakeAudioService.sample,
 ]) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
   final audio = FakeAudioService(initial);
   final services = SystemServices.fake(audio: audio);
   addTearDown(services.dispose);
-  await tester.pumpWidget(MaterialApp(home: DesktopScreen(services: services)));
+  await pumpDesktop(tester, services: services);
   return audio;
 }
 
 IconData? _icon(WidgetTester tester) => tester
     .widget<Icon>(find.descendant(of: _indicator, matching: find.byType(Icon)))
     .icon;
-
-Future<void> _combo(
-  WidgetTester tester,
-  List<LogicalKeyboardKey> modifiers,
-  LogicalKeyboardKey key,
-) async {
-  for (final m in modifiers) {
-    await tester.sendKeyDownEvent(m);
-  }
-  await tester.sendKeyEvent(key);
-  for (final m in modifiers.reversed) {
-    await tester.sendKeyUpEvent(m);
-  }
-  await tester.pump();
-}
 
 const _altShift = [LogicalKeyboardKey.altLeft, LogicalKeyboardKey.shiftLeft];
 
@@ -109,12 +92,12 @@ void main() {
 
   testWidgets('Alt+Shift+PageUp e M mostram o aviso de volume', (tester) async {
     final audio = await _pump(tester);
-    await _combo(tester, _altShift, LogicalKeyboardKey.pageUp);
+    await pressCombo(tester, _altShift, LogicalKeyboardKey.pageUp);
     expect(audio.state.value.volume, closeTo(0.45, 1e-9));
     expect(_osd, findsOneWidget);
     expect(find.descendant(of: _osd, matching: find.text('45%')), findsOne);
 
-    await _combo(tester, _altShift, LogicalKeyboardKey.keyM);
+    await pressCombo(tester, _altShift, LogicalKeyboardKey.keyM);
     expect(audio.state.value.muted, isTrue);
     expect(find.descendant(of: _osd, matching: find.text('Mudo')), findsOne);
 

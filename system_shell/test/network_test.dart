@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/services/network_service.dart';
 import 'package:system_shell/services/system_services.dart';
 import 'package:system_shell/widgets/launcher.dart';
@@ -18,13 +17,10 @@ Future<FakeNetworkService> _pump(
   WidgetTester tester, [
   PsitoNetworkState initial = FakeNetworkService.sample,
 ]) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
   final network = FakeNetworkService(initial);
   final services = SystemServices.fake(network: network);
   addTearDown(services.dispose);
-  await tester.pumpWidget(MaterialApp(home: DesktopScreen(services: services)));
+  await pumpDesktop(tester, services: services);
   return network;
 }
 

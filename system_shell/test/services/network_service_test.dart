@@ -91,12 +91,6 @@ class _FakeNM {
   }
 }
 
-Future<void> _until(bool Function() condition) async {
-  for (var i = 0; i < 100 && !condition(); i++) {
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-  }
-}
-
 void main() {
   late DBusTestBus bus;
   late NetworkManagerService service;
@@ -148,7 +142,7 @@ void main() {
       'Connectivity': const DBusUint32(1),
       'State': const DBusUint32(20),
     });
-    await _until(() => service.state.value.primary == null);
+    await until(() => service.state.value.primary == null);
 
     final state = service.state.value;
     expect(state.primary, isNull);
@@ -161,7 +155,7 @@ void main() {
     await nm.manager.change(_nm, {
       'NetworkingEnabled': const DBusBoolean(false),
     });
-    await _until(() => !service.state.value.enabled);
+    await until(() => !service.state.value.enabled);
     expect(service.state.value.enabled, isFalse);
   });
 

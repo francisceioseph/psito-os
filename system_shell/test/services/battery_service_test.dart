@@ -16,12 +16,6 @@ FakeDBusObject _displayDevice({bool present = true}) => FakeDBusObject.single(
   },
 );
 
-Future<void> _until(bool Function() condition) async {
-  for (var i = 0; i < 100 && !condition(); i++) {
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-  }
-}
-
 void main() {
   late DBusTestBus bus;
   late UPowerBatteryService service;
@@ -60,7 +54,7 @@ void main() {
       'TimeToEmpty': const DBusInt64(0),
       'TimeToFull': const DBusInt64(2400),
     });
-    await _until(() => service.state.value.charging);
+    await until(() => service.state.value.charging);
 
     final state = service.state.value;
     expect(state.charging, isTrue);

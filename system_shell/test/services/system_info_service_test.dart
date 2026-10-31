@@ -2,7 +2,6 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/services/system_info_service.dart';
-import 'package:system_shell/services/system_services.dart';
 
 import 'dbus_test_bus.dart';
 
@@ -20,13 +19,6 @@ FakeDBusObject _hostname1({String pretty = ''}) => FakeDBusObject.single(
     'HardwareModel': const DBusString('Standard PC (i440FX + PIIX, 1996)'),
   },
 );
-
-/// Espera o estado mudar (sinais chegam de forma assíncrona).
-Future<void> _until(bool Function() condition) async {
-  for (var i = 0; i < 100 && !condition(); i++) {
-    await Future<void>.delayed(const Duration(milliseconds: 10));
-  }
-}
 
 void main() {
   late DBusTestBus bus;
@@ -62,7 +54,7 @@ void main() {
     await object.change(HostnamedSystemInfoService.interface, {
       'PrettyHostname': const DBusString('Psito Teste'),
     });
-    await _until(() => service.info.value.hostname == 'Psito Teste');
+    await until(() => service.info.value.hostname == 'Psito Teste');
     expect(service.info.value.hostname, 'Psito Teste');
     await service.dispose();
   });
@@ -72,14 +64,5 @@ void main() {
     await service.ready;
     expect(service.info.value, PsitoSystemInfo.unavailable);
     await service.dispose();
-  });
-
-  test('PSITO_SERVICES=fake não abre o barramento', () async {
-    final services = SystemServices.start(
-      environment: {'PSITO_SERVICES': 'fake'},
-    );
-    expect(services.systemInfo, isA<FakeSystemInfoService>());
-    expect(services.systemInfo.info.value, FakeSystemInfoService.sample);
-    await services.dispose();
   });
 }

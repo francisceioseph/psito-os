@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:system_shell/screens/desktop_screen.dart';
 import 'package:system_shell/services/battery_service.dart';
 import 'package:system_shell/services/session_service.dart';
 import 'package:system_shell/services/system_services.dart';
@@ -30,9 +29,6 @@ Future<(FakeBatteryService, FakeSessionService)> _pump(
   BatteryState battery = FakeBatteryService.sample,
   SessionCapabilities capabilities = SessionCapabilities.all,
 }) async {
-  tester.view.physicalSize = const Size(1280, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
   final batteryService = FakeBatteryService(battery);
   final session = FakeSessionService(capabilities);
   final services = SystemServices.fake(
@@ -40,7 +36,7 @@ Future<(FakeBatteryService, FakeSessionService)> _pump(
     session: session,
   );
   addTearDown(services.dispose);
-  await tester.pumpWidget(MaterialApp(home: DesktopScreen(services: services)));
+  await pumpDesktop(tester, services: services);
   return (batteryService, session);
 }
 

@@ -84,3 +84,10 @@ class FakeDBusObject extends DBusObject {
     await emitPropertiesChanged(interface, changedProperties: changed);
   }
 }
+
+/// Espera [condition] virar verdade; sinais D-Bus chegam de forma assíncrona.
+Future<void> until(bool Function() condition) async {
+  for (var i = 0; i < 100 && !condition(); i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}

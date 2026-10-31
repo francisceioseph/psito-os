@@ -12,24 +12,9 @@ const _ctrl = LogicalKeyboardKey.controlLeft;
 const _alt = LogicalKeyboardKey.altLeft;
 const _shift = LogicalKeyboardKey.shiftLeft;
 
-Future<void> _combo(
-  WidgetTester tester,
-  List<LogicalKeyboardKey> modifiers,
-  LogicalKeyboardKey key,
-) async {
-  for (final m in modifiers) {
-    await tester.sendKeyDownEvent(m);
-  }
-  await tester.sendKeyEvent(key);
-  for (final m in modifiers.reversed) {
-    await tester.sendKeyUpEvent(m);
-  }
-  await tester.pump();
-}
-
 /// Ctrl+Espaço, busca e Enter.
 Future<void> _launch(WidgetTester tester, String query) async {
-  await _combo(tester, [_ctrl], LogicalKeyboardKey.space);
+  await pressCombo(tester, [_ctrl], LogicalKeyboardKey.space);
   await tester.enterText(
     find.descendant(
       of: find.byType(Launcher),
@@ -57,23 +42,23 @@ void main() {
     expect(wm.windows.map((w) => w.app.id), ['calculator', 'clock']);
     expect(wm.focused!.app.id, 'clock');
 
-    await _combo(tester, [_ctrl], LogicalKeyboardKey.tab);
+    await pressCombo(tester, [_ctrl], LogicalKeyboardKey.tab);
     final calculator = wm.focused!;
     expect(calculator.app.id, 'calculator');
 
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowLeft);
     expect(calculator.snap, SnapMode.left);
 
-    await _combo(tester, [_alt, _shift], LogicalKeyboardKey.arrowDown);
+    await pressCombo(tester, [_alt, _shift], LogicalKeyboardKey.arrowDown);
     expect(calculator.minimized, isTrue);
     expect(wm.focused!.app.id, 'clock');
 
-    await _combo(tester, [_ctrl], LogicalKeyboardKey.tab);
+    await pressCombo(tester, [_ctrl], LogicalKeyboardKey.tab);
     expect(wm.focused, calculator);
     expect(calculator.minimized, isFalse);
 
-    await _combo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
-    await _combo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
+    await pressCombo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
+    await pressCombo(tester, [_ctrl, _alt], LogicalKeyboardKey.keyW);
     expect(wm.windows, isEmpty);
     expect(find.byType(PsitoWindow, skipOffstage: false), findsNothing);
   });

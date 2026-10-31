@@ -1,5 +1,6 @@
 // Apoio comum dos testes: app falso e montagem do desktop numa tela 1280×800.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/app.dart';
@@ -39,10 +40,30 @@ void _useDesktopView(WidgetTester tester) {
   addTearDown(tester.view.reset);
 }
 
-/// Só o desktop, com configurações em memória.
-Future<void> pumpDesktop(WidgetTester tester) async {
+/// Só o desktop, com configurações em memória. Sem [services], o próprio
+/// desktop usa os falsos.
+Future<void> pumpDesktop(
+  WidgetTester tester, {
+  SystemServices? services,
+}) async {
   _useDesktopView(tester);
-  await tester.pumpWidget(const MaterialApp(home: DesktopScreen()));
+  await tester.pumpWidget(MaterialApp(home: DesktopScreen(services: services)));
+}
+
+/// Segura [modifiers], aperta [key] e solta tudo.
+Future<void> pressCombo(
+  WidgetTester tester,
+  List<LogicalKeyboardKey> modifiers,
+  LogicalKeyboardKey key,
+) async {
+  for (final m in modifiers) {
+    await tester.sendKeyDownEvent(m);
+  }
+  await tester.sendKeyEvent(key);
+  for (final m in modifiers.reversed) {
+    await tester.sendKeyUpEvent(m);
+  }
+  await tester.pump();
 }
 
 /// O app inteiro (tema e configurações), como no boot. Sem [services], usa
