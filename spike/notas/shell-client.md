@@ -1,6 +1,6 @@
 # O shell do Psito como cliente layer-shell
 
-`spike/shell_client/`, testado em 31/10/2026 na VM do spike, sobre o labwc 0.8.3 e o Wayfire 0.9.0. Mostra a top bar, a dock, o launcher e os painéis reais do `system_shell`, com os serviços reais da fase 2.
+`shell/` (até a etapa 5, `spike/shell_client/`), testado em 31/10/2026 na VM do spike, sobre o labwc 0.8.3 e o Wayfire 0.9.0. Mostra a top bar, a dock, o launcher e os painéis reais do `system_shell`, com os serviços reais da fase 2.
 
 ## Como funciona
 - **Um processo, um engine, uma view por superfície.** O embedder Linux do Flutter 3.47 cria várias `FlView` num engine (`fl_view_new_for_engine`; a dock usava `fl_view_new_sized_to_content` até a etapa 5, ver abaixo), cada uma na sua `GtkWindow`, que o `gtk-layer-shell` transforma em superfície:
@@ -30,7 +30,7 @@
   - o tema virou `psitoTheme(accent)` em `lib/app.dart`;
   - o comportamento do shell atual não mudou (132 testes).
 
-Compilar e instalar: `spike/shell_client/build.sh`. O `autostart` do labwc e do Wayfire sobe o shell se ele estiver compilado; senão, o `waybar`.
+Compilar e instalar: `VM_PORT=2223 ./build.sh && VM_PORT=2223 ./deploy.sh` (até a etapa 5, `spike/shell_client/build.sh`). O `autostart` do labwc e do Wayfire sobe o shell se ele estiver compilado; senão, o `waybar`.
 
 ## O que funcionou (conferido pelo Francisco, no labwc e no Wayfire)
 - **Top bar:** rede, volume, bateria e relógio reais; os painéis abrem e trocam pela top bar; os tooltips aparecem inteiros.
@@ -130,3 +130,8 @@ Compilar e instalar: `spike/shell_client/build.sh`. O `autostart` do labwc e do 
 - toasts com ações além do clique (botões), e o `expire_timeout` de cada notificação;
 - a CPU da top bar parada;
 - o Firefox: as notificações dele e o modo escuro pelo portal.
+
+## Etapa 6: a saída do spike (31/10/2026)
+- O shell virou `shell/` (pacote `psito_shell`, binário em `/opt/psito/shell/psito_shell`), e a configuração do labwc e a unidade foram para `vm/session/`. A VM principal roda o labwc no `psito-os.service`.
+- Os apps do Psito rodam no host `apps/` (`psito_apps <id>`, `app_id` `org.psito.<id>`), e o shell mostra esses apps com o ícone e a cor do `PsitoApp`.
+- O `SettingsStore` vigia o `settings.json`: as Configurações gravam no próprio processo, e o shell e a ponte veem na hora.

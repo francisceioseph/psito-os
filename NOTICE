@@ -8,15 +8,13 @@ nomes nem da identidade visual para outros produtos (Apache-2.0, seção 6).
 
 Código de terceiros
 -------------------
-Os patches abaixo modificam projetos de terceiros e seguem a licença do projeto
-que modificam, não a Apache-2.0:
+Os patches abaixo modificam um projeto de terceiros e seguem a licença dele,
+não a Apache-2.0:
 
-- patches/flutter-pi-*.patch: patches do flutter-pi
-  (https://github.com/ardera/flutter-pi), licença MIT.
 - spike/patches/zenith-*.patch: patches do Zenith
   (https://github.com/roscale/zenith), licença GPL-2.0.
 
 As dependências Dart e Flutter são baixadas pelo pub e têm as próprias
-licenças, listadas nos pubspec.lock. Debian, labwc, Wayfire, flutter-pi e as
+licenças, listadas nos pubspec.lock. Debian, labwc, Wayfire e as
 demais ferramentas instaladas na VM pelos scripts não fazem parte deste
 repositório e seguem as licenças dos seus projetos.

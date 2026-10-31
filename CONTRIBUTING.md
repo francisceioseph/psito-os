@@ -12,16 +12,17 @@ Obrigado pelo interesse. O projeto é experimental e muda de direção a cada fa
 1. Rode `./check.sh` (o `flutter analyze`) e os testes de cada app que você mexeu:
    ```bash
    (cd system_shell && flutter test)
-   (cd spike/shell_client && flutter test)
+   (cd shell && flutter test)
+   (cd apps && flutter test)
    ```
-2. Se a mudança aparece na tela, diga como você testou: no host (`PSITO_SERVICES=fake flutter run -d linux`) ou na VM.
+2. Se a mudança aparece na tela, diga como você testou: no laboratório do host (`PSITO_SERVICES=fake flutter run -d linux` em `system_shell/`) ou na VM (`./build.sh && ./deploy.sh`).
 3. Mantenha o estilo do código em volta: os nomes, a densidade de comentários e o idioma (comentários e textos da interface em português).
 
 ## Regras do projeto
 
 - **Sem emojis na interface,** porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - **Hora:** use `ctx.now()` (apps) ou `TimeService.now` (shell), nunca `DateTime.now()`.
-- **Atalhos globais** têm uma combinação nativa e uma de VM (`system_shell/lib/shell/shortcuts.dart`).
+- **Atalhos globais** têm uma combinação nativa e uma de VM (`system_shell/lib/shell/shortcuts.dart`); o shell gera os atalhos do labwc a partir dela.
 - **Apps** só importam Flutter, pacotes externos e o `psito_sdk`, e cabem na janela mínima de 240×160.
 - **Nada de binários, discos ou ISOs** no git: `qemu/`, `debian/` e os `build/` ficam de fora.
 

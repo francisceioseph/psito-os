@@ -16,4 +16,5 @@ A resposta é feita com o melhor esforço, sem prazo garantido.
 
 - Os serviços que o shell expõe no D-Bus (`org.psito.Shell` e `org.freedesktop.Notifications`) e as regras do polkit em `vm/polkit/`.
 - Os scripts que configuram a VM (`provision.sh`, `vm/`, `spike/guest/`).
-- A ponte que escreve a configuração do compositor e do GTK (`spike/shell_client/lib/bridge/`).
+- O host dos apps (`apps/`), que lê e grava o `settings.json`.
+- A ponte que escreve a configuração do compositor e do GTK (`shell/lib/bridge/`).
