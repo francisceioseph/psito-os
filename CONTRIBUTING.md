@@ -9,12 +9,7 @@ Obrigado pelo interesse. O projeto é experimental e muda de direção a cada fa
 
 ## Antes de mandar um pull request
 
-1. Rode `./check.sh` (o `flutter analyze`) e os testes de cada app que você mexeu:
-   ```bash
-   (cd system_shell && flutter test)
-   (cd shell && flutter test)
-   (cd apps && flutter test)
-   ```
+1. Rode `./check.sh` (o `flutter analyze`) e o `./test.sh` (os testes de todos os projetos, ou só das pastas que você passar). O `./test.sh` limita os processos de teste e a memória, para caber no host com a VM ligada.
 2. Se a mudança aparece na tela, diga como você testou: no laboratório do host (`PSITO_SERVICES=fake flutter run -d linux` em `system_shell/`) ou na VM (`./build.sh && ./deploy.sh`).
 3. Mantenha o estilo do código em volta: os nomes, a densidade de comentários e o idioma (comentários e textos da interface em português).
 

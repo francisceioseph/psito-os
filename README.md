@@ -92,11 +92,11 @@ Não suba as duas VMs ao mesmo tempo num host com pouca memória.
 ### Testes e análise
 
 ```bash
-./check.sh                              # flutter analyze, só os problemas
-(cd system_shell && flutter test)
-(cd shell && flutter test)
-(cd apps && flutter test)
+./check.sh          # flutter analyze, só os problemas
+./test.sh           # flutter test de todos os projetos, só as falhas
 ```
+
+O `test.sh` roda 2 processos de teste num escopo do systemd com 2 GB de limite (`TEST_JOBS` e `TEST_MEM`), para não esgotar a memória do host com a VM ligada.
 
 ---
 

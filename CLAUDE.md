@@ -56,7 +56,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 
 ## Comandos (host)
 - `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): o laboratório de UX no host, com os serviços falsos. Sem a variável, usa os serviços reais do host. Em `apps/`, `flutter run -d linux -a <id>` abre um app sozinho.
-- `./check.sh`: `flutter analyze` no `system_shell/`, no `shell/` e no `apps/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `flutter test` de cada um que mudou.
+- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/` e no `apps/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
+- `./test.sh [pasta...]`: o `flutter test` de cada projeto (ou só dos indicados), mostrando só as falhas. São 2 processos de teste (`TEST_JOBS`) num escopo do systemd com 2G de limite e sem swap (`TEST_MEM`; `0` tira o limite). Assim cabe no host com a VM ligada, e se estourar só os testes morrem. Não rode o `flutter test` direto com a VM ligada: ele abre um processo por núcleo.
 - `./build.sh [release|profile|debug]`: envia o código e compila o `shell/` e o `apps/` dentro da VM (padrão release), com o Flutter dela.
 - `./deploy.sh`: instala o shell em `/opt/psito/shell`, os apps em `/opt/psito/apps` e os `.desktop` no `~/.local/share/applications`, e reinicia a unidade `psito-shell`
 - `./provision.sh`: prepara a VM (labwc, `gtk-layer-shell`, Flutter 3.47.4, os serviços da fase 2 e a sessão de `vm/`). Pode ser rodado de novo.
