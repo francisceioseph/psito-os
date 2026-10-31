@@ -3,12 +3,43 @@ import 'package:flutter/material.dart';
 
 import '../shell/app_entry.dart';
 
-class PsitoDock extends StatefulWidget {
-  final List<AppEntry> apps;
+/// Um ícone da dock: um app, uma pasta ou um arquivo. [key] identifica o
+/// ícone nos callbacks.
+class DockTile {
+  final String key;
+  final AppEntry entry;
 
-  /// Apps com pelo menos uma janela aberta: ganham um ponto embaixo do ícone.
-  final Set<String> runningAppIds;
-  final void Function(AppEntry app) onAppTap;
+  /// Ganha um ponto embaixo do ícone.
+  final bool running;
+
+  const DockTile({
+    required this.key,
+    required this.entry,
+    this.running = false,
+  });
+}
+
+class PsitoDock extends StatefulWidget {
+  final List<DockTile> tiles;
+
+  /// Os índices dos ícones que têm um separador antes.
+  final Set<int> separators;
+
+  /// Onde um ícone arrastado vai cair: abre um espaço antes do ícone nesse
+  /// índice (no fim, com o tamanho da lista).
+  final int? gap;
+
+  /// Algo de fora em cima da dock: a borda se destaca.
+  final bool highlighted;
+
+  final void Function(String key) onTap;
+
+  /// O clique direito, com o retângulo do ícone (para o menu).
+  final void Function(String key, Rect rect)? onMenu;
+
+  /// O começo do arrastar de um ícone, nas coordenadas da view. Quem chama
+  /// segue o ponteiro dali em diante (o ícone pode sair da fileira).
+  final void Function(String key, Offset position)? onDragStart;
 
   /// O lado de cada ícone (o `dockIconSize` das configurações).
   final double iconSize;
@@ -18,31 +49,73 @@ class PsitoDock extends StatefulWidget {
 
   const PsitoDock({
     super.key,
-    required this.apps,
-    this.runningAppIds = const {},
-    required this.onAppTap,
+    required this.tiles,
+    this.separators = const {},
+    this.gap,
+    this.highlighted = false,
+    required this.onTap,
+    this.onMenu,
+    this.onDragStart,
     this.iconSize = 52,
     this.magnification = true,
   });
+
+  /// A margem de cada lado de um ícone.
+  static const tileMargin = 6.0;
+  static const separatorWidth = 13.0;
+
+  /// A largura que um ícone ocupa na fila.
+  static double span(double iconSize) => iconSize + 2 * tileMargin;
+
+  /// O centro de cada um de [count] ícones, sem espaço aberto nem ampliação,
+  /// com a fila centrada em [centerX].
+  static List<double> centers({
+    required int count,
+    Set<int> separators = const {},
+    required double iconSize,
+    required double centerX,
+  }) {
+    final step = span(iconSize);
+    final seps = separators.where((i) => i > 0 && i < count).length;
+    var left = centerX - (count * step + seps * separatorWidth) / 2;
+    final result = <double>[];
+    for (var i = 0; i < count; i++) {
+      if (i > 0 && separators.contains(i)) left += separatorWidth;
+      result.add(left + step / 2);
+      left += step;
+    }
+    return result;
+  }
 
   @override
   State<PsitoDock> createState() => _PsitoDockState();
 }
 
 class _PsitoDockState extends State<PsitoDock> {
-  // Índice do item com foco do mouse (-1 se nenhum)
-  int? _hoveredIndex;
+  // O ícone com o mouse em cima
+  String? _hovered;
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final step = PsitoDock.span(widget.iconSize);
+    Widget gap(int index) => AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOutCubic,
+      width: widget.gap == index ? step : 0,
+      height: widget.iconSize,
+    );
+    final count = widget.tiles.length;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1.0,
+          color: widget.highlighted
+              ? accent
+              : Colors.white.withValues(alpha: 0.1),
+          width: widget.highlighted ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -55,67 +128,112 @@ class _PsitoDockState extends State<PsitoDock> {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: List.generate(widget.apps.length, (index) {
-          final app = widget.apps[index];
-          final isHovered = _hoveredIndex == index;
-
-          // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
-          final containerSize = isHovered && widget.magnification
-              ? widget.iconSize * 1.25
-              : widget.iconSize;
-
-          return MouseRegion(
-            onEnter: (_) => setState(() => _hoveredIndex = index),
-            onExit: (_) => setState(() => _hoveredIndex = null),
-            child: GestureDetector(
-              onTap: () => widget.onAppTap(app),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                width: containerSize,
-                height: containerSize,
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: BoxDecoration(
-                  color: app.color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(containerSize * 0.3),
-                  border: Border.all(
-                    color: isHovered ? app.color : Colors.white24,
-                    width: isHovered ? 2.0 : 1.0,
-                  ),
-                  boxShadow: isHovered
-                      ? [
-                          BoxShadow(
-                            color: app.color.withValues(alpha: 0.4),
-                            blurRadius: 12,
-                            spreadRadius: 1,
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    app.icon(containerSize * 0.55),
-                    if (widget.runningAppIds.contains(app.id))
-                      Positioned(
-                        bottom: containerSize * 0.06,
-                        child: Container(
-                          key: ValueKey('running-${app.id}'),
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: app.color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }),
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < count; i++) ...[
+            if (i > 0 && widget.separators.contains(i)) const _Separator(),
+            gap(i),
+            _tile(widget.tiles[i]),
+          ],
+          gap(count),
+        ],
       ),
     );
   }
+
+  Widget _tile(DockTile tile) {
+    final app = tile.entry;
+    final isHovered = _hovered == tile.key;
+    // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
+    final containerSize = isHovered && widget.magnification
+        ? widget.iconSize * 1.25
+        : widget.iconSize;
+    final drag = widget.onDragStart != null;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = tile.key),
+      onExit: (_) => setState(() => _hovered = null),
+      child: Builder(
+        builder: (context) => GestureDetector(
+          onTap: () => widget.onTap(tile.key),
+          onSecondaryTap: widget.onMenu == null
+              ? null
+              : () {
+                  final box = context.findRenderObject()! as RenderBox;
+                  widget.onMenu!(
+                    tile.key,
+                    box.localToGlobal(Offset.zero) & box.size,
+                  );
+                },
+          onPanStart: drag
+              ? (details) {
+                  setState(() => _hovered = null);
+                  widget.onDragStart!(tile.key, details.globalPosition);
+                }
+              : null,
+          child: AnimatedContainer(
+            key: ValueKey('dock-${tile.key}'),
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            width: containerSize,
+            height: containerSize,
+            margin: const EdgeInsets.symmetric(
+              horizontal: PsitoDock.tileMargin,
+            ),
+            decoration: BoxDecoration(
+              color: app.color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(containerSize * 0.3),
+              border: Border.all(
+                color: isHovered ? app.color : Colors.white24,
+                width: isHovered ? 2.0 : 1.0,
+              ),
+              boxShadow: isHovered
+                  ? [
+                      BoxShadow(
+                        color: app.color.withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                app.icon(containerSize * 0.55),
+                if (tile.running)
+                  Positioned(
+                    bottom: containerSize * 0.06,
+                    child: Container(
+                      key: ValueKey('running-${tile.key}'),
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: app.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Separator extends StatelessWidget {
+  const _Separator();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 32,
+    margin: const EdgeInsets.symmetric(
+      horizontal: (PsitoDock.separatorWidth - 1) / 2,
+      vertical: 4,
+    ),
+    color: Colors.white24,
+  );
 }

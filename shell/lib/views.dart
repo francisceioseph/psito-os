@@ -2,11 +2,18 @@
 //
 // Uma view do Flutter por superfície layer-shell, todas no mesmo isolate e
 // com o mesmo [ShellState]. Os widgets são os do system_shell.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_runtime/psito_runtime.dart';
+import 'package:psito_services/system_services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
+import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/network_panel.dart';
 import 'package:system_shell/widgets/notification_panel.dart';
@@ -105,14 +112,19 @@ class _BackgroundView extends StatelessWidget {
   final ShellState state;
   const _BackgroundView(this.state);
 
-  // O DesktopBackground tem InkWell: precisa de um Material em volta
+  // O DesktopBackground tem InkWell: precisa de um Material em volta. O
+  // fundo ocupa a tela toda: o tamanho dele é o da tela, para a dock (o
+  // display das views do runner é nulo)
   @override
   Widget build(BuildContext context) => _Themed(
     state,
-    builder: (context) => Material(
-      type: MaterialType.transparency,
-      child: DesktopBackground(wallpaper: state.settings.value.wallpaper),
-    ),
+    builder: (context) {
+      state.dockUi.screen = MediaQuery.sizeOf(context);
+      return Material(
+        type: MaterialType.transparency,
+        child: DesktopBackground(wallpaper: state.settings.value.wallpaper),
+      );
+    },
   );
 }
 
@@ -189,12 +201,16 @@ class _Sized extends StatelessWidget {
   final EdgeInsets padding;
   final Widget Function(BuildContext context, PsitoSettings settings) builder;
 
+  /// O tamanho novo da superfície, depois de pedir ao runner.
+  final ValueChanged<Size>? onSize;
+
   const _Sized(
     this.state,
     this.surface, {
     required this.alignment,
     this.padding = EdgeInsets.zero,
     required this.builder,
+    this.onSize,
   });
 
   @override
@@ -215,8 +231,10 @@ class _Sized extends StatelessWidget {
               maxWidth: double.infinity,
               maxHeight: double.infinity,
               child: SizeReporter(
-                onSize: (size) =>
-                    state.surfaces.resize(surface, size, input: padding),
+                onSize: (size) {
+                  onSize?.call(size);
+                  state.surfaces.resize(surface, size, input: padding);
+                },
                 child: Padding(
                   padding: padding,
                   child: Builder(
@@ -237,33 +255,101 @@ class _DockView extends StatelessWidget {
   const _DockView(this.state);
 
   @override
-  Widget build(BuildContext context) => _Sized(
-    state,
-    Surface.dock,
-    alignment: Alignment.bottomCenter,
-    // A sombra da dock: 20 de blur, 2 de spread, 10 para baixo. Embaixo fica
-    // a margem da dock até a borda da tela (a reserva do system_shell)
-    padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-    builder: (context, settings) => ListenableBuilder(
-      listenable: Listenable.merge([state.toplevels, state.apps, state.dock]),
-      builder: (context, _) {
-        // As pastas e os arquivos (dockSections.paths) entram na etapa 4
-        final slots = state.dockSections.apps;
-        return PsitoDock(
-          apps: [
-            for (final slot in slots)
-              appEntry(slot.id, slot.name, slot.app, settings.accent),
-          ],
-          runningAppIds: {
-            for (final slot in slots)
-              if (slot.running) slot.id,
+  Widget build(BuildContext context) {
+    final ui = state.dockUi;
+    return _Sized(
+      state,
+      Surface.dock,
+      alignment: Alignment.bottomCenter,
+      // A sombra da dock: 20 de blur, 2 de spread, 10 para baixo. Embaixo
+      // fica a margem da dock até a borda da tela (a reserva do system_shell)
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      onSize: (size) => ui.surface = size,
+      builder: (context, settings) => Listener(
+        // O ícone arrastado sai da fileira (e o gesto dele junto): quem
+        // segue o ponteiro é a raiz da view, que continua com ele fora da
+        // superfície
+        onPointerMove: (event) {
+          if (ui.drag.value?.source == DockDragSource.dock) {
+            ui.moveDrag(ui.origin + event.position);
+          }
+        },
+        onPointerUp: (_) {
+          if (ui.drag.value?.source == DockDragSource.dock) {
+            unawaited(ui.endDrag());
+          }
+        },
+        onPointerCancel: (_) {
+          if (ui.drag.value?.source == DockDragSource.dock) ui.cancelDrag();
+        },
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            state.toplevels,
+            state.apps,
+            state.dock,
+            ui.drag,
+          ]),
+          builder: (context, _) {
+            final row = ui.row;
+            final byKey = {
+              for (final item in row.items)
+                DockController.keyOf(item.item): item.item,
+            };
+            final drag = ui.drag.value;
+            return PsitoDropTarget(
+              onWillAccept: (paths) => paths.isEmpty ? null : DropAction.link,
+              onAccept: (paths, _) => ui.dropPaths(paths),
+              builder: (context, hovering) => PsitoDock(
+                tiles: [
+                  for (final item in row.items)
+                    DockTile(
+                      key: DockController.keyOf(item.item),
+                      entry: ui.visual(item.item),
+                      running: item.slot?.running ?? false,
+                    ),
+                ],
+                separators: row.separators,
+                gap: drag == null ? null : ui.dropIndex(row, drag),
+                highlighted: hovering,
+                onTap: (key) => ui.tap(byKey[key]!),
+                onMenu: (key, rect) => ui.openMenu(byKey[key]!, rect),
+                onDragStart: (key, position) => ui.startDrag(
+                  byKey[key]!,
+                  DockDragSource.dock,
+                  ui.origin + position,
+                ),
+                iconSize: settings.dockIconSize,
+                magnification: settings.dockMagnification && drag == null,
+              ),
+            );
           },
-          onAppTap: (app) =>
-              state.tapDock(slots.firstWhere((slot) => slot.id == app.id)),
-          iconSize: settings.dockIconSize,
-          magnification: settings.dockMagnification,
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+/// O ícone que segue o ponteiro enquanto se arrasta para a dock ou para
+/// fora dela.
+class _DockGhost extends StatelessWidget {
+  final AppEntry entry;
+  final double size;
+
+  const _DockGhost(this.entry, this.size);
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: 0.85,
+    child: Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: entry.color.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(size * 0.3),
+        border: Border.all(color: entry.color, width: 2),
+      ),
+      child: entry.icon(size * 0.55),
     ),
   );
 }
@@ -278,92 +364,148 @@ class _OverlayView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = state.services;
+    final ui = state.dockUi;
     return _Themed(
       state,
       builder: (context) => Material(
         type: MaterialType.transparency,
-        child: ListenableBuilder(
-          listenable: Listenable.merge([
-            state.overlay,
-            state.confirm,
-            state.switcher,
-          ]),
-          builder: (context, _) {
-            final accent = Theme.of(context).colorScheme.primary;
-            if (state.switcher.isOpen) {
-              return Focus(
-                autofocus: true,
-                onKeyEvent: (node, event) =>
-                    state.handleKey(
-                      event,
-                      shift: HardwareKeyboard.instance.isShiftPressed,
-                    )
-                    ? KeyEventResult.handled
-                    : KeyEventResult.ignored,
-                child: WindowSwitcherOverlay(
-                  switcher: state.switcher,
-                  onPick: state.pickSwitcher,
-                ),
-              );
+        // O arrastar que começou no launcher continua aqui depois que ele
+        // fecha: a raiz fica no caminho do ponteiro
+        child: Listener(
+          onPointerDown: (event) => ui.lastPointer = event.position,
+          onPointerMove: (event) {
+            ui.lastPointer = event.position;
+            if (ui.drag.value?.source == DockDragSource.launcher) {
+              ui.moveDrag(event.position);
             }
-            if (state.confirm.value case final action?) {
-              final powerOff = action == PowerAction.powerOff;
-              return PowerConfirmDialog(
-                key: ValueKey(action),
-                action: powerOff ? 'Desligar' : 'Reiniciar',
-                progressive: powerOff ? 'Desligando' : 'Reiniciando',
-                onConfirm: () => state.runPower(action),
-                onCancel: () => state.confirm.value = null,
-              );
-            }
-            return switch (state.overlay.value) {
-              null => const SizedBox.shrink(),
-              ShellOverlay.launcher => Launcher(
-                apps: [
-                  for (final app in state.apps.value)
-                    appEntry(app.id, app.name, app, accent),
-                ],
-                onLaunch: (entry) => state.launch(
-                  state.apps.value.firstWhere((app) => app.id == entry.id),
-                ),
-                onClose: state.closeOverlay,
-              ),
-              ShellOverlay.notifications => NotificationPanel(
-                center: state.notifications,
-                onClose: state.closeOverlay,
-                onTap: state.openNotification,
-              ),
-              ShellOverlay.network => NetworkPanel(
-                state: services.network.state,
-                onSetEnabled: services.network.setEnabled,
-                onClose: state.closeOverlay,
-              ),
-              ShellOverlay.volume => VolumePanel(
-                state: services.audio.state,
-                onVolume: services.audio.setVolume,
-                onMuted: services.audio.setMuted,
-                onClose: state.closeOverlay,
-              ),
-              ShellOverlay.battery => BatteryPanel(
-                state: services.battery.state,
-                onClose: state.closeOverlay,
-              ),
-              ShellOverlay.power => PowerPanel(
-                capabilities: services.session.capabilities,
-                onSuspend: () {
-                  state.closeOverlay();
-                  services.session.suspend();
-                },
-                onReboot: () => state.askPower(PowerAction.reboot),
-                onPowerOff: () => state.askPower(PowerAction.powerOff),
-                onClose: state.closeOverlay,
-              ),
-            };
           },
+          onPointerUp: (_) {
+            if (ui.drag.value?.source == DockDragSource.launcher) {
+              unawaited(ui.endDrag());
+            }
+          },
+          onPointerCancel: (_) {
+            if (ui.drag.value?.source == DockDragSource.launcher) {
+              ui.cancelDrag();
+            }
+          },
+          child: Stack(
+            children: [
+              Positioned.fill(child: _content(services)),
+              ValueListenableBuilder(
+                valueListenable: ui.drag,
+                builder: (context, drag, _) {
+                  if (drag == null) return const SizedBox.shrink();
+                  final size = state.settings.value.dockIconSize;
+                  return Positioned(
+                    left: drag.position.dx - size / 2,
+                    top: drag.position.dy - size / 2,
+                    child: IgnorePointer(
+                      child: _DockGhost(ui.visual(drag.item), size),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _content(SystemServices services) => ListenableBuilder(
+    listenable: Listenable.merge([
+      state.overlay,
+      state.confirm,
+      state.switcher,
+      state.dockUi.menu,
+    ]),
+    builder: (context, _) {
+      final accent = Theme.of(context).colorScheme.primary;
+      if (state.switcher.isOpen) {
+        return Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) =>
+              state.handleKey(
+                event,
+                shift: HardwareKeyboard.instance.isShiftPressed,
+              )
+              ? KeyEventResult.handled
+              : KeyEventResult.ignored,
+          child: WindowSwitcherOverlay(
+            switcher: state.switcher,
+            onPick: state.pickSwitcher,
+          ),
+        );
+      }
+      if (state.confirm.value case final action?) {
+        final powerOff = action == PowerAction.powerOff;
+        return PowerConfirmDialog(
+          key: ValueKey(action),
+          action: powerOff ? 'Desligar' : 'Reiniciar',
+          progressive: powerOff ? 'Desligando' : 'Reiniciando',
+          onConfirm: () => state.runPower(action),
+          onCancel: () => state.confirm.value = null,
+        );
+      }
+      if (state.dockUi.menu.value case final menu?) {
+        return DockMenu(
+          anchor: menu.anchor,
+          title: state.dockUi.title(menu.item),
+          items: state.dockUi.menuItems(menu.item),
+          onClose: state.dockUi.closeMenu,
+        );
+      }
+      return switch (state.overlay.value) {
+        null => const SizedBox.shrink(),
+        ShellOverlay.launcher => Launcher(
+          apps: [
+            for (final app in state.apps.value)
+              appEntry(app.id, app.name, app, accent),
+          ],
+          onLaunch: (entry) => state.launch(
+            state.apps.value.firstWhere((app) => app.id == entry.id),
+          ),
+          onClose: state.closeOverlay,
+          onDragStart: (entry) => state.dockUi.startDrag(
+            DockApp(entry.id),
+            DockDragSource.launcher,
+            state.dockUi.lastPointer,
+          ),
+        ),
+        ShellOverlay.notifications => NotificationPanel(
+          center: state.notifications,
+          onClose: state.closeOverlay,
+          onTap: state.openNotification,
+        ),
+        ShellOverlay.network => NetworkPanel(
+          state: services.network.state,
+          onSetEnabled: services.network.setEnabled,
+          onClose: state.closeOverlay,
+        ),
+        ShellOverlay.volume => VolumePanel(
+          state: services.audio.state,
+          onVolume: services.audio.setVolume,
+          onMuted: services.audio.setMuted,
+          onClose: state.closeOverlay,
+        ),
+        ShellOverlay.battery => BatteryPanel(
+          state: services.battery.state,
+          onClose: state.closeOverlay,
+        ),
+        ShellOverlay.power => PowerPanel(
+          capabilities: services.session.capabilities,
+          onSuspend: () {
+            state.closeOverlay();
+            services.session.suspend();
+          },
+          onReboot: () => state.askPower(PowerAction.reboot),
+          onPowerOff: () => state.askPower(PowerAction.powerOff),
+          onClose: state.closeOverlay,
+        ),
+      };
+    },
+  );
 }
 
 /// Os toasts, no canto de cima à direita; a superfície só existe com algum

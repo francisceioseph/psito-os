@@ -39,3 +39,21 @@ AppEntry appEntry(
     icon: (size) => AppIcon(desktop?.icon ?? icon, size: size),
   );
 }
+
+/// Uma pasta ou um arquivo na dock, com o ícone do tema ([icons], o
+/// primeiro que existir).
+AppEntry pathEntry(String id, String name, List<String> icons, Color color) =>
+    AppEntry(
+      id: id,
+      name: name,
+      color: color,
+      icon: (size) => PsitoIcon(
+        icons,
+        size: size,
+        fallback: Icon(
+          Icons.insert_drive_file_outlined,
+          size: size,
+          color: Colors.white70,
+        ),
+      ),
+    );

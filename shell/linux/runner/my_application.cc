@@ -125,11 +125,24 @@ static void set_input_region(GtkWidget* widget, int y, int height) {
   cairo_region_destroy(region);
 }
 
+// A sobreposição só desenhando, sem input nem teclado: o ícone que segue o
+// ponteiro quando se arrasta da dock (o ponteiro continua com a dock)
+static gboolean overlay_passive = FALSE;
+
 // A faixa da top bar fica fora da região de input da sobreposição: com um
 // painel aberto, clicar na top bar troca de painel
-static void overlay_size_allocate_cb(GtkWidget* widget, GdkRectangle* alloc,
+static void overlay_input(GtkWidget* widget) {
+  if (overlay_passive) {
+    set_input_region(widget, 0, 0);
+  } else {
+    set_input_region(widget, kTopBarHeight,
+                     gtk_widget_get_allocated_height(widget) - kTopBarHeight);
+  }
+}
+
+static void overlay_size_allocate_cb(GtkWidget* widget, GdkRectangle*,
                                      gpointer) {
-  set_input_region(widget, kTopBarHeight, alloc->height - kTopBarHeight);
+  overlay_input(widget);
 }
 
 // Só a barra recebe cliques; o espaço dos tooltips deixa passar
@@ -159,15 +172,22 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
     }
     fl_method_call_respond_success(call, ids, nullptr);
   } else if (strcmp(method, "showOverlay") == 0) {
-    bool exclusive = args != nullptr &&
-                     fl_value_get_type(args) == FL_VALUE_TYPE_STRING &&
-                     strcmp(fl_value_get_string(args), "exclusive") == 0;
+    const gchar* mode = args != nullptr &&
+                                fl_value_get_type(args) == FL_VALUE_TYPE_STRING
+                            ? fl_value_get_string(args)
+                            : "";
     if (overlay != nullptr) {
+      overlay_passive = strcmp(mode, "passive") == 0;
       gtk_layer_set_keyboard_mode(
-          overlay, exclusive ? GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
-                             : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+          overlay, strcmp(mode, "exclusive") == 0
+                       ? GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
+                   : overlay_passive ? GTK_LAYER_SHELL_KEYBOARD_MODE_NONE
+                                     : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
       gtk_widget_show(GTK_WIDGET(overlay));
-      gtk_widget_grab_focus(GTK_WIDGET(self->views[kOverlay]));
+      overlay_input(GTK_WIDGET(overlay));
+      if (!overlay_passive) {
+        gtk_widget_grab_focus(GTK_WIDGET(self->views[kOverlay]));
+      }
     }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else if (strcmp(method, "hideOverlay") == 0) {

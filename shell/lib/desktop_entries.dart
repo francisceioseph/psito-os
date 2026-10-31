@@ -39,6 +39,9 @@ class DesktopEntry {
   /// `notifications`.
   final List<String> permissions;
 
+  /// O arquivo `.desktop` de onde veio.
+  final String? path;
+
   const DesktopEntry({
     required this.id,
     required this.name,
@@ -50,11 +53,11 @@ class DesktopEntry {
     this.psitoApp,
     this.color,
     this.permissions = const [],
+    this.path,
   }) : exec = exec ?? command;
 
-  /// Lê o grupo `[Desktop Entry]`. Devolve null para o que não aparece no
-  /// launcher: outros tipos, `NoDisplay`, `Hidden` ou sem `Exec`.
-  static DesktopEntry? parse(String id, String content, {String? locale}) {
+  /// As chaves do grupo `[Desktop Entry]`.
+  static Map<String, String> fields(String content) {
     final values = <String, String>{};
     var inEntry = false;
     for (final raw in content.split('\n')) {
@@ -69,9 +72,23 @@ class DesktopEntry {
       if (eq < 0) continue;
       values[line.substring(0, eq).trim()] = line.substring(eq + 1).trim();
     }
+    return values;
+  }
 
+  /// Lê o grupo `[Desktop Entry]`. Devolve null para o que não aparece no
+  /// launcher: outros tipos, `NoDisplay`, `Hidden` ou sem `Exec`. No
+  /// [autostart], o `NoDisplay` vale (os do autostart costumam ter).
+  static DesktopEntry? parse(
+    String id,
+    String content, {
+    String? locale,
+    String? path,
+    bool autostart = false,
+  }) {
+    final values = fields(content);
     if ((values['Type'] ?? 'Application') != 'Application') return null;
-    if (values['NoDisplay'] == 'true' || values['Hidden'] == 'true') {
+    if ((!autostart && values['NoDisplay'] == 'true') ||
+        values['Hidden'] == 'true') {
       return null;
     }
     final exec = values['Exec'];
@@ -94,8 +111,12 @@ class DesktopEntry {
       psitoApp: values['X-Psito-App'],
       color: _color(values['X-Psito-Color']),
       permissions: _list(values['X-Psito-Permissions']),
+      path: path,
     );
   }
+
+  /// Uma lista separada por `;` (`MimeType`, `OnlyShowIn`).
+  static List<String> list(String? value) => _list(value);
 
   static List<String> _list(String? value) => [
     for (final item in (value ?? '').split(';'))
@@ -352,6 +373,7 @@ Future<List<DesktopEntry>> loadDesktopEntries(
           id,
           await file.readAsString(),
           locale: locale,
+          path: file.path,
         );
       } on FileSystemException {
         byId[id] = null;

@@ -15,8 +15,7 @@ const settingsInterface = 'org.psito.Settings';
 final settingsPath = DBusObjectPath('/org/psito/Settings');
 
 /// O JSON do barramento (o mesmo do arquivo).
-String encodeSettings(PsitoSettings settings) =>
-    jsonEncode(settings.toJson());
+String encodeSettings(PsitoSettings settings) => jsonEncode(settings.toJson());
 
 /// Null se não for um objeto JSON.
 PsitoSettings? decodeSettings(String json) {

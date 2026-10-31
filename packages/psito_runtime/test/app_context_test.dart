@@ -73,9 +73,8 @@ void main() {
     // O bloco de notas não pode mudar as configurações
     expect(updates, isEmpty);
 
-    contextFor(
-      const _App('settings', canChangeSettings: true),
-    ).updateSettings(PsitoSettings.defaults.copyWith(use24h: false));
+    contextFor(const _App('settings', canChangeSettings: true))
+        .updateSettings(PsitoSettings.defaults.copyWith(use24h: false));
     expect(updates.single.use24h, isFalse);
   });
 

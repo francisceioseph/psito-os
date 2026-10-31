@@ -9,8 +9,9 @@ import 'package:flutter/services.dart';
 enum Surface { background, topbar, dock, overlay, toasts, osd }
 
 /// Teclado da sobreposição: o launcher pega o teclado todo; os painéis só
-/// quando clicados.
-enum OverlayKeyboard { exclusive, onDemand }
+/// quando clicados. Passiva, ela só desenha (o ícone arrastado da dock), sem
+/// teclado nem cliques.
+enum OverlayKeyboard { exclusive, onDemand, passive }
 
 class Surfaces {
   const Surfaces([this._channel = const MethodChannel('psito/surfaces')]);
@@ -23,10 +24,12 @@ class Surfaces {
     return {for (final surface in Surface.values) surface: ?ids[surface.name]};
   }
 
-  Future<void> showOverlay(OverlayKeyboard keyboard) => _channel.invokeMethod(
-    'showOverlay',
-    keyboard == OverlayKeyboard.exclusive ? 'exclusive' : 'on_demand',
-  );
+  Future<void> showOverlay(OverlayKeyboard keyboard) =>
+      _channel.invokeMethod('showOverlay', switch (keyboard) {
+        OverlayKeyboard.exclusive => 'exclusive',
+        OverlayKeyboard.onDemand => 'on_demand',
+        OverlayKeyboard.passive => 'passive',
+      });
 
   Future<void> hideOverlay() => _channel.invokeMethod('hideOverlay');
 

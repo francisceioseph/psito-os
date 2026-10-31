@@ -13,6 +13,7 @@ import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
+import 'autostart.dart';
 import 'bridge/bridge.dart';
 import 'launcher_bus.dart';
 import 'notifications_server.dart';
@@ -42,12 +43,17 @@ Future<void> main() async {
     toplevels: ToplevelList(),
     dock: dock,
     sandbox: ShellState.sandboxFor(Platform.environment),
+    autostart: Autostart(Platform.environment),
   );
   final viewIds = await state.surfaces.viewIds();
   runWidget(ShellViews(state: state, viewIds: viewIds));
 
   unawaited(state.toplevels.start());
-  unawaited(state.watchApps(Platform.environment));
+  // O autostart precisa dos apps instalados, para abrir os do Psito no
+  // sandbox
+  unawaited(
+    state.watchApps(Platform.environment).then((_) => state.runAutostart()),
+  );
   Bridge(settings).start();
 
   try {
@@ -71,24 +77,37 @@ Future<void> main() async {
     debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
   }
   final env = Platform.environment;
+  final mime = MimeDatabase.load(MimeDatabase.dirsFor(env));
+  final userDirs = loadUserDirs(env);
+  state.dockUi.iconsFor = (item) => switch (item) {
+    DockFolder(:final path) => [
+      for (final MapEntry(key: dir, value: dirPath) in userDirs.entries)
+        if (dirPath == path) dir.icon,
+      if (path == env['HOME']) 'user-home',
+      'folder',
+    ],
+    DockFile(:final path) => [
+      ...mime.iconNames(mime.typeOf(path)),
+      'text-x-generic',
+    ],
+  };
   try {
     final launcherBus = DBusClient.session();
-    await publishLauncher(
-      launcherBus,
-      LauncherBusObject(
-        opener: Opener(
-          env: env,
-          mime: MimeDatabase.load(MimeDatabase.dirsFor(env)),
-          sandbox: state.sandbox,
-          apps: () => state.apps.value,
-        ),
-        callerOf: (sender) => senderAppId(launcherBus, sender),
-        isConnected: launcherBus.nameHasOwner,
-        launch: state.launchPlan,
-        setDefault: (mime, appId) =>
-            MimeApps.setDefault(MimeApps.userFile(env), mime, appId),
+    final launcher = LauncherBusObject(
+      opener: Opener(
+        env: env,
+        mime: mime,
+        sandbox: state.sandbox,
+        apps: () => state.apps.value,
       ),
+      callerOf: (sender) => senderAppId(launcherBus, sender),
+      isConnected: launcherBus.nameHasOwner,
+      launch: state.launchPlan,
+      setDefault: (mime, appId) =>
+          MimeApps.setDefault(MimeApps.userFile(env), mime, appId),
     );
+    state.openPaths = launcher.openPaths;
+    await publishLauncher(launcherBus, launcher);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');
   }

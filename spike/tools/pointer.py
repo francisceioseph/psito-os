@@ -6,6 +6,7 @@ Roda dentro da VM, com sudo. As coordenadas são da tela (o tamanho vem de
   move:x,y        vai até o ponto
   down / up       aperta ou solta o botão esquerdo
   click:x,y       vai, aperta e solta
+  rclick:x,y      o mesmo com o botão direito
   drag:x,y        vai até o ponto em passos, com o botão apertado
   sleep:<ms>      espera
 Uso: sudo python3 pointer.py move:100,100 down drag:700,860 sleep:500 up
@@ -41,8 +42,8 @@ with UInput(caps, name="psito-spike-pointer") as ui:
         ui.write(e.EV_ABS, e.ABS_Y, y * MAX // height)
         ui.syn()
 
-    def button(value: int) -> None:
-        ui.write(e.EV_KEY, e.BTN_LEFT, value)
+    def button(value: int, code: int = e.BTN_LEFT) -> None:
+        ui.write(e.EV_KEY, code, value)
         ui.syn()
         time.sleep(0.05)
 
@@ -54,7 +55,7 @@ with UInput(caps, name="psito-spike-pointer") as ui:
             button(1)
         elif name == "up":
             button(0)
-        elif name in ("move", "click", "drag"):
+        elif name in ("move", "click", "rclick", "drag"):
             x, y = (int(v) for v in value.split(","))
             if name == "drag":
                 x0, y0 = pos
@@ -67,5 +68,8 @@ with UInput(caps, name="psito-spike-pointer") as ui:
             if name == "click":
                 button(1)
                 button(0)
+            elif name == "rclick":
+                button(1, e.BTN_RIGHT)
+                button(0, e.BTN_RIGHT)
         else:
             sys.exit(f"passo desconhecido: {step}")

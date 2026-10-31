@@ -6,6 +6,7 @@ import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'package:psito_services/system_services.dart';
+
 import '../shell/app_entry.dart';
 import '../shell/app_registry.dart';
 import '../shell/notification_center.dart';
@@ -385,13 +386,18 @@ class _DesktopScreenState extends State<DesktopScreen> {
                           ],
                         ).apps;
                         return PsitoDock(
-                          apps: [for (final slot in slots) ?slot.app],
-                          runningAppIds: {
+                          tiles: [
                             for (final slot in slots)
-                              if (slot.running) slot.id,
-                          },
-                          onAppTap: (entry) =>
-                              _windows.activateApp(_appFor(entry)),
+                              if (slot.app case final app?)
+                                DockTile(
+                                  key: slot.id,
+                                  entry: app,
+                                  running: slot.running,
+                                ),
+                          ],
+                          onTap: (id) => _windows.activateApp(
+                            registeredApps.firstWhere((app) => app.id == id),
+                          ),
                           iconSize: _settings.value.dockIconSize,
                           magnification: _settings.value.dockMagnification,
                         );

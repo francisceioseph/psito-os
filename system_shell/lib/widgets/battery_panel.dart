@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:psito_services/battery_service.dart';
+
 import 'battery_indicator.dart';
 import 'top_bar.dart';
 

@@ -16,6 +16,7 @@ import 'package:system_shell/shell/shortcuts.dart';
 import 'package:system_shell/shell/window_switcher.dart';
 
 import 'app_icon.dart';
+import 'autostart.dart';
 import 'desktop_entries.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
@@ -38,10 +39,13 @@ class ShellState {
     this.surfaces = const Surfaces(),
     this.osdDuration = const Duration(milliseconds: 1500),
     this.sandbox,
+    this.autostart,
   }) : dock = dock ?? DockStore.memory(defaultDock) {
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
     switcher.addListener(_syncOverlay);
+    dockUi.drag.addListener(_syncOverlay);
+    dockUi.menu.addListener(_syncOverlay);
     notifications.addListener(_syncToasts);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
   }
@@ -52,6 +56,15 @@ class ShellState {
 
   /// Os itens fixados na dock (o dock.json).
   final DockStore dock;
+
+  /// O arrastar e o menu da dock.
+  late final dockUi = DockController(this);
+
+  /// O autostart do XDG. Null: sem o "Abrir ao iniciar a sessão" (testes).
+  final Autostart? autostart;
+
+  /// Abre arquivos no app padrão (o do `org.psito.Launcher`).
+  Future<void> Function(List<String> paths)? openPaths;
   final Surfaces surfaces;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
@@ -146,6 +159,7 @@ class ShellState {
 
   /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
   void toggle(ShellOverlay value) {
+    dockUi.closeMenu();
     overlay.value = overlay.value == value ? null : value;
     if (overlay.value == ShellOverlay.notifications) {
       notifications.markAllRead();
@@ -185,6 +199,16 @@ class ShellState {
         unawaited(toplevels.minimize(window.id));
       case null:
         break;
+    }
+  }
+
+  /// Abre o autostart, uma vez por sessão.
+  Future<void> runAutostart() async {
+    final ran = await autostart?.runOnce(
+      (entry) => (installed(entry.id) ?? entry).launch(sandbox: sandbox),
+    );
+    if (ran != null && ran.isNotEmpty) {
+      debugPrint('🦜 shell: autostart ${ran.join(', ')}');
     }
   }
 
@@ -332,6 +356,14 @@ class ShellState {
     );
   }
 
+  /// O app instalado com o id do `.desktop`.
+  DesktopEntry? installed(String id) {
+    for (final app in apps.value) {
+      if (app.id == id) return app;
+    }
+    return null;
+  }
+
   DesktopEntry? _desktopEntry(String idOrName) {
     final lower = idOrName.toLowerCase();
     for (final app in apps.value) {
@@ -393,13 +425,19 @@ class ShellState {
       _setShown(Surface.toasts, notifications.toasts.isNotEmpty);
 
   /// A superfície da sobreposição existe só enquanto tem algo aberto.
+  // O ícone arrastado do launcher continua com o ponteiro da sobreposição;
+  // o da dock só é desenhado nela
   void _syncOverlay() {
+    final drag = dockUi.drag.value;
     if (confirm.value != null ||
         overlay.value == ShellOverlay.launcher ||
-        switcher.isOpen) {
+        switcher.isOpen ||
+        drag?.source == DockDragSource.launcher) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.exclusive));
-    } else if (overlay.value != null) {
+    } else if (overlay.value != null || dockUi.menu.value != null) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.onDemand));
+    } else if (drag != null) {
+      unawaited(surfaces.showOverlay(OverlayKeyboard.passive));
     } else {
       unawaited(surfaces.hideOverlay());
     }

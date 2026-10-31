@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'screens/desktop_screen.dart';
+
 import 'package:psito_services/system_services.dart';
+
 import 'shell/settings_store.dart';
 
 class PsitoOSApp extends StatelessWidget {

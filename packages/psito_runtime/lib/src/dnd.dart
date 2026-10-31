@@ -122,8 +122,7 @@ class PsitoDnd {
 /// ação (null recusa); o mais de dentro, entre os alvos sobrepostos, decide.
 class PsitoDropTarget extends StatefulWidget {
   final DropAction? Function(List<String> paths) onWillAccept;
-  final FutureOr<bool> Function(List<String> paths, DropAction action)
-  onAccept;
+  final FutureOr<bool> Function(List<String> paths, DropAction action) onAccept;
   final Widget Function(BuildContext context, bool hovering) builder;
 
   const PsitoDropTarget({

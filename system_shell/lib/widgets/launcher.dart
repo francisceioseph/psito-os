@@ -11,11 +11,16 @@ class Launcher extends StatefulWidget {
   final void Function(AppEntry app) onLaunch;
   final VoidCallback onClose;
 
+  /// Arrastar um app para fora da grade (para a dock). Quem chama segue o
+  /// ponteiro dali em diante: o launcher pode fechar.
+  final void Function(AppEntry app)? onDragStart;
+
   const Launcher({
     super.key,
     required this.apps,
     required this.onLaunch,
     required this.onClose,
+    this.onDragStart,
   });
 
   static const columns = 5;
@@ -154,6 +159,9 @@ class _LauncherState extends State<Launcher> {
       onExit: (_) => setState(() => _hovered = null),
       child: GestureDetector(
         onTap: () => widget.onLaunch(app),
+        onPanStart: widget.onDragStart == null
+            ? null
+            : (_) => widget.onDragStart!(app),
         child: AnimatedContainer(
           key: ValueKey('launcher-${app.id}'),
           duration: const Duration(milliseconds: 150),
