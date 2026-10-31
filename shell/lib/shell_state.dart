@@ -68,8 +68,18 @@ class ShellState {
   /// Os apps de fora, dos `.desktop`.
   final apps = ValueNotifier<List<DesktopEntry>>(const []);
 
-  /// Fixados na dock, por id do `.desktop`.
-  static const pinned = ['firefox-esr', 'foot', 'org.gtk.Demo4'];
+  /// Fixados na dock, por id do `.desktop`. Os que não estão instalados não
+  /// aparecem. O navegador do Psito fica só no menu: o da dock é o Firefox.
+  static const pinned = [
+    'firefox-esr',
+    'foot',
+    'org.psito.files',
+    'org.psito.notepad',
+    'org.psito.calculator',
+    'org.psito.clock',
+    'org.psito.buddy',
+    'org.psito.settings',
+  ];
 
   final overlay = ValueNotifier<ShellOverlay?>(null);
   final confirm = ValueNotifier<PowerAction?>(null);

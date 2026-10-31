@@ -28,6 +28,23 @@ void main() {
     expect(slots[2].name, 'GTK Demo');
   });
 
+  test('fixado que não está instalado não aparece, a não ser aberto', () {
+    List<String> ids(List<Toplevel> windows) => [
+      for (final slot in dockSlotsFor(
+        pinned: ['firefox-esr', 'org.psito.ausente', 'foot'],
+        entries: _entries,
+        windows: windows,
+      ))
+        slot.id,
+    ];
+    expect(ids(const []), ['firefox-esr', 'foot']);
+    expect(ids(const [Toplevel(id: 1, appId: 'org.psito.ausente')]), [
+      'firefox-esr',
+      'org.psito.ausente',
+      'foot',
+    ]);
+  });
+
   test('sem janela, o clique abre o app', () {
     final slot = DockSlot(id: 'foot', entry: _app('foot'));
     expect(tapAction(slot), isA<LaunchApp>());

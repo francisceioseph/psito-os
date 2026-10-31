@@ -21,7 +21,8 @@ class DockSlot {
 }
 
 /// Os fixados, na ordem, e depois os apps abertos que não são fixados, na
-/// ordem em que abriram.
+/// ordem em que abriram. Um fixado sem `.desktop` e sem janela fica de fora:
+/// não teria ícone nem o que abrir.
 List<DockSlot> dockSlotsFor({
   required List<String> pinned,
   required Map<String, DesktopEntry> entries,
@@ -33,7 +34,8 @@ List<DockSlot> dockSlotsFor({
   }
   return [
     for (final id in pinned)
-      DockSlot(id: id, entry: entries[id], windows: byApp[id] ?? const []),
+      if (entries.containsKey(id) || byApp.containsKey(id))
+        DockSlot(id: id, entry: entries[id], windows: byApp[id] ?? const []),
     for (final MapEntry(key: id, value: list) in byApp.entries)
       if (!pinned.contains(id))
         DockSlot(id: id, entry: entries[id], windows: list),
