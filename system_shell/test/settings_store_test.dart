@@ -60,6 +60,7 @@ void main() {
       accent: const Color(0xFFE91E63),
       wallpaperId: 'floresta',
       showSeconds: true,
+      showBatteryPercentage: false,
     );
     expect(PsitoSettings.fromJson(s.toJson()), s);
   });

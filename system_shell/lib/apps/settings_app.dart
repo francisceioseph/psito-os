@@ -9,6 +9,7 @@ enum _Section {
   dateTime('Data e hora', Icons.schedule),
   network('Rede', Icons.lan_outlined),
   notifications('Notificações', Icons.notifications_none),
+  power('Energia', Icons.battery_std_outlined),
   shortcuts('Atalhos', Icons.keyboard_outlined),
   about('Sobre', Icons.info_outline);
 
@@ -67,6 +68,7 @@ class _SettingsViewState extends State<SettingsView> {
                   _Section.dateTime => _dateTime(settings),
                   _Section.network => _network(),
                   _Section.notifications => _notifications(settings),
+                  _Section.power => _power(settings),
                   _Section.shortcuts => _shortcuts(),
                   _Section.about => _about(),
                 },
@@ -211,6 +213,17 @@ class _SettingsViewState extends State<SettingsView> {
       ),
       value: s.doNotDisturb,
       onChanged: (v) => _update(s.copyWith(doNotDisturb: v)),
+    ),
+  ];
+
+  List<Widget> _power(PsitoSettings s) => [
+    SwitchListTile(
+      title: const Text('Mostrar porcentagem da bateria'),
+      subtitle: const Text(
+        'O ícone de bateria só aparece em computadores com bateria.',
+      ),
+      value: s.showBatteryPercentage,
+      onChanged: (v) => _update(s.copyWith(showBatteryPercentage: v)),
     ),
   ];
 

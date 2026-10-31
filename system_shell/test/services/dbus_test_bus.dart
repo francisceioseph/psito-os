@@ -46,6 +46,9 @@ class FakeDBusObject extends DBusObject {
   /// Métodos chamados neste objeto (ex.: Enable do NetworkManager).
   final List<DBusMethodCall> calls = [];
 
+  /// Resposta por nome de método; sem entrada, responde vazio.
+  final Map<String, List<DBusValue>> replies = {};
+
   FakeDBusObject(super.path, this.interfaces);
 
   /// Uma interface só.
@@ -73,7 +76,7 @@ class FakeDBusObject extends DBusObject {
   @override
   Future<DBusMethodResponse> handleMethodCall(DBusMethodCall call) async {
     calls.add(call);
-    return DBusMethodSuccessResponse();
+    return DBusMethodSuccessResponse(replies[call.name] ?? []);
   }
 
   Future<void> change(String interface, Map<String, DBusValue> changed) async {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import '../services/audio_service.dart';
+import '../services/battery_service.dart';
+import 'battery_indicator.dart';
 import 'network_indicator.dart';
 import 'volume_indicator.dart';
 
@@ -31,6 +33,15 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Roda do mouse sobre o ícone de volume: +1 sobe, -1 desce.
   final ValueChanged<int>? onVolumeScroll;
 
+  final BatteryState battery;
+  final bool showBatteryPercentage;
+
+  /// Ícone de bateria: abre e fecha o painel da bateria.
+  final VoidCallback? onBatteryTap;
+
+  /// Botão de energia: abre e fecha o menu de energia.
+  final VoidCallback? onPowerTap;
+
   const TopBar({
     super.key,
     this.onMenuTap,
@@ -44,6 +55,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.audio = AudioState.unavailable,
     this.onVolumeTap,
     this.onVolumeScroll,
+    this.battery = BatteryState.unavailable,
+    this.showBatteryPercentage = true,
+    this.onBatteryTap,
+    this.onPowerTap,
   });
 
   static const height = 40.0;
@@ -112,16 +127,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               const SizedBox(width: 12),
 
-              // Indicador de Bateria / Energia do Psito Device
-              Row(
-                children: [
-                  Icon(Icons.battery_charging_full, size: 16, color: accent),
-                  const SizedBox(width: 4),
-                  const Text(
-                    '100%',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                ],
+              BatteryIndicator(
+                state: battery,
+                showPercentage: showBatteryPercentage,
+                onTap: onBatteryTap,
               ),
 
               const Padding(
@@ -161,9 +170,34 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   );
                 },
               ),
+              const SizedBox(width: 8),
+              _buildPowerButton(),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPowerButton() {
+    return Tooltip(
+      message: 'Energia',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('power-button'),
+          onTap: onPowerTap,
+          borderRadius: BorderRadius.circular(6),
+          hoverColor: Colors.white12,
+          child: const Padding(
+            padding: EdgeInsets.all(4),
+            child: Icon(
+              Icons.power_settings_new,
+              size: 16,
+              color: Colors.white70,
+            ),
+          ),
+        ),
       ),
     );
   }

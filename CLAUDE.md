@@ -21,13 +21,15 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
     - Hoje:
       - `system_info_service` (hostnamed);
       - `network_service` (NetworkManager pelo pacote `nm`);
-      - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell).
+      - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
+      - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell.
     - O estado de cada serviço é um tipo do SDK (`PsitoSystemInfo`, `PsitoNetworkState`), que os apps leem pelo `PsitoAppContext`.
   - `lib/widgets/`:
     - `psito_window` (a moldura), `top_bar`, `psito_dock`, `desktop_background`;
     - `launcher`, `notification_toasts`, `notification_panel`, `window_switcher_overlay`;
     - `network_indicator` e `network_panel`;
-    - `volume_indicator`, `volume_panel` e `volume_osd`.
+    - `volume_indicator`, `volume_panel` e `volume_osd`;
+    - `battery_indicator`, `battery_panel`, `power_panel` e `power_confirm_dialog`.
     - Os painéis da top bar abrem um de cada vez, pelo `_Overlay` do `DesktopScreen`. A barreira deles deixa a top bar clicável, para trocar de painel.
   - `lib/apps/`: apps de exemplo, ainda no mesmo processo. Cada arquivo tem o widget `XxxView` e a classe `XxxApp extends PsitoApp`. O app de Configurações é o único com `canChangeSettings`.
   - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). Os serviços reais são testados num barramento D-Bus privado (`test/services/dbus_test_bus.dart`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.

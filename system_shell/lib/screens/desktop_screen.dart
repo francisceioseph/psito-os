@@ -12,8 +12,11 @@ import '../shell/window_manager.dart';
 import '../shell/window_switcher.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/desktop_background.dart';
+import '../widgets/battery_panel.dart';
 import '../widgets/launcher.dart';
 import '../widgets/network_panel.dart';
+import '../widgets/power_confirm_dialog.dart';
+import '../widgets/power_panel.dart';
 import '../widgets/volume_osd.dart';
 import '../widgets/volume_panel.dart';
 import '../widgets/notification_panel.dart';
@@ -36,7 +39,10 @@ class DesktopScreen extends StatefulWidget {
 }
 
 /// Camadas abertas pela top bar; só uma fica aberta por vez.
-enum _Overlay { launcher, notifications, network, volume }
+enum _Overlay { launcher, notifications, network, volume, battery, power }
+
+/// Ações de energia que pedem confirmação.
+enum _PowerAction { powerOff, reboot }
 
 class _DesktopScreenState extends State<DesktopScreen> {
   static const _topBarHeight = 40.0;
@@ -63,6 +69,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
   final _mousePosition = ValueNotifier<Offset?>(null);
 
   final _overlay = ValueNotifier<_Overlay?>(null);
+  final _confirm = ValueNotifier<_PowerAction?>(null);
 
   /// Aviso de volume depois de uma tecla de volume.
   final _volumeOsd = ValueNotifier(false);
@@ -87,6 +94,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
     if (widget.services == null) _services.dispose();
     _mousePosition.dispose();
     _overlay.dispose();
+    _confirm.dispose();
     _volumeOsdTimer?.cancel();
     _volumeOsd.dispose();
     _switcher.dispose();
@@ -102,6 +110,21 @@ class _DesktopScreenState extends State<DesktopScreen> {
   }
 
   void _closeOverlay() => _overlay.value = null;
+
+  void _askPower(_PowerAction action) {
+    _closeOverlay();
+    _confirm.value = action;
+  }
+
+  void _runPower(_PowerAction action) {
+    _confirm.value = null;
+    switch (action) {
+      case _PowerAction.powerOff:
+        _services.session.powerOff();
+      case _PowerAction.reboot:
+        _services.session.reboot();
+    }
+  }
 
   void _toggleLauncher() => _toggle(_Overlay.launcher);
 
@@ -299,6 +322,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       _settings,
                       _services.network.state,
                       _services.audio.state,
+                      _services.battery.state,
                     ]),
                     builder: (context, _) => TopBar(
                       onMenuTap: _toggleLauncher,
@@ -308,6 +332,11 @@ class _DesktopScreenState extends State<DesktopScreen> {
                       audio: _services.audio.state.value,
                       onVolumeTap: () => _toggle(_Overlay.volume),
                       onVolumeScroll: _stepVolume,
+                      battery: _services.battery.state.value,
+                      showBatteryPercentage:
+                          _settings.value.showBatteryPercentage,
+                      onBatteryTap: () => _toggle(_Overlay.battery),
+                      onPowerTap: () => _toggle(_Overlay.power),
                       unreadCount: _notifications.unreadCount,
                       use24h: _settings.value.use24h,
                       showSeconds: _settings.value.showSeconds,
@@ -368,6 +397,20 @@ class _DesktopScreenState extends State<DesktopScreen> {
                         onMuted: _services.audio.setMuted,
                         onClose: _closeOverlay,
                       ),
+                      _Overlay.battery => BatteryPanel(
+                        state: _services.battery.state,
+                        onClose: _closeOverlay,
+                      ),
+                      _Overlay.power => PowerPanel(
+                        capabilities: _services.session.capabilities,
+                        onSuspend: () {
+                          _closeOverlay();
+                          _services.session.suspend();
+                        },
+                        onReboot: () => _askPower(_PowerAction.reboot),
+                        onPowerOff: () => _askPower(_PowerAction.powerOff),
+                        onClose: _closeOverlay,
+                      ),
                       _Overlay.launcher => Launcher(
                         apps: registeredApps,
                         onLaunch: (app) {
@@ -379,6 +422,24 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     };
                     if (child == null) return const SizedBox.shrink();
                     return Positioned.fill(child: child);
+                  },
+                ),
+
+                // Confirmação de desligar ou reiniciar
+                ValueListenableBuilder(
+                  valueListenable: _confirm,
+                  builder: (context, action, _) {
+                    if (action == null) return const SizedBox.shrink();
+                    final powerOff = action == _PowerAction.powerOff;
+                    return Positioned.fill(
+                      child: PowerConfirmDialog(
+                        key: ValueKey(action),
+                        action: powerOff ? 'Desligar' : 'Reiniciar',
+                        progressive: powerOff ? 'Desligando' : 'Reiniciando',
+                        onConfirm: () => _runPower(action),
+                        onCancel: () => _confirm.value = null,
+                      ),
+                    );
                   },
                 ),
 

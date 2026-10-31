@@ -9,13 +9,17 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
 import 'audio_service.dart';
+import 'battery_service.dart';
 import 'network_service.dart';
+import 'session_service.dart';
 import 'system_info_service.dart';
 
 class SystemServices {
   final SystemInfoService systemInfo;
   final NetworkService network;
   final AudioService audio;
+  final BatteryService battery;
+  final SessionService session;
 
   /// Conexão com o barramento de sistema; null nos falsos.
   final DBusClient? _systemBus;
@@ -24,6 +28,8 @@ class SystemServices {
     required this.systemInfo,
     required this.network,
     required this.audio,
+    required this.battery,
+    required this.session,
     this._systemBus,
   });
 
@@ -31,10 +37,14 @@ class SystemServices {
     SystemInfoService? systemInfo,
     NetworkService? network,
     AudioService? audio,
+    BatteryService? battery,
+    SessionService? session,
   }) : this._(
          systemInfo: systemInfo ?? FakeSystemInfoService(),
          network: network ?? FakeNetworkService(),
          audio: audio ?? FakeAudioService(),
+         battery: battery ?? FakeBatteryService(),
+         session: session ?? FakeSessionService(),
        );
 
   /// Não bloqueia o boot: cada serviço conecta e carrega em segundo plano e
@@ -49,19 +59,31 @@ class SystemServices {
     final systemInfo = HostnamedSystemInfoService(bus);
     final network = NetworkManagerService(bus);
     final audio = PipewireAudioService();
-    Future.wait([systemInfo.ready, network.ready, audio.ready]).then((_) {
+    final battery = UPowerBatteryService(bus);
+    final session = LogindSessionService(bus);
+    Future.wait([
+      systemInfo.ready,
+      network.ready,
+      audio.ready,
+      battery.ready,
+      session.ready,
+    ]).then((_) {
       String status(bool ok) => ok ? 'ok' : 'indisponível';
       debugPrint(
         '🦜 serviços: '
         'systemInfo=${status(systemInfo.info.value.available)} '
         'network=${status(network.state.value.available)} '
-        'audio=${status(audio.state.value.available)}',
+        'audio=${status(audio.state.value.available)} '
+        'battery=${status(battery.state.value.available)} '
+        'session=${session.capabilities.value}',
       );
     });
     return SystemServices._(
       systemInfo: systemInfo,
       network: network,
       audio: audio,
+      battery: battery,
+      session: session,
       systemBus: bus,
     );
   }
@@ -70,6 +92,8 @@ class SystemServices {
     await systemInfo.dispose();
     await network.dispose();
     await audio.dispose();
+    await battery.dispose();
+    await session.dispose();
     await _systemBus?.close();
   }
 }

@@ -178,12 +178,16 @@ class PsitoSettings {
   final bool showSeconds;
   final bool doNotDisturb;
 
+  /// Porcentagem ao lado do ícone de bateria (como no macOS).
+  final bool showBatteryPercentage;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
     this.use24h = true,
     this.showSeconds = false,
     this.doNotDisturb = false,
+    this.showBatteryPercentage = true,
   });
 
   static const defaults = PsitoSettings();
@@ -196,12 +200,14 @@ class PsitoSettings {
     bool? use24h,
     bool? showSeconds,
     bool? doNotDisturb,
+    bool? showBatteryPercentage,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
     use24h: use24h ?? this.use24h,
     showSeconds: showSeconds ?? this.showSeconds,
     doNotDisturb: doNotDisturb ?? this.doNotDisturb,
+    showBatteryPercentage: showBatteryPercentage ?? this.showBatteryPercentage,
   );
 
   Map<String, Object?> toJson() => {
@@ -210,6 +216,7 @@ class PsitoSettings {
     'use24h': use24h,
     'showSeconds': showSeconds,
     'doNotDisturb': doNotDisturb,
+    'showBatteryPercentage': showBatteryPercentage,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -225,6 +232,10 @@ class PsitoSettings {
       use24h: pick('use24h', defaults.use24h),
       showSeconds: pick('showSeconds', defaults.showSeconds),
       doNotDisturb: pick('doNotDisturb', defaults.doNotDisturb),
+      showBatteryPercentage: pick(
+        'showBatteryPercentage',
+        defaults.showBatteryPercentage,
+      ),
     );
   }
 
@@ -235,11 +246,18 @@ class PsitoSettings {
       other.wallpaperId == wallpaperId &&
       other.use24h == use24h &&
       other.showSeconds == showSeconds &&
-      other.doNotDisturb == doNotDisturb;
+      other.doNotDisturb == doNotDisturb &&
+      other.showBatteryPercentage == showBatteryPercentage;
 
   @override
-  int get hashCode =>
-      Object.hash(accent, wallpaperId, use24h, showSeconds, doNotDisturb);
+  int get hashCode => Object.hash(
+    accent,
+    wallpaperId,
+    use24h,
+    showSeconds,
+    doNotDisturb,
+    showBatteryPercentage,
+  );
 }
 
 enum PsitoConnectivity { unknown, none, portal, limited, full }
