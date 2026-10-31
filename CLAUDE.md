@@ -41,8 +41,10 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `tools/`: injetor de teclas, amostragem de memória e CPU, cálculo de latência e fps;
   - `guest/`: o que o `spike/provision.sh` instala na VM;
   - `guest/labwc/`, `guest/wayfire.ini` e `guest/waybar/`: a configuração de cada candidato, instalada no `~/.config` do `psito`;
-  - `bridge/labwc_bridge.py`: esboço da ponte (o `settings.json` do Psito vira o tema e os atalhos do labwc);
-  - `shell_client/`: o shell como cliente layer-shell. São quatro views do Flutter num engine, uma por superfície (fundo, top bar, dock, sobreposição), com os widgets do `system_shell` por dependência de caminho. O runner em C tem o layer-shell, a ponte do foreign-toplevel (`toplevels.cc`, canal `psito/toplevels`) e os ícones do tema. O launcher abre pelo D-Bus da sessão (`org.psito.Shell.ToggleLauncher`);
+  - `shell_client/`: o shell como cliente layer-shell. São quatro views do Flutter num engine, uma por superfície (fundo, top bar, dock, sobreposição), com os widgets do `system_shell` por dependência de caminho. A dock, os toasts e o OSD têm o tamanho que o Dart mede (`resize` no canal `psito/surfaces`): as views dimensionadas pelo conteúdo do embedder não funcionam sobre o layer-shell. O runner em C tem o layer-shell, a ponte do foreign-toplevel (`toplevels.cc`, canal `psito/toplevels`) e os ícones do tema.
+    - O compositor chama o shell pelo D-Bus da sessão (`org.psito.Shell.Run '<ShellAction>'`), e o shell é o servidor `org.freedesktop.Notifications`.
+    - `lib/bridge/`: a ponte. A `shellBindings` vira os atalhos do labwc (seção `<keyboard>` do `rc.xml` e `--reconfigure`) ou do Wayfire (IPC), e as cores viram a moldura e o tema GTK (`~/.config/gtk-3.0` e `gtk-4.0`).
+    - Roda como unidade do systemd do usuário (`guest/systemd/psito-shell.service`, com `Restart`), subida pelo `psito-shell-start` no `autostart`. Log: `journalctl --user -u psito-shell` na VM;
   - `zenith/`: instala as dependências do Zenith e compila (wlroots 0.15.1 e Flutter 3.10.6 na VM); `patches/`: os patches dele. As fontes de terceiros ficam em `~/vendor/` na VM;
   - `notas/` e `results/`: o que cada candidato mostrou e os números (`results/raw/` e `vendor/` ficam fora do git).
 - `vm/`: arquivos instalados na VM pelo `provision.sh`: o serviço, o script do guest e `polkit/`, com as permissões D-Bus do usuário `psito`
@@ -60,7 +62,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - Spike (fase 3):
   - `spike/vm.sh <script da raiz>` roda `create-disk.sh`, `install-os.sh`, `provision.sh` ou `run.sh` na VM do spike; `spike/vm.sh ssh` entra nela. Depois do `provision.sh`, rode `spike/provision.sh`.
   - `spike/session.sh weston|labwc|wayfire|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe; `spike/shell_client/build.sh` compila o shell na VM, e o `autostart` do labwc e do Wayfire sobe ele.
-  - `spike/measure.sh <candidato> <processo>` mede e grava `spike/results/<candidato>.csv`.
+  - `spike/measure.sh <candidato> <processo>` mede e grava `spike/results/<candidato>.csv`; `spike/measure-shell.sh` mede o shell no labwc (`results/shell.csv`).
+  - `sudo python3 /tmp/spike/tools/keys.py hold:leftctrl tab release` (na VM) aperta combinações; `grim` captura a tela.
   - `ssh -p 2223 psito@localhost 'bash -s' < spike/tools/protocols.sh` lista os protocolos que o compositor rodando anuncia.
   - Não suba as duas VMs ao mesmo tempo.
 - `./logs.sh [n]`: últimas n linhas (padrão 40) do `journalctl -u psito-os` na VM

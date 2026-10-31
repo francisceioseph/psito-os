@@ -22,7 +22,7 @@ case "$1" in
         CMD="cd /home/psito/vendor/zenith/build/zenith/release/bundle && ZENITH_MODE=1440x900 exec stdbuf -oL -eL ./zenith"
         ;;
     stop)
-        vm "sudo systemctl stop psito-spike.service"
+        vm "systemctl --user stop psito-shell.service; sudo systemctl stop psito-spike.service"
         exit 0
         ;;
     status)

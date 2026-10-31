@@ -4,6 +4,9 @@
 // lê SVG) e devolve um PNG, então o Dart não precisa de pacote de SVG.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:system_shell/shell/app_entry.dart';
+
+import 'desktop_entries.dart';
 
 const _channel = MethodChannel('psito/icons');
 
@@ -53,3 +56,17 @@ class AppIcon extends StatelessWidget {
     );
   }
 }
+
+/// Um app de fora para os widgets do system_shell, com o ícone do tema.
+AppEntry appEntry(
+  String id,
+  String name,
+  DesktopEntry? desktop,
+  Color color, {
+  String? icon,
+}) => AppEntry(
+  id: id,
+  name: name,
+  color: color,
+  icon: (size) => AppIcon(desktop?.icon ?? icon, size: size),
+);

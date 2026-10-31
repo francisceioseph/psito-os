@@ -5,6 +5,8 @@
 # então cai quando abrem mais clientes; o anônimo é a memória própria.
 # Uso: sample.sh <segundos> <pid>...   Saída: pid,comm,pss_kib,pss_anon_kib,cpu_pct
 set -e
+# A CPU sai com ponto decimal, não com a vírgula do pt_BR (o CSV usa vírgula)
+export LC_ALL=C
 
 secs="$1"
 shift

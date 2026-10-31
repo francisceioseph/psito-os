@@ -1,0 +1,13 @@
+# O shell do Psito (spike/shell_client) como unidade do systemd do usuário:
+# se cair, volta sozinho, e as janelas continuam no compositor. Quem sobe é
+# o psito-shell-start, no autostart do labwc e do Wayfire.
+[Unit]
+Description=Shell do Psito (cliente layer-shell)
+# Sem compositor o shell não sobe: para de tentar em vez de ficar em laço
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+ExecStart=%h/shell_client/psito_shell_client
+Restart=always
+RestartSec=1

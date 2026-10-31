@@ -11,7 +11,9 @@
 
 // O shell do Psito como cliente layer-shell: um engine, uma FlView por
 // superfície, cada uma na sua GtkWindow. O Dart (lib/views.dart) desenha
-// cada view e pede a sobreposição pelo canal psito/surfaces.
+// cada view e pede a sobreposição, os toasts e o OSD pelo canal
+// psito/surfaces. PSITO_SURFACES=background,topbar,... cria só as pedidas
+// (o fundo sempre), para medir o custo de cada view.
 
 // As mesmas medidas do system_shell: TopBar.height e a reserva da dock
 constexpr int kTopBarHeight = 40;
@@ -20,20 +22,44 @@ constexpr int kDockReserve = 100;
 // Espaço transparente embaixo da top bar para os tooltips, que o Flutter
 // desenha dentro da própria view; fora da região de input e da zona exclusiva
 constexpr int kTooltipSpace = 48;
+// Toasts no canto de cima à direita e o OSD acima da dock, como no
+// DesktopScreen do system_shell
+constexpr int kToastsTop = kTopBarHeight + 8;
+constexpr int kToastsRight = 12;
+constexpr int kOsdBottom = kDockReserve + 16;
 
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
-  FlView* views[4];
-  GtkWindow* overlay;
+  FlView* views[6];
+  GtkWindow* windows[6];
   FlMethodChannel* surfaces_channel;
   FlMethodChannel* icons_channel;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
-enum { kBackground, kTopBar, kDock, kOverlay };
-const char* kSurfaceNames[] = {"background", "topbar", "dock", "overlay"};
+enum { kBackground, kTopBar, kDock, kOverlay, kToasts, kOsd, kSurfaces };
+const char* kSurfaceNames[] = {"background", "topbar", "dock",
+                               "overlay",    "toasts", "osd"};
+
+static int surface_index(FlValue* name) {
+  if (name == nullptr || fl_value_get_type(name) != FL_VALUE_TYPE_STRING) {
+    return -1;
+  }
+  for (int i = 0; i < kSurfaces; i++) {
+    if (strcmp(fl_value_get_string(name), kSurfaceNames[i]) == 0) return i;
+  }
+  return -1;
+}
+
+// Sem PSITO_SURFACES, todas
+static bool surface_wanted(int i) {
+  const gchar* wanted = g_getenv("PSITO_SURFACES");
+  if (i == kBackground || wanted == nullptr || *wanted == '\0') return true;
+  g_auto(GStrv) names = g_strsplit(wanted, ",", -1);
+  return g_strv_contains(names, kSurfaceNames[i]);
+}
 
 // Janela transparente numa camada do layer-shell, com a view dentro
 static GtkWindow* layer_window(MyApplication* self, FlView* view,
@@ -58,6 +84,18 @@ static GtkWindow* layer_window(MyApplication* self, FlView* view,
   return window;
 }
 
+// A dock, os toasts e o OSD têm o tamanho do conteúdo, que o Dart mede e
+// manda pelo canal. As views dimensionadas pelo conteúdo do embedder
+// (fl_view_new_sized_to_content) não servem: elas pedem o tamanho novo à
+// GtkWindow, mas a superfície layer-shell fica no tamanho do primeiro
+// configure e a view nunca aparece.
+static void sized_window_resize(GtkWindow* window, int width, int height) {
+  width = MAX(width, 1);
+  height = MAX(height, 1);
+  gtk_widget_set_size_request(GTK_WIDGET(window), width, height);
+  gtk_window_resize(window, width, height);
+}
+
 static void anchor_all(GtkWindow* window) {
   for (auto edge : {GTK_LAYER_SHELL_EDGE_LEFT, GTK_LAYER_SHELL_EDGE_RIGHT,
                     GTK_LAYER_SHELL_EDGE_TOP, GTK_LAYER_SHELL_EDGE_BOTTOM}) {
@@ -65,12 +103,14 @@ static void anchor_all(GtkWindow* window) {
   }
 }
 
+// Altura 0: nenhum clique
 static void set_input_region(GtkWidget* widget, int y, int height) {
   GdkWindow* window = gtk_widget_get_window(widget);
   if (window == nullptr) return;
   cairo_rectangle_int_t rect = {0, y, gtk_widget_get_allocated_width(widget),
                                 height};
-  cairo_region_t* region = cairo_region_create_rectangle(&rect);
+  cairo_region_t* region = height > 0 ? cairo_region_create_rectangle(&rect)
+                                      : cairo_region_create();
   gdk_window_input_shape_combine_region(window, region, 0, 0);
   cairo_region_destroy(region);
 }
@@ -88,15 +128,22 @@ static void topbar_size_allocate_cb(GtkWidget* widget, GdkRectangle*,
   set_input_region(widget, 0, kTopBarHeight);
 }
 
+// O OSD só avisa: os cliques vão para o que estiver embaixo
+static void osd_size_allocate_cb(GtkWidget* widget, GdkRectangle*, gpointer) {
+  set_input_region(widget, 0, 0);
+}
+
 static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
                              gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
   const gchar* method = fl_method_call_get_name(call);
   FlValue* args = fl_method_call_get_args(call);
 
+  GtkWindow* overlay = self->windows[kOverlay];
   if (strcmp(method, "surfaces") == 0) {
     g_autoptr(FlValue) ids = fl_value_new_map();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < kSurfaces; i++) {
+      if (self->views[i] == nullptr) continue;
       fl_value_set_string_take(ids, kSurfaceNames[i],
                                fl_value_new_int(fl_view_get_id(self->views[i])));
     }
@@ -105,15 +152,32 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
     bool exclusive = args != nullptr &&
                      fl_value_get_type(args) == FL_VALUE_TYPE_STRING &&
                      strcmp(fl_value_get_string(args), "exclusive") == 0;
-    gtk_layer_set_keyboard_mode(self->overlay,
-                                exclusive
-                                    ? GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
-                                    : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
-    gtk_widget_show(GTK_WIDGET(self->overlay));
-    gtk_widget_grab_focus(GTK_WIDGET(self->views[kOverlay]));
+    if (overlay != nullptr) {
+      gtk_layer_set_keyboard_mode(
+          overlay, exclusive ? GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
+                             : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+      gtk_widget_show(GTK_WIDGET(overlay));
+      gtk_widget_grab_focus(GTK_WIDGET(self->views[kOverlay]));
+    }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else if (strcmp(method, "hideOverlay") == 0) {
-    gtk_widget_hide(GTK_WIDGET(self->overlay));
+    if (overlay != nullptr) gtk_widget_hide(GTK_WIDGET(overlay));
+    fl_method_call_respond_success(call, nullptr, nullptr);
+  } else if (strcmp(method, "resize") == 0 && args != nullptr &&
+             fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+    int i = surface_index(fl_value_lookup_string(args, "surface"));
+    int width = fl_value_get_int(fl_value_lookup_string(args, "width"));
+    int height = fl_value_get_int(fl_value_lookup_string(args, "height"));
+    if (i >= 0 && self->windows[i] != nullptr) {
+      sized_window_resize(self->windows[i], width, height);
+    }
+    fl_method_call_respond_success(call, nullptr, nullptr);
+  } else if (strcmp(method, "show") == 0 || strcmp(method, "hide") == 0) {
+    int i = surface_index(args);
+    if (i >= 0 && self->windows[i] != nullptr) {
+      gtk_widget_set_visible(GTK_WIDGET(self->windows[i]),
+                             strcmp(method, "show") == 0);
+    }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else {
     fl_method_call_respond_not_implemented(call, nullptr);
@@ -174,39 +238,81 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(background));
   FlEngine* engine = fl_view_get_engine(background);
 
-  FlView* topbar = fl_view_new_for_engine(engine);
-  GtkWindow* topbar_window =
-      layer_window(self, topbar, GTK_LAYER_SHELL_LAYER_TOP, "topbar");
-  gtk_layer_set_anchor(topbar_window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-  gtk_layer_set_anchor(topbar_window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-  gtk_layer_set_anchor(topbar_window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-  gtk_widget_set_size_request(GTK_WIDGET(topbar_window), -1,
-                              kTopBarHeight + kTooltipSpace);
-  gtk_layer_set_exclusive_zone(topbar_window, kTopBarHeight);
-  g_signal_connect_after(topbar_window, "size-allocate",
-                         G_CALLBACK(topbar_size_allocate_cb), nullptr);
-
-  // A dock tem o tamanho do conteúdo, centrada na base. A zona exclusiva
-  // conta a partir da margem: as duas somam a reserva do system_shell
-  FlView* dock = fl_view_new_sized_to_content(engine);
-  GtkWindow* dock_window =
-      layer_window(self, dock, GTK_LAYER_SHELL_LAYER_TOP, "dock");
-  gtk_layer_set_anchor(dock_window, GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-  gtk_layer_set_margin(dock_window, GTK_LAYER_SHELL_EDGE_BOTTOM, kDockMargin);
-  gtk_layer_set_exclusive_zone(dock_window, kDockReserve - kDockMargin);
-
-  FlView* overlay = fl_view_new_for_engine(engine);
-  self->overlay =
-      layer_window(self, overlay, GTK_LAYER_SHELL_LAYER_OVERLAY, "overlay");
-  anchor_all(self->overlay);
-  gtk_layer_set_exclusive_zone(self->overlay, -1);
-  g_signal_connect_after(self->overlay, "size-allocate",
-                         G_CALLBACK(overlay_size_allocate_cb), nullptr);
-
   self->views[kBackground] = background;
-  self->views[kTopBar] = topbar;
-  self->views[kDock] = dock;
-  self->views[kOverlay] = overlay;
+  self->windows[kBackground] = background_window;
+
+  if (surface_wanted(kTopBar)) {
+    FlView* topbar = fl_view_new_for_engine(engine);
+    GtkWindow* window =
+        layer_window(self, topbar, GTK_LAYER_SHELL_LAYER_TOP, "topbar");
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+    gtk_widget_set_size_request(GTK_WIDGET(window), -1,
+                                kTopBarHeight + kTooltipSpace);
+    gtk_layer_set_exclusive_zone(window, kTopBarHeight);
+    g_signal_connect_after(window, "size-allocate",
+                           G_CALLBACK(topbar_size_allocate_cb), nullptr);
+    self->views[kTopBar] = topbar;
+    self->windows[kTopBar] = window;
+  }
+
+  // A dock tem o tamanho do conteúdo (sized_window_resize), centrada na
+  // base. A zona exclusiva
+  // conta a partir da margem: as duas somam a reserva do system_shell
+  if (surface_wanted(kDock)) {
+    FlView* dock = fl_view_new_for_engine(engine);
+    GtkWindow* window =
+        layer_window(self, dock, GTK_LAYER_SHELL_LAYER_TOP, "dock");
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_BOTTOM, kDockMargin);
+    gtk_layer_set_exclusive_zone(window, kDockReserve - kDockMargin);
+    sized_window_resize(window, 1, 1);
+    self->views[kDock] = dock;
+    self->windows[kDock] = window;
+  }
+
+  if (surface_wanted(kOverlay)) {
+    FlView* overlay = fl_view_new_for_engine(engine);
+    GtkWindow* window =
+        layer_window(self, overlay, GTK_LAYER_SHELL_LAYER_OVERLAY, "overlay");
+    anchor_all(window);
+    gtk_layer_set_exclusive_zone(window, -1);
+    g_signal_connect_after(window, "size-allocate",
+                           G_CALLBACK(overlay_size_allocate_cb), nullptr);
+    self->views[kOverlay] = overlay;
+    self->windows[kOverlay] = window;
+  }
+
+  // Os toasts e o OSD têm o tamanho do conteúdo e ignoram as zonas
+  // exclusivas: as margens já contam a top bar e a dock
+  if (surface_wanted(kToasts)) {
+    FlView* toasts = fl_view_new_for_engine(engine);
+    GtkWindow* window =
+        layer_window(self, toasts, GTK_LAYER_SHELL_LAYER_OVERLAY, "toasts");
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_TOP, kToastsTop);
+    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_RIGHT, kToastsRight);
+    gtk_layer_set_exclusive_zone(window, -1);
+    sized_window_resize(window, 1, 1);
+    self->views[kToasts] = toasts;
+    self->windows[kToasts] = window;
+  }
+
+  if (surface_wanted(kOsd)) {
+    FlView* osd = fl_view_new_for_engine(engine);
+    GtkWindow* window =
+        layer_window(self, osd, GTK_LAYER_SHELL_LAYER_OVERLAY, "osd");
+    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+    gtk_layer_set_margin(window, GTK_LAYER_SHELL_EDGE_BOTTOM, kOsdBottom);
+    gtk_layer_set_exclusive_zone(window, -1);
+    g_signal_connect_after(window, "size-allocate",
+                           G_CALLBACK(osd_size_allocate_cb), nullptr);
+    sized_window_resize(window, 1, 1);
+    self->views[kOsd] = osd;
+    self->windows[kOsd] = window;
+  }
 
   FlBinaryMessenger* messenger = fl_engine_get_binary_messenger(engine);
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
@@ -220,12 +326,16 @@ static void my_application_activate(GApplication* application) {
                                             icons_call_cb, nullptr, nullptr);
   toplevels_init(messenger);
 
-  // A sobreposição fica só realizada (a view existe para o Dart) e aparece
-  // quando o Dart pede
-  gtk_widget_realize(GTK_WIDGET(overlay));
-  gtk_widget_show(GTK_WIDGET(background_window));
-  gtk_widget_show(GTK_WIDGET(topbar_window));
-  gtk_widget_show(GTK_WIDGET(dock_window));
+  // A sobreposição, os toasts e o OSD ficam só realizados (a view existe
+  // para o Dart) e aparecem quando o Dart pede
+  for (int i = 0; i < kSurfaces; i++) {
+    if (self->windows[i] == nullptr) continue;
+    if (i == kOverlay || i == kToasts || i == kOsd) {
+      gtk_widget_realize(GTK_WIDGET(self->views[i]));
+    } else {
+      gtk_widget_show(GTK_WIDGET(self->windows[i]));
+    }
+  }
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(background));
 }

@@ -1,15 +1,18 @@
 // spike/shell_client/lib/main.dart
 //
-// O shell do Psito como cliente layer-shell do compositor (fase 3, etapa 4).
-// O runner cria uma superfície por parte do shell; aqui cada uma ganha a sua
-// view, com os widgets e os serviços do system_shell.
+// O shell do Psito como cliente layer-shell do compositor (fase 3). O runner
+// cria uma superfície por parte do shell; aqui cada uma ganha a sua view, com
+// os widgets e os serviços do system_shell.
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dbus/dbus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:system_shell/services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
+import 'bridge/bridge.dart';
+import 'notifications_server.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
 import 'toplevels.dart';
@@ -17,6 +20,9 @@ import 'views.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // No release o Flutter não imprime os erros; aqui eles vão para o journal
+  FlutterError.onError = (details) =>
+      debugPrint('🦜 erro: ${details.exceptionAsString()}\n${details.stack}');
   final settings = await SettingsStore.load(defaultSettingsFile());
   final state = ShellState(
     settings: settings,
@@ -28,13 +34,28 @@ Future<void> main() async {
 
   unawaited(state.toplevels.start());
   unawaited(state.loadApps(Platform.environment));
+  Bridge(settings).start();
+
+  final DBusClient bus;
   try {
-    await publishShell(
-      ShellBusObject(
-        onToggleLauncher: () => state.toggle(ShellOverlay.launcher),
-      ),
-    );
+    bus = await publishShell(ShellBusObject(onRun: state.run));
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');
+    return;
+  }
+  final server = NotificationsServer(
+    onNotify: state.notify,
+    onClose: state.notifications.close,
+  );
+  state.onNotificationRemoved = (id, reason) {
+    unawaited(server.notifyClosed(id, reason));
+  };
+  state.onNotificationTapped = (id) {
+    unawaited(server.invokeDefault(id));
+  };
+  try {
+    await publishNotifications(bus, server);
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o servidor de notificações ($e)');
   }
 }

@@ -7,9 +7,11 @@ import 'helpers.dart';
 
 final _ctrl = {LogicalKeyboardKey.controlLeft};
 
-List<ShellWindow> _zOrder(List<String> ids) => [
+List<SwitcherEntry> _zOrder(List<String> ids) => [
   for (final id in ids)
-    ShellWindow(id: id, app: FakeApp(id), bounds: Rect.zero),
+    SwitcherEntry.fromWindow(
+      ShellWindow(id: id, app: FakeApp(id), bounds: Rect.zero),
+    ),
 ];
 
 void main() {

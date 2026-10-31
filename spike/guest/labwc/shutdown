@@ -1,0 +1,2 @@
+# Ao sair do labwc, o shell sai junto: sem compositor ele não tem onde desenhar
+systemctl --user stop psito-shell.service

@@ -4,7 +4,8 @@
 // uma view do Flutter em cada.
 import 'package:flutter/services.dart';
 
-enum Surface { background, topbar, dock, overlay }
+/// As que o runner cria; com `PSITO_SURFACES`, só as pedidas (medições).
+enum Surface { background, topbar, dock, overlay, toasts, osd }
 
 /// Teclado da sobreposição: o launcher pega o teclado todo; os painéis só
 /// quando clicados.
@@ -27,4 +28,20 @@ class Surfaces {
   );
 
   Future<void> hideOverlay() => _channel.invokeMethod('hideOverlay');
+
+  /// Os toasts e o OSD, que só existem enquanto têm algo na tela.
+  Future<void> show(Surface surface) =>
+      _channel.invokeMethod('show', surface.name);
+
+  Future<void> hide(Surface surface) =>
+      _channel.invokeMethod('hide', surface.name);
+
+  /// O tamanho da superfície, para as que têm o tamanho do conteúdo (dock,
+  /// toasts e OSD). Em pixels lógicos.
+  Future<void> resize(Surface surface, Size size) =>
+      _channel.invokeMethod('resize', {
+        'surface': surface.name,
+        'width': size.width.ceil(),
+        'height': size.height.ceil(),
+      });
 }

@@ -142,8 +142,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
   /// fechou, abre o app de novo.
   void _openNotificationSource(ShellNotification notification) {
     _closeOverlay();
-    if (_windows.contains(notification.windowId)) {
-      _windows.focus(notification.windowId);
+    if (notification.windowId case final id? when _windows.contains(id)) {
+      _windows.focus(id);
       return;
     }
     for (final app in registeredApps) {
@@ -189,7 +189,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
       case ShellAction.switchNext || ShellAction.switchPrev:
         _closeOverlay();
         _switcher.start(
-          _windows.windows,
+          [for (final w in _windows.windows) SwitcherEntry.fromWindow(w)],
           holdKeys: keyboard.isAltPressed
               ? {LogicalKeyboardKey.altLeft, LogicalKeyboardKey.altRight}
               : {

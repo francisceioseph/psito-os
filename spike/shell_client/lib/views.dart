@@ -3,22 +3,26 @@
 // Uma view do Flutter por superfície layer-shell, todas no mesmo isolate e
 // com o mesmo [ShellState]. Os widgets são os do system_shell.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/app.dart';
-import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/network_panel.dart';
 import 'package:system_shell/widgets/notification_panel.dart';
+import 'package:system_shell/widgets/notification_toasts.dart';
 import 'package:system_shell/widgets/power_confirm_dialog.dart';
 import 'package:system_shell/widgets/power_panel.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 import 'package:system_shell/widgets/top_bar.dart';
+import 'package:system_shell/widgets/volume_osd.dart';
 import 'package:system_shell/widgets/volume_panel.dart';
+import 'package:system_shell/widgets/window_switcher_overlay.dart';
 
 import 'app_icon.dart';
-import 'desktop_entries.dart';
 import 'shell_state.dart';
+import 'size_reporter.dart';
 import 'surfaces.dart';
 
 /// A raiz: põe cada superfície na sua view, assim que o engine anuncia a
@@ -69,6 +73,8 @@ class _ShellViewsState extends State<ShellViews> with WidgetsBindingObserver {
                 Surface.topbar => _TopBarView(state),
                 Surface.dock => _DockView(state),
                 Surface.overlay => _OverlayView(state),
+                Surface.toasts => _ToastsView(state),
+                Surface.osd => _OsdView(state),
               },
             ),
       ],
@@ -165,11 +171,26 @@ class _TopBarView extends StatelessWidget {
   }
 }
 
-/// A dock fica numa view dimensionada pelo conteúdo: sem MaterialApp, que
-/// ocuparia todo o espaço oferecido.
-class _DockView extends StatelessWidget {
+/// A dock, os toasts e o OSD têm o tamanho do conteúdo: o conteúdo é medido
+/// sem limite (OverflowBox) e o runner ajusta a superfície a ele. As views
+/// dimensionadas pelo conteúdo do embedder (fl_view_new_sized_to_content)
+/// não servem: o embedder pede o tamanho novo à GtkWindow, mas a superfície
+/// layer-shell continua com o tamanho do primeiro configure.
+///
+/// Sem MaterialApp, que ocuparia todo o espaço; sem o Overlay dele, os
+/// tooltips ficam desligados.
+class _Sized extends StatelessWidget {
   final ShellState state;
-  const _DockView(this.state);
+  final Surface surface;
+  final Alignment alignment;
+  final Widget Function(BuildContext context, PsitoSettings settings) builder;
+
+  const _Sized(
+    this.state,
+    this.surface, {
+    required this.alignment,
+    required this.builder,
+  });
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(
@@ -178,36 +199,59 @@ class _DockView extends StatelessWidget {
       data: psitoTheme(settings.accent),
       child: Directionality(
         textDirection: TextDirection.ltr,
-        child: ListenableBuilder(
-          listenable: Listenable.merge([state.toplevels, state.apps]),
-          builder: (context, _) {
-            final slots = state.dockSlots;
-            return PsitoDock(
-              apps: [
-                for (final slot in slots)
-                  _entry(slot.id, slot.name, slot.entry, settings.accent),
-              ],
-              runningAppIds: {
-                for (final slot in slots)
-                  if (slot.running) slot.id,
-              },
-              onAppTap: (app) =>
-                  state.tapDock(slots.firstWhere((slot) => slot.id == app.id)),
-            );
-          },
+        child: TooltipVisibility(
+          visible: false,
+          child: Material(
+            type: MaterialType.transparency,
+            child: OverflowBox(
+              alignment: alignment,
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              child: SizeReporter(
+                onSize: (size) => state.surfaces.resize(surface, size),
+                child: Builder(
+                  builder: (context) => builder(context, settings),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     ),
   );
 }
 
-AppEntry _entry(String id, String name, DesktopEntry? desktop, Color color) =>
-    AppEntry(
-      id: id,
-      name: name,
-      color: color,
-      icon: (size) => AppIcon(desktop?.icon, size: size),
-    );
+class _DockView extends StatelessWidget {
+  final ShellState state;
+  const _DockView(this.state);
+
+  @override
+  Widget build(BuildContext context) => _Sized(
+    state,
+    Surface.dock,
+    alignment: Alignment.bottomCenter,
+    builder: (context, settings) => ListenableBuilder(
+      listenable: Listenable.merge([state.toplevels, state.apps]),
+      builder: (context, _) {
+        final slots = state.dockSlots;
+        return PsitoDock(
+          apps: [
+            for (final slot in slots)
+              appEntry(slot.id, slot.name, slot.entry, settings.accent),
+          ],
+          runningAppIds: {
+            for (final slot in slots)
+              if (slot.running) slot.id,
+          },
+          onAppTap: (app) =>
+              state.tapDock(slots.firstWhere((slot) => slot.id == app.id)),
+        );
+      },
+    ),
+  );
+}
 
 /// Launcher, painéis da top bar e a confirmação de energia. A superfície só
 /// existe enquanto um deles está aberto; a faixa da top bar fica fora da
@@ -224,9 +268,29 @@ class _OverlayView extends StatelessWidget {
       builder: (context) => Material(
         type: MaterialType.transparency,
         child: ListenableBuilder(
-          listenable: Listenable.merge([state.overlay, state.confirm]),
+          listenable: Listenable.merge([
+            state.overlay,
+            state.confirm,
+            state.switcher,
+          ]),
           builder: (context, _) {
             final accent = Theme.of(context).colorScheme.primary;
+            if (state.switcher.isOpen) {
+              return Focus(
+                autofocus: true,
+                onKeyEvent: (node, event) =>
+                    state.handleKey(
+                      event,
+                      shift: HardwareKeyboard.instance.isShiftPressed,
+                    )
+                    ? KeyEventResult.handled
+                    : KeyEventResult.ignored,
+                child: WindowSwitcherOverlay(
+                  switcher: state.switcher,
+                  onPick: state.pickSwitcher,
+                ),
+              );
+            }
             if (state.confirm.value case final action?) {
               final powerOff = action == PowerAction.powerOff;
               return PowerConfirmDialog(
@@ -242,7 +306,7 @@ class _OverlayView extends StatelessWidget {
               ShellOverlay.launcher => Launcher(
                 apps: [
                   for (final app in state.apps.value)
-                    _entry(app.id, app.name, app, accent),
+                    appEntry(app.id, app.name, app, accent),
                 ],
                 onLaunch: (entry) => state.launch(
                   state.apps.value.firstWhere((app) => app.id == entry.id),
@@ -252,7 +316,7 @@ class _OverlayView extends StatelessWidget {
               ShellOverlay.notifications => NotificationPanel(
                 center: state.notifications,
                 onClose: state.closeOverlay,
-                onTap: (_) => state.closeOverlay(),
+                onTap: state.openNotification,
               ),
               ShellOverlay.network => NetworkPanel(
                 state: services.network.state,
@@ -285,4 +349,41 @@ class _OverlayView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Os toasts, no canto de cima à direita; a superfície só existe com algum
+/// na tela.
+class _ToastsView extends StatelessWidget {
+  final ShellState state;
+  const _ToastsView(this.state);
+
+  @override
+  Widget build(BuildContext context) => _Sized(
+    state,
+    Surface.toasts,
+    alignment: Alignment.topRight,
+    builder: (context, _) => NotificationToasts(
+      center: state.notifications,
+      onTap: state.openNotification,
+    ),
+  );
+}
+
+/// O aviso de volume, acima da dock; não recebe cliques.
+class _OsdView extends StatelessWidget {
+  final ShellState state;
+  const _OsdView(this.state);
+
+  @override
+  Widget build(BuildContext context) => _Sized(
+    state,
+    Surface.osd,
+    alignment: Alignment.bottomCenter,
+    builder: (context, _) => ListenableBuilder(
+      listenable: Listenable.merge([state.osd, state.services.audio.state]),
+      builder: (context, _) => state.osd.value
+          ? VolumeOsd(state: state.services.audio.state.value)
+          : const SizedBox.shrink(),
+    ),
+  );
 }

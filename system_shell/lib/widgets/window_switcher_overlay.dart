@@ -3,6 +3,7 @@
 // Faixa do Alt+Tab / Ctrl+Tab: um cartão por janela, a escolhida em destaque.
 import 'package:flutter/material.dart';
 
+import '../shell/app_entry.dart';
 import '../shell/window_switcher.dart';
 
 class WindowSwitcherOverlay extends StatelessWidget {
@@ -39,8 +40,7 @@ class WindowSwitcherOverlay extends StatelessWidget {
                   for (final w in switcher.windows)
                     _Card(
                       key: ValueKey('switcher-${w.id}'),
-                      icon: w.app.icon,
-                      color: w.app.color,
+                      app: w.app,
                       minimized: w.minimized,
                       selected: w == selected,
                       accent: accent,
@@ -70,8 +70,7 @@ class WindowSwitcherOverlay extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  final IconData icon;
-  final Color color;
+  final AppEntry app;
   final bool minimized;
   final bool selected;
   final Color accent;
@@ -79,8 +78,7 @@ class _Card extends StatelessWidget {
 
   const _Card({
     super.key,
-    required this.icon,
-    required this.color,
+    required this.app,
     required this.minimized,
     required this.selected,
     required this.accent,
@@ -107,7 +105,7 @@ class _Card extends StatelessWidget {
         ),
         child: Opacity(
           opacity: minimized ? 0.5 : 1,
-          child: Icon(icon, size: 40, color: color),
+          child: Center(child: app.icon(40)),
         ),
       ),
     );

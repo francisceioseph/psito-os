@@ -34,7 +34,7 @@ open_client() {
     echo "$pid"
 }
 # Soma de uma coluna das linhas do sample.sh
-column() { awk -F, -v c="$1" '{s += $c} END {print s + 0}'; }
+column() { LC_ALL=C awk -F, -v c="$1" '{s += $c} END {print s + 0}'; }
 metric() { echo "$1,$2" | tee -a "$OUT"; }
 # Um compositor que cai no meio invalida o resto: registra e para
 alive() {
