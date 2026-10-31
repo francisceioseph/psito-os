@@ -1,0 +1,5 @@
+# Os apps padrão da sessão do Psito (XDG_CURRENT_DESKTOP=Psito), antes dos
+# do sistema e depois dos do usuário (~/.config/mimeapps.list).
+[Default Applications]
+inode/directory=org.psito.files.desktop
+text/plain=org.psito.notepad.desktop

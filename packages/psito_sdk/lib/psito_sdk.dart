@@ -5,6 +5,7 @@
 // app pede ao shell precisa passar pelo PsitoAppContext.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Brightness, ColorScheme, ThemeData;
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 /// Descrição de um app: o que aparece na dock/launcher e como construí-lo.
@@ -72,6 +73,66 @@ abstract class PsitoAppContext {
   /// Liga o ajuste automático (NTP). Ignorado sem
   /// [PsitoApp.canChangeSettings].
   void setNtp(bool enabled);
+
+  /// Os arquivos com que o app foi aberto (o "Abrir" do Files ou de outro
+  /// app). No sandbox, o que o app não veria chega montado em
+  /// `$XDG_RUNTIME_DIR/doc/`.
+  List<String> get openedPaths;
+
+  /// Os arquivos que chegam com o app já aberto, num app de instância única
+  /// ([PsitoApp.singleInstance]): o shell entrega a ele em vez de abrir
+  /// outro processo.
+  Stream<List<String>> get openRequests;
+
+  /// Abre cada arquivo no app padrão do tipo dele, ou em [withApp] (o id do
+  /// `.desktop`), pelo shell. Lança [PsitoOpenException] se nenhum app abre.
+  Future<void> open(List<String> paths, {String? withApp});
+
+  /// Os apps que abrem o tipo MIME, o padrão primeiro.
+  Future<List<PsitoAppChoice>> appsFor(String mimeType);
+
+  /// Muda o app padrão do tipo. Só para apps que veem os arquivos do
+  /// usuário (`files:home`).
+  Future<void> setDefaultApp(String mimeType, String appId);
+}
+
+/// Um app que abre um tipo de arquivo, para o "Abrir com".
+@immutable
+class PsitoAppChoice {
+  /// O id do `.desktop`.
+  final String id;
+  final String name;
+
+  /// O nome do ícone no tema.
+  final String? icon;
+  final bool isDefault;
+
+  const PsitoAppChoice({
+    required this.id,
+    required this.name,
+    this.icon,
+    this.isDefault = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoAppChoice &&
+      other.id == id &&
+      other.name == name &&
+      other.icon == icon &&
+      other.isDefault == isDefault;
+
+  @override
+  int get hashCode => Object.hash(id, name, icon, isDefault);
+}
+
+class PsitoOpenException implements Exception {
+  final String message;
+
+  const PsitoOpenException(this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// O que o sistema diz de si (hostnamed no Linux).
@@ -424,3 +485,65 @@ ThemeData psitoTheme(Color accent) => ThemeData(
     secondary: const Color(0xFFFF5722), // Bochecha alaranjada
   ),
 );
+
+/// Os ícones do tema do sistema (o canal `psito/icons` do runtime, sobre o
+/// GtkIconTheme, que também lê SVG), carregados uma vez por nome e tamanho.
+const _iconsChannel = MethodChannel('psito/icons');
+final _iconCache = <String, Future<Uint8List?>>{};
+
+/// O PNG do primeiro dos [names] que o tema tiver (ou de um caminho
+/// absoluto), no tamanho em pixels. Null se nenhum existir ou sem o runtime
+/// (nos testes).
+Future<Uint8List?> loadThemeIcon(List<String> names, int size) =>
+    _iconCache.putIfAbsent('${names.join('|')}@$size', () async {
+      try {
+        return await _iconsChannel.invokeMethod<Uint8List>('iconPng', {
+          'names': names,
+          'size': size,
+        });
+      } on MissingPluginException {
+        return null;
+      } on PlatformException {
+        return null;
+      }
+    });
+
+/// Um ícone do tema: [names] do mais exato para o mais genérico
+/// (`text-x-python`, `text-x-script`, `text-x-generic`), ou um caminho.
+/// Enquanto carrega, um espaço do tamanho; sem nenhum, [fallback].
+class PsitoIcon extends StatelessWidget {
+  final List<String> names;
+  final double size;
+  final Widget? fallback;
+
+  const PsitoIcon(this.names, {super.key, required this.size, this.fallback});
+
+  /// Os tamanhos em que o tema costuma ter os ícones: o pedido sobe para o
+  /// próximo, para o cache servir a mais de um tamanho.
+  static const _buckets = [16, 24, 32, 48, 64, 96, 128, 256];
+
+  @override
+  Widget build(BuildContext context) {
+    final pixels =
+        size * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1).clamp(1, 4);
+    final load = _buckets.firstWhere((b) => b >= pixels, orElse: () => 256);
+    return FutureBuilder(
+      future: names.isEmpty ? Future.value(null) : loadThemeIcon(names, load),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) {
+          return snapshot.connectionState == ConnectionState.done
+              ? SizedBox.square(dimension: size, child: fallback)
+              : SizedBox.square(dimension: size);
+        }
+        return Image.memory(
+          bytes,
+          width: size,
+          height: size,
+          filterQuality: FilterQuality.medium,
+          gaplessPlayback: true,
+        );
+      },
+    );
+  }
+}

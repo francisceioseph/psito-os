@@ -4,12 +4,16 @@
 # só dele. O shell chama dentro do systemd-run do app, então o proxy fica no
 # mesmo escopo e morre junto.
 #
-#   psito-sandbox --app <app-id> [--permissions "a;b"] [--dry-run] -- <comando...>
+#   psito-sandbox --app <app-id> [--permissions "a;b"] [--file <fora> <dentro>]...
+#                 [--dry-run] -- <comando...>
 #
 # Permissões: network (a rede e o NetworkManager), settings (o Update do
 # org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade)
 # e notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
-# ~/.local/share/psito/apps/<app-id>/. O --dry-run imprime os comandos do
+# ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
+# pasta) que ele não veria: o shell monta <fora> em <dentro>, que fica em
+# $XDG_RUNTIME_DIR/doc/ (a ideia do portal de documentos do Flatpak) e é o
+# caminho que o app recebe. O --dry-run imprime os comandos do
 # proxy e do bwrap, um argumento por linha, e não roda nada.
 # Vai no pacote psito-shell, em /usr/bin.
 set -e
@@ -17,10 +21,12 @@ set -e
 APP=
 PERMISSIONS=
 DRY_RUN=0
+FILES=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --app) APP="$2"; shift 2 ;;
         --permissions) PERMISSIONS="$2"; shift 2 ;;
+        --file) FILES+=("$2" "$3"); shift 3 ;;
         --dry-run) DRY_RUN=1; shift ;;
         --) shift; break ;;
         *) echo "psito-sandbox: argumento desconhecido: $1" >&2; exit 2 ;;
@@ -45,15 +51,37 @@ SYSTEM_BUS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/run/dbus/system_bus_socket}"
 SOCKETS="$RUN/psito-sandbox/$APP-$$"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/psito/apps/$APP"
 
+# Os arquivos dados: o de fora existe, e o de dentro fica em $RUN/doc/
+DOCS=()
+for ((i = 0; i < ${#FILES[@]}; i += 2)); do
+    outside="${FILES[i]}" inside="${FILES[i + 1]}"
+    if [[ "$inside" != "$RUN/doc/"* ]] || [[ "/$inside/" == */../* ]]; then
+        echo "psito-sandbox: caminho de dentro inválido: $inside" >&2
+        exit 2
+    fi
+    if [ ! -e "$outside" ]; then
+        echo "psito-sandbox: não existe: $outside" >&2
+        exit 2
+    fi
+    DOCS+=(--bind "$outside" "$inside")
+done
+
 SETTINGS=(org.psito.Settings org.psito.Settings /org/psito/Settings)
+LAUNCHER=(org.psito.Launcher org.psito.Launcher /org/psito/Launcher)
 proxy=(xdg-dbus-proxy
     "$SESSION_BUS" "$SOCKETS/bus" --filter
     --talk=org.freedesktop.portal.Desktop
     --talk=org.freedesktop.portal.Documents
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.Open@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.OpenWith@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.AppsFor@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.NextOpen@${LAUNCHER[2]}"
     "--call=${SETTINGS[0]}=${SETTINGS[1]}.Get@${SETTINGS[2]}"
     "--broadcast=${SETTINGS[0]}=${SETTINGS[1]}.Changed@${SETTINGS[2]}"
 )
 has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[2]}")
+# O padrão de cada tipo é do usuário: só quem vê os arquivos dele
+has files:home && proxy+=("--call=${LAUNCHER[0]}=${LAUNCHER[1]}.SetDefault@${LAUNCHER[2]}")
 has notifications && proxy+=(--talk=org.freedesktop.Notifications)
 
 # O sistema: ler o nome e a hora é de todos (o systemInfo e o time do
@@ -100,6 +128,9 @@ else
     sandbox+=(--bind "$DATA" "$HOME"
         --ro-bind-try "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-3.0")
 fi
+# Os ícones do usuário (o tema dos apps instalados no home), só para leitura
+has files:home || sandbox+=(--ro-bind-try "$HOME/.local/share/icons" "$HOME/.local/share/icons")
+sandbox+=("${DOCS[@]}")
 sandbox+=(--chdir "$HOME"
     --unsetenv DISPLAY
     --unsetenv DBUS_SYSTEM_BUS_ADDRESS

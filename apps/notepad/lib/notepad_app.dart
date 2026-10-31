@@ -22,7 +22,10 @@ class NotepadView extends StatefulWidget {
   /// Onde a nota é gravada. Null: só na memória.
   final File? file;
 
-  const NotepadView({super.key, this.file});
+  /// Como o arquivo aparece no "Salvo em".
+  final String label;
+
+  const NotepadView({super.key, this.file, this.label = '~/nota.txt'});
 
   @override
   State<NotepadView> createState() => _NotepadViewState();
@@ -80,7 +83,7 @@ class _NotepadViewState extends State<NotepadView> {
 
   String get _status {
     if (widget.file == null) return 'Nota só nesta sessão';
-    return _saving ? 'Salvando...' : 'Salvo em ~/nota.txt';
+    return _saving ? 'Salvando...' : 'Salvo em ${widget.label}';
   }
 
   @override
@@ -177,7 +180,21 @@ class NotepadApp extends PsitoApp {
   @override
   Color get color => const Color(0xFF4CAF50);
 
+  /// Aberto com um arquivo (o "Abrir" do Files), edita ele; senão, a nota.
   @override
-  Widget build(PsitoAppContext context) =>
-      NotepadView(file: noteFile(Platform.environment));
+  Widget build(PsitoAppContext context) {
+    final opened = context.openedPaths;
+    if (opened.isEmpty) {
+      return NotepadView(file: noteFile(Platform.environment));
+    }
+    final name = opened.first.substring(opened.first.lastIndexOf('/') + 1);
+    return NotepadView(file: File(opened.first), label: name);
+  }
+
+  @override
+  void onOpen(PsitoAppContext context) {
+    final opened = context.openedPaths;
+    if (opened.isEmpty) return;
+    context.setTitle(opened.first.substring(opened.first.lastIndexOf('/') + 1));
+  }
 }

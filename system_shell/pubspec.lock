@@ -171,6 +171,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.3"
+  mime:
+    dependency: transitive
+    description:
+      name: mime
+      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.0"
   nm:
     dependency: transitive
     description:
@@ -216,6 +224,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0+1"
+  psito_fs:
+    dependency: transitive
+    description:
+      path: "../packages/psito_fs"
+      relative: true
+    source: path
+    version: "0.1.0"
   psito_notepad:
     dependency: "direct main"
     description:

@@ -64,9 +64,15 @@ void main() {
           .padLeft(6, '0')
           .toUpperCase();
       expect(text, contains('Name=${app.name}\n'));
+      // O código de campo (%f, %U) é de quem abre arquivos
       expect(
         text,
-        contains('Exec=/usr/lib/psito/apps/$appId/psito_${app.id}\n'),
+        matches(
+          RegExp(
+            '^Exec=/usr/lib/psito/apps/$appId/psito_${app.id}( %[fFuU])?\$',
+            multiLine: true,
+          ),
+        ),
       );
       expect(text, contains('Icon=$appId\n'));
       expect(text, contains('StartupWMClass=$appId\n'));

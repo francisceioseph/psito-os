@@ -9,12 +9,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  psito_fs:
+    path: ../../packages/psito_fs
   psito_runtime:
     path: ../../packages/psito_runtime
   psito_sdk:
     path: ../../packages/psito_sdk
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:

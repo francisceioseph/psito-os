@@ -33,7 +33,6 @@ struct _MyApplication {
   FlView* views[6];
   GtkWindow* windows[6];
   FlMethodChannel* surfaces_channel;
-  FlMethodChannel* icons_channel;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -204,38 +203,6 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
   }
 }
 
-// Ícone do tema (ou de um caminho) como PNG, para o Image.memory do Dart
-static void icons_call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
-  FlValue* args = fl_method_call_get_args(call);
-  if (strcmp(fl_method_call_get_name(call), "iconPng") != 0 ||
-      args == nullptr || fl_value_get_type(args) != FL_VALUE_TYPE_MAP) {
-    fl_method_call_respond_not_implemented(call, nullptr);
-    return;
-  }
-  const gchar* name = fl_value_get_string(fl_value_lookup_string(args, "name"));
-  int size = fl_value_get_int(fl_value_lookup_string(args, "size"));
-
-  g_autoptr(GdkPixbuf) pixbuf = nullptr;
-  if (g_path_is_absolute(name)) {
-    pixbuf = gdk_pixbuf_new_from_file_at_size(name, size, size, nullptr);
-  } else {
-    pixbuf = gtk_icon_theme_load_icon(gtk_icon_theme_get_default(), name, size,
-                                      GTK_ICON_LOOKUP_FORCE_SIZE, nullptr);
-  }
-  gchar* buffer = nullptr;
-  gsize length = 0;
-  if (pixbuf == nullptr ||
-      !gdk_pixbuf_save_to_buffer(pixbuf, &buffer, &length, "png", nullptr,
-                                 nullptr)) {
-    fl_method_call_respond_success(call, nullptr, nullptr);
-    return;
-  }
-  g_autoptr(FlValue) png =
-      fl_value_new_uint8_list(reinterpret_cast<uint8_t*>(buffer), length);
-  g_free(buffer);
-  fl_method_call_respond_success(call, png, nullptr);
-}
-
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
@@ -338,10 +305,6 @@ static void my_application_activate(GApplication* application) {
                                                  FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(self->surfaces_channel,
                                             surfaces_call_cb, self, nullptr);
-  self->icons_channel =
-      fl_method_channel_new(messenger, "psito/icons", FL_METHOD_CODEC(codec));
-  fl_method_channel_set_method_call_handler(self->icons_channel,
-                                            icons_call_cb, nullptr, nullptr);
   toplevels_init(messenger);
 
   // A sobreposição, os toasts e o OSD ficam só realizados (a view existe
@@ -402,7 +365,6 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->surfaces_channel);
-  g_clear_object(&self->icons_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

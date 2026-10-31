@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/settings_client.dart';
 import 'package:psito_services/system_info_service.dart';
@@ -36,7 +37,9 @@ AppServices startServices(Map<String, String> env) {
   );
 }
 
-Future<void> runPsitoApp(PsitoApp app) async {
+/// [args] são os argumentos do `main` (os arquivos com que o app abriu, pelo
+/// `Exec` do `.desktop`). As URLs `file://` (`%u`) viram caminhos.
+Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) =>
       debugPrint('🦜 erro: ${details.exceptionAsString()}\n${details.stack}');
@@ -48,6 +51,7 @@ Future<void> runPsitoApp(PsitoApp app) async {
     appName: app.name,
     desktopEntry: await window.applicationId() ?? 'org.psito.${app.id}',
   );
+  final launcher = LauncherClient(session);
   final context = ProcessAppContext(
     app: app,
     settings: settings,
@@ -56,6 +60,12 @@ Future<void> runPsitoApp(PsitoApp app) async {
     onNotify: (n) => unawaited(notifier.notify(n)),
     window: window,
     windowId: '${app.id}#$pid',
+    launcher: launcher,
+    openedPaths: openedPaths(args),
+    // Só um app de instância única recebe os arquivos depois de aberto
+    openRequests: app.singleInstance
+        ? launcher.openRequests().asBroadcastStream()
+        : const Stream.empty(),
   );
   await context.window.setTitle(app.name);
   await context.window.setSize(app.defaultSize);
@@ -63,6 +73,16 @@ Future<void> runPsitoApp(PsitoApp app) async {
   app.onOpen(context);
   unawaited(logFirstFrame());
 }
+
+/// Os caminhos dos argumentos: os absolutos e as URLs `file://`. As opções
+/// (`-x`) e o resto ficam de fora.
+List<String> openedPaths(List<String> args) => [
+  for (final arg in args)
+    if (arg.startsWith('/'))
+      arg
+    else if (arg.startsWith('file://'))
+      Uri.parse(arg).toFilePath(),
+];
 
 /// Registra no journal quando o primeiro quadro chega à tela, em
 /// milissegundos de época: o tools/measure-apps.sh mede o tempo de abrir a

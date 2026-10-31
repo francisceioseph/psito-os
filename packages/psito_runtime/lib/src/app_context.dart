@@ -5,6 +5,7 @@
 // notificações pelo servidor do shell.
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/time_service.dart';
@@ -42,6 +43,15 @@ class ProcessAppContext implements PsitoAppContext {
   @override
   final String windowId;
 
+  /// O shell que abre os arquivos. Null fora de uma sessão (nos testes).
+  final LauncherClient? launcher;
+
+  @override
+  final List<String> openedPaths;
+
+  @override
+  final Stream<List<String>> openRequests;
+
   ProcessAppContext({
     required this.app,
     required this.settings,
@@ -50,6 +60,9 @@ class ProcessAppContext implements PsitoAppContext {
     required this.onNotify,
     this.window = const AppWindow(),
     required this.windowId,
+    this.launcher,
+    this.openedPaths = const [],
+    this.openRequests = const Stream.empty(),
   });
 
   @override
@@ -101,4 +114,21 @@ class ProcessAppContext implements PsitoAppContext {
   void updateSettings(PsitoSettings settings) {
     if (_mayChange('as configurações')) onUpdateSettings(settings);
   }
+
+  @override
+  Future<void> open(List<String> paths, {String? withApp}) async {
+    final launcher = this.launcher;
+    if (launcher == null) {
+      throw const PsitoOpenException('Sem o shell para abrir arquivos.');
+    }
+    await launcher.open(paths, withApp: withApp);
+  }
+
+  @override
+  Future<List<PsitoAppChoice>> appsFor(String mimeType) async =>
+      await launcher?.appsFor(mimeType) ?? const [];
+
+  @override
+  Future<void> setDefaultApp(String mimeType, String appId) async =>
+      launcher?.setDefault(mimeType, appId);
 }

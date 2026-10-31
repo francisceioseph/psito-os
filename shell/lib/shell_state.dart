@@ -18,6 +18,7 @@ import 'app_icon.dart';
 import 'desktop_entries.dart';
 import 'dock_model.dart';
 import 'notifications_server.dart';
+import 'opener.dart';
 import 'surfaces.dart';
 import 'toplevels.dart';
 
@@ -185,6 +186,21 @@ class ShellState {
   void launch(DesktopEntry entry) {
     closeOverlay();
     unawaited(entry.launch(sandbox: sandbox));
+  }
+
+  /// Abre um app com os arquivos (o plano do [Opener]). Cada instância só
+  /// recebe montados os arquivos que ela abre.
+  Future<void> launchPlan(OpenPlan plan) async {
+    for (final command in plan.commands) {
+      await plan.app.launch(
+        sandbox: sandbox,
+        command: command,
+        files: [
+          for (final file in plan.files)
+            if (command.any((arg) => arg.contains(file.$2))) file,
+        ],
+      );
+    }
   }
 
   /// Uma ação pedida pelo compositor (os atalhos que a ponte gerou).

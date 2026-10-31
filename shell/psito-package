@@ -12,5 +12,6 @@ FILES=(
     session/psito-sandbox:/usr/bin/psito-sandbox
     session/psito-shell.service:/usr/lib/systemd/user/psito-shell.service
     session/psito-portals.conf:/usr/share/xdg-desktop-portal/psito-portals.conf
+    session/psito-mimeapps.list:/usr/share/applications/psito-mimeapps.list
     session/labwc:/usr/share/psito/labwc
 )

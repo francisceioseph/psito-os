@@ -17,6 +17,13 @@ class DesktopEntry {
   /// O `Exec` já sem os códigos de campo (`%u`, `%F`…), em argumentos.
   final List<String> command;
 
+  /// O `Exec` em argumentos, com os códigos de campo, para abrir arquivos
+  /// ([commandsFor]).
+  final List<String> exec;
+
+  /// O `MimeType=`: os tipos que o app abre.
+  final List<String> mimeTypes;
+
   /// Nome no tema de ícones ou caminho absoluto.
   final String? icon;
   final bool terminal;
@@ -36,12 +43,14 @@ class DesktopEntry {
     required this.id,
     required this.name,
     required this.command,
+    List<String>? exec,
+    this.mimeTypes = const [],
     this.icon,
     this.terminal = false,
     this.psitoApp,
     this.color,
     this.permissions = const [],
-  });
+  }) : exec = exec ?? command;
 
   /// Lê o grupo `[Desktop Entry]`. Devolve null para o que não aparece no
   /// launcher: outros tipos, `NoDisplay`, `Hidden` ou sem `Exec`.
@@ -68,8 +77,9 @@ class DesktopEntry {
     final exec = values['Exec'];
     final name = _localized(values, 'Name', locale);
     if (exec == null || name == null) return null;
+    final args = splitExec(exec);
     final command = [
-      for (final arg in splitExec(exec))
+      for (final arg in args)
         if (!_fieldCode.hasMatch(arg)) arg.replaceAll('%%', '%'),
     ];
     if (command.isEmpty) return null;
@@ -77,16 +87,20 @@ class DesktopEntry {
       id: id,
       name: name,
       command: command,
+      exec: args,
+      mimeTypes: _list(values['MimeType']),
       icon: values['Icon'],
       terminal: values['Terminal'] == 'true',
       psitoApp: values['X-Psito-App'],
       color: _color(values['X-Psito-Color']),
-      permissions: [
-        for (final p in (values['X-Psito-Permissions'] ?? '').split(';'))
-          if (p.trim().isNotEmpty) p.trim(),
-      ],
+      permissions: _list(values['X-Psito-Permissions']),
     );
   }
+
+  static List<String> _list(String? value) => [
+    for (final item in (value ?? '').split(';'))
+      if (item.trim().isNotEmpty) item.trim(),
+  ];
 
   static final _hexColor = RegExp(r'^#([0-9a-fA-F]{6})$');
 
@@ -115,14 +129,56 @@ class DesktopEntry {
 
   static final _fieldCode = RegExp(r'^%[fFuUdDnNickvm]$');
 
+  /// Se o `Exec` recebe arquivos (`%f`, `%F`, `%u` ou `%U`).
+  bool get acceptsFiles => exec.any((arg) => RegExp('%[fFuU]').hasMatch(arg));
+
+  /// Os comandos que abrem [paths], pelos códigos de campo do `Exec`: um só
+  /// com `%F` ou `%U` (todos de uma vez), um por arquivo com `%f` ou `%u`.
+  /// Sem código, o app não recebe arquivos e abre uma vez, sozinho. Os `%u`
+  /// e `%U` levam a URL `file://`.
+  List<List<String>> commandsFor(List<String> paths) {
+    if (paths.isEmpty) return [command];
+    String uri(String path) => Uri.file(path).toString();
+    final many = exec.contains('%F') || exec.contains('%U');
+    final one = exec.any((arg) => arg.contains('%f') || arg.contains('%u'));
+    if (!many && !one) return [command];
+    List<String> expand(List<String> files) => [
+      for (final arg in exec)
+        if (arg == '%F')
+          ...files
+        else if (arg == '%U')
+          ...files.map(uri)
+        else if (!_fieldCode.hasMatch(arg) ||
+            (!many && (arg == '%f' || arg == '%u')))
+          arg
+              .replaceAll('%f', files.first)
+              .replaceAll('%u', uri(files.first))
+              .replaceAll('%%', '%'),
+    ];
+    return many
+        ? [expand(paths)]
+        : [
+            for (final p in paths) expand([p]),
+          ];
+  }
+
   /// Abre o app num cgroup próprio (uma unidade `.scope` do systemd do
   /// usuário): se o shell cair, o systemd não leva o app junto, e o log do
   /// app sai separado no journal. Sem o systemd-run, abre direto. Um app do
   /// Psito abre no [sandbox] (o `psito-sandbox`), se for dado.
-  Future<void> launch({String? sandbox}) async {
+  /// [command] troca o comando do `.desktop` (o de [commandsFor]), e
+  /// [files] são os arquivos que o sandbox monta para o app (o caminho de
+  /// fora e o de dentro).
+  Future<void> launch({
+    String? sandbox,
+    List<String>? command,
+    List<(String, String)> files = const [],
+  }) async {
     final args = launchCommand(
       random: _random.nextInt(1 << 32),
       sandbox: sandbox,
+      command: command,
+      files: files,
     );
     try {
       await Process.start(
@@ -147,7 +203,12 @@ class DesktopEntry {
   /// qual o xdg-desktop-portal reconhece apps sem Flatpak. Os apps do Psito
   /// passam pelo [sandbox] com as permissões do manifesto; os de fora, não.
   /// O log fica em `journalctl --user -u <unidade>`.
-  List<String> launchCommand({required int random, String? sandbox}) => [
+  List<String> launchCommand({
+    required int random,
+    String? sandbox,
+    List<String>? command,
+    List<(String, String)> files = const [],
+  }) => [
     'systemd-run',
     '--user',
     '--scope',
@@ -164,11 +225,15 @@ class DesktopEntry {
       id,
       '--permissions',
       permissions.join(';'),
+      for (final (outside, inside) in files) ...['--file', outside, inside],
       '--',
     ],
     if (terminal) 'foot',
-    ...command,
+    ...(command ?? this.command),
   ];
+
+  /// Se o app roda no sandbox (um app do Psito, com o sandbox ligado).
+  bool sandboxed(String? sandbox) => sandbox != null && psitoApp != null;
 }
 
 /// `app-psito-<id>-<aleatório>.scope`, com o id escapado como no

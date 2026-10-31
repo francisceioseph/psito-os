@@ -8,11 +8,14 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/widgets.dart';
+import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
 import 'bridge/bridge.dart';
+import 'launcher_bus.dart';
 import 'notifications_server.dart';
+import 'opener.dart';
 import 'settings_bus.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
@@ -59,6 +62,28 @@ Future<void> main() async {
     );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
+  }
+  final env = Platform.environment;
+  try {
+    final launcherBus = DBusClient.session();
+    await publishLauncher(
+      launcherBus,
+      LauncherBusObject(
+        opener: Opener(
+          env: env,
+          mime: MimeDatabase.load(MimeDatabase.dirsFor(env)),
+          sandbox: state.sandbox,
+          apps: () => state.apps.value,
+        ),
+        callerOf: (sender) => senderAppId(launcherBus, sender),
+        isConnected: launcherBus.nameHasOwner,
+        launch: state.launchPlan,
+        setDefault: (mime, appId) =>
+            MimeApps.setDefault(MimeApps.userFile(env), mime, appId),
+      ),
+    );
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');
   }
   final server = NotificationsServer(
     onNotify: state.notify,

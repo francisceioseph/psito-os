@@ -1,9 +1,10 @@
 [Desktop Entry]
 Type=Application
 Name=Files
-Exec=/usr/lib/psito/apps/org.psito.files/psito_files
+Exec=/usr/lib/psito/apps/org.psito.files/psito_files %U
 Icon=org.psito.files
 StartupWMClass=org.psito.files
+MimeType=inode/directory;
 X-Psito-App=files
 X-Psito-Color=#FFC107
 X-Psito-Permissions=files:home;

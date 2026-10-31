@@ -2,6 +2,7 @@
 //
 // Estado das janelas sem UI: z-order, foco, minimizar, snap e redimensionar.
 // A moldura (widgets/psito_window.dart) só chama estes métodos.
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -406,4 +407,32 @@ class _WindowContext implements PsitoAppContext {
       _manager.onUpdateSettings?.call(settings);
     }
   }
+
+  // No laboratório os apps estão no mesmo processo e não há o shell que
+  // abre arquivos: abrir vai para o xdg-open do host
+
+  @override
+  List<String> get openedPaths => const [];
+
+  @override
+  Stream<List<String>> get openRequests => const Stream.empty();
+
+  @override
+  Future<void> open(List<String> paths, {String? withApp}) async {
+    for (final path in paths) {
+      try {
+        await Process.start('xdg-open', [
+          path,
+        ], mode: ProcessStartMode.detached);
+      } on ProcessException catch (e) {
+        throw PsitoOpenException('Sem o xdg-open ($e)');
+      }
+    }
+  }
+
+  @override
+  Future<List<PsitoAppChoice>> appsFor(String mimeType) async => const [];
+
+  @override
+  Future<void> setDefaultApp(String mimeType, String appId) async {}
 }

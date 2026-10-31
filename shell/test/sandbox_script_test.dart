@@ -9,13 +9,17 @@ const _env = {'HOME': '/home/psito', 'XDG_RUNTIME_DIR': '/run/user/1000'};
 
 typedef _Plan = ({List<String> proxy, List<String> bwrap});
 
-Future<_Plan> _dryRun(String permissions) async {
+Future<_Plan> _dryRun(
+  String permissions, [
+  List<String> extra = const [],
+]) async {
   final result = await Process.run('bash', [
     _script,
     '--app',
     'org.psito.x',
     '--permissions',
     permissions,
+    ...extra,
     '--dry-run',
     '--',
     '/usr/lib/psito/apps/org.psito.x/x',
@@ -101,6 +105,52 @@ void main() {
         'true',
       ], environment: _env);
       expect(result.exitCode, 2, reason: id);
+    }
+  });
+
+  test('o Launcher: abrir para todos, o padrão só com files:home', () async {
+    String call(String method) =>
+        '--call=org.psito.Launcher=org.psito.Launcher.$method@/org/psito/Launcher';
+    final none = await _dryRun('');
+    for (final method in ['Open', 'OpenWith', 'AppsFor', 'NextOpen']) {
+      expect(none.proxy, contains(call(method)));
+    }
+    expect(none.proxy, isNot(contains(call('SetDefault'))));
+    expect((await _dryRun('files:home')).proxy, contains(call('SetDefault')));
+  });
+
+  test('o --file monta o arquivo em \$XDG_RUNTIME_DIR/doc', () async {
+    final dir = await Directory.systemTemp.createTemp('psito_sandbox_file');
+    final file = File('${dir.path}/a b.txt')..writeAsStringSync('oi');
+    try {
+      final plan = await _dryRun('', [
+        '--file',
+        file.path,
+        '/run/user/1000/doc/0/a b.txt',
+      ]);
+      expect(_after(plan.bwrap, '--bind', 2).isNotEmpty, isTrue);
+      final i = plan.bwrap.lastIndexOf(file.path);
+      expect(plan.bwrap.sublist(i - 1, i + 2), [
+        '--bind',
+        file.path,
+        '/run/user/1000/doc/0/a b.txt',
+      ]);
+      for (final inside in ['/home/psito/x', '/run/user/1000/doc/../x']) {
+        final bad = await Process.run('bash', [
+          _script,
+          '--app',
+          'org.psito.x',
+          '--file',
+          file.path,
+          inside,
+          '--dry-run',
+          '--',
+          'true',
+        ], environment: _env);
+        expect(bad.exitCode, 2, reason: inside);
+      }
+    } finally {
+      await dir.delete(recursive: true);
     }
   });
 }

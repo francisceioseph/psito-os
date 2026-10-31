@@ -8,6 +8,9 @@ mkdir -p "$CONF"
 for file in /usr/share/psito/labwc/*; do
     [ -e "$CONF/$(basename "$file")" ] || cp "$file" "$CONF/"
 done
+# As pastas do usuário (Documentos, Downloads...), que o Files mostra nos
+# Favoritos. O GNOME roda isso pelo /etc/xdg/autostart, que o labwc ignora
+xdg-user-dirs-update || true
 # Os portais escolhem a configuração pelo primeiro nome (psito-portals.conf)
 export XDG_CURRENT_DESKTOP=Psito:labwc
 exec labwc "$@"

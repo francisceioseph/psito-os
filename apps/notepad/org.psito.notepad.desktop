@@ -1,9 +1,10 @@
 [Desktop Entry]
 Type=Application
 Name=Notepad
-Exec=/usr/lib/psito/apps/org.psito.notepad/psito_notepad
+Exec=/usr/lib/psito/apps/org.psito.notepad/psito_notepad %f
 Icon=org.psito.notepad
 StartupWMClass=org.psito.notepad
+MimeType=text/plain;
 X-Psito-App=notepad
 X-Psito-Color=#4CAF50
 X-Psito-Permissions=
