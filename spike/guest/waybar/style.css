@@ -1,0 +1,5 @@
+* { font-family: sans; font-size: 12px; }
+window#waybar { background: #12181B; color: #E0E0E0; }
+#taskbar button { color: #E0E0E0; padding: 0 8px; }
+#taskbar button.active { background: #FFC107; color: #12181B; }
+#clock { padding: 0 12px; }

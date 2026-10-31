@@ -1,0 +1,14 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 28,
+    "modules-left": ["wlr/taskbar"],
+    "modules-right": ["clock"],
+    "wlr/taskbar": {
+        "format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "on-click-right": "minimize"
+    },
+    "clock": { "format": "{:%H:%M}" }
+}

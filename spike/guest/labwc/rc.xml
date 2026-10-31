@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- Configuração do labwc no spike. A seção <keyboard> é a que a ponte
+     (spike/bridge/labwc_bridge.py) regenera a partir dos atalhos do Psito. -->
+<labwc_config>
+  <core>
+    <decoration>server</decoration>
+    <gap>0</gap>
+  </core>
+  <theme>
+    <cornerRadius>8</cornerRadius>
+    <font place="ActiveWindow"><name>sans</name><size>10</size><weight>bold</weight></font>
+  </theme>
+  <windowSwitcher show="yes" preview="yes" outlines="yes" />
+  <snapping>
+    <range>10</range>
+    <topMaximize>yes</topMaximize>
+  </snapping>
+  <keyboard>
+    <default />
+    <!-- Combinações de VM do Psito (o host fica com Super e Alt+Tab) -->
+    <keybind key="C-space"><action name="Execute" command="foot" /></keybind>
+    <keybind key="C-Tab"><action name="NextWindow" /></keybind>
+    <keybind key="C-S-Tab"><action name="PreviousWindow" /></keybind>
+    <keybind key="C-A-w"><action name="Close" /></keybind>
+    <keybind key="A-S-Up"><action name="ToggleMaximize" /></keybind>
+    <keybind key="A-S-Left"><action name="SnapToEdge" direction="left" /></keybind>
+    <keybind key="A-S-Right"><action name="SnapToEdge" direction="right" /></keybind>
+    <keybind key="A-S-Down"><action name="Iconify" /></keybind>
+  </keyboard>
+</labwc_config>

@@ -40,6 +40,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `probe/`: app Flutter Linux de referência, compilado dentro da VM;
   - `tools/`: injetor de teclas, amostragem de memória e CPU, cálculo de latência e fps;
   - `guest/`: o que o `spike/provision.sh` instala na VM;
+  - `guest/labwc/`, `guest/wayfire.ini` e `guest/waybar/`: a configuração de cada candidato, instalada no `~/.config` do `psito`;
+  - `bridge/labwc_bridge.py`: esboço da ponte (o `settings.json` do Psito vira o tema e os atalhos do labwc);
   - `zenith/`: instala as dependências do Zenith e compila (wlroots 0.15.1 e Flutter 3.10.6 na VM); `patches/`: os patches dele. As fontes de terceiros ficam em `~/vendor/` na VM;
   - `notas/` e `results/`: o que cada candidato mostrou e os números (`results/raw/` e `vendor/` ficam fora do git).
 - `vm/`: arquivos instalados na VM pelo `provision.sh`: o serviço, o script do guest e `polkit/`, com as permissões D-Bus do usuário `psito`
@@ -56,11 +58,12 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.
 - Spike (fase 3):
   - `spike/vm.sh <script da raiz>` roda `create-disk.sh`, `install-os.sh`, `provision.sh` ou `run.sh` na VM do spike; `spike/vm.sh ssh` entra nela. Depois do `provision.sh`, rode `spike/provision.sh`.
-  - `spike/session.sh weston|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe.
+  - `spike/session.sh weston|labwc|wayfire|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe.
   - `spike/measure.sh <candidato> <processo>` mede e grava `spike/results/<candidato>.csv`.
+  - `ssh -p 2223 psito@localhost 'bash -s' < spike/tools/protocols.sh` lista os protocolos que o compositor rodando anuncia.
   - Não suba as duas VMs ao mesmo tempo.
 - `./logs.sh [n]`: últimas n linhas (padrão 40) do `journalctl -u psito-os` na VM
-- `./create-disk.sh`, `./install-os.sh`: criam e instalam a VM sem interação (`vm/preseed.cfg`). Todos os scripts aceitam `DISK`, `SSH_PORT`/`VM_PORT`, `MEM` (ex.: VM de teste na 2223).
+- `./create-disk.sh`, `./install-os.sh`: criam e instalam a VM sem interação (`vm/preseed.cfg`). Todos os scripts aceitam `DISK`, `SSH_PORT`/`VM_PORT`, `MEM` (ex.: VM de teste na 2223). O `run.sh` aceita `TABLET=1` (ponteiro absoluto, ligado na VM do spike).
 
 ## Regras
 - Não ler `build/`, `.dart_tool/`, `linux/flutter/ephemeral/`, `qemu/`, `debian/`.
@@ -69,4 +72,4 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - A UI não tem emojis, porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - Todo atalho global tem uma combinação nativa e uma de VM (`lib/shell/shortcuts.dart`, mais `psitoShortcuts` no SDK). O host Cinnamon fica com Super, Alt+Tab, Alt+\`, Ctrl+Alt+setas e Ctrl+Alt+Shift+setas, e o QEMU fica com Ctrl+Alt+G/F/Q/M/1–9. A lista completa está em `docs/FASE-1.md`.
 - Apps precisam caber no tamanho mínimo de janela (240×160). O `desktop_test` verifica todos.
-- Direção da arquitetura: tudo que é do Psito em Flutter (shell, Configurações, apps do sistema), rodando como cliente privilegiado de um compositor Wayland maduro (layer-shell, foreign-toplevel e IPC), com apps em processos separados. O compositor não é escrito em Flutter (decisão da fase 3, em `docs/FASE-3.md`). Evite acoplar os apps ao shell além do necessário.
+- Direção da arquitetura: tudo que é do Psito em Flutter (shell, Configurações, apps do sistema), rodando como cliente privilegiado de um compositor Wayland maduro (layer-shell, foreign-toplevel e IPC), com apps em processos separados. O compositor não é escrito em Flutter: o modelo é o Budgie 10.10 (painel como cliente layer-shell sobre o labwc, com as Configurações gerando a configuração do compositor). A decisão está em `docs/FASE-3.md`. Evite acoplar os apps ao shell além do necessário.

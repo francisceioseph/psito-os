@@ -14,6 +14,10 @@ apt-get install -y -qq \
     weston foot gtk-4-examples \
     mesa-utils wayland-utils python3-evdev \
     clang cmake ninja-build libgtk-3-dev curl unzip xz-utils >/dev/null
+# Etapa 3: as bases candidatas, o waybar como painel layer-shell de teste e um
+# app comum pesado. Sem recomendados: o wayfire puxaria o wf-shell.
+apt-get install -y -qq --no-install-recommends \
+    labwc wayfire wlr-randr wlrctl waybar firefox-esr fonts-dejavu >/dev/null
 
 echo "🐦 [spike] Flutter $FLUTTER_VERSION..."
 if [ ! -d "$FLUTTER_DIR/.git" ]; then
@@ -31,4 +35,12 @@ install -d -m 755 /etc/psito-spike
 install -m 644 "$SRC/weston.ini" /etc/psito-spike/weston.ini
 systemctl daemon-reload
 
-echo "✅ [spike] Pronto. Suba um compositor com spike/session.sh weston."
+echo "🪟 [spike] Configuração do labwc, do Wayfire e do waybar..."
+# No home, e não no /etc: a ponte edita com o compositor rodando
+CONF="/home/$APP_USER/.config"
+install -d -o "$APP_USER" -g "$APP_USER" "$CONF" "$CONF/labwc" "$CONF/waybar"
+install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC"/labwc/* "$CONF/labwc/"
+install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC"/waybar/* "$CONF/waybar/"
+install -o "$APP_USER" -g "$APP_USER" -m 644 "$SRC/wayfire.ini" "$CONF/wayfire.ini"
+
+echo "✅ [spike] Pronto. Suba um compositor com spike/session.sh weston|labwc|wayfire."

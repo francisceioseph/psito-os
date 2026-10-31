@@ -1,14 +1,22 @@
 #!/bin/bash
 # Sobe um compositor do spike no tty1 da VM do spike.
-# Uso: spike/session.sh weston | zenith | stop | status
+# Uso: spike/session.sh weston | labwc | wayfire | zenith | stop | status
 set -e
 
 VM_PORT="${VM_PORT:-2223}"
 vm() { ssh -p "$VM_PORT" psito@localhost "$@"; }
 
+# WLR_NO_HARDWARE_CURSORS: no plano de cursor do virtio-gpu, o wlroots desenha
+# o cursor de cabeça para baixo
 case "$1" in
     weston)
         CMD="exec weston --backend=drm --config=/etc/psito-spike/weston.ini"
+        ;;
+    labwc)
+        CMD="WLR_NO_HARDWARE_CURSORS=1 exec labwc"
+        ;;
+    wayfire)
+        CMD="WLR_NO_HARDWARE_CURSORS=1 exec wayfire"
         ;;
     zenith)
         CMD="cd /home/psito/vendor/zenith/build/zenith/release/bundle && ZENITH_MODE=1440x900 exec stdbuf -oL -eL ./zenith"
@@ -22,7 +30,7 @@ case "$1" in
         exit 0
         ;;
     *)
-        echo "Uso: spike/session.sh weston | zenith | stop | status"
+        echo "Uso: spike/session.sh weston | labwc | wayfire | zenith | stop | status"
         exit 1
         ;;
 esac

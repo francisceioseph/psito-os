@@ -1,0 +1,3 @@
+# Tema neutro de partida; a ponte reescreve este arquivo com as cores do Psito
+border.width: 1
+window.titlebar.padding.height: 4

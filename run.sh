@@ -6,7 +6,7 @@ echo "🦜 Subindo o Psito OS (Debian + QEMU)..."
 # Garantir que estamos na raiz do repositório
 cd "$(dirname "$0")"
 
-# Variáveis opcionais: DISK, SSH_PORT, MEM, SMP, AUDIO, MONITOR
+# Variáveis opcionais: DISK, SSH_PORT, MEM, SMP, AUDIO, MONITOR, TABLET
 DISK="${DISK:-qemu/psito-disk.qcow2}"
 SSH_PORT="${SSH_PORT:-2222}"
 MEM="${MEM:-2048}"
@@ -30,6 +30,12 @@ QEMU_ARGS=(
     # Monitor para o ./vm-ctl.sh (ex.: derrubar a rede com set_link)
     -monitor "unix:$MONITOR,server,nowait"
 )
+
+# TABLET=1: ponteiro absoluto (tablet USB), que segue o mouse do host sem
+# captura. Sem ele, o mouse é PS/2 relativo.
+if [ "${TABLET:-0}" = 1 ]; then
+    QEMU_ARGS+=(-device qemu-xhci -device usb-tablet)
+fi
 
 if [ -e /dev/kvm ]; then
     QEMU_ARGS+=(-enable-kvm -cpu host)

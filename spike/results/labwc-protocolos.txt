@@ -1,0 +1,18 @@
+# compositor: labwc, 2026-10-31T09:29:59-03:00
+protocolo                            tem   versão uso
+zwlr_layer_shell_v1                  sim   4      top bar, dock, launcher e papel de parede
+zwlr_foreign_toplevel_manager_v1     sim   3      lista de janelas com ações (dock, Alt+Tab)
+ext_foreign_toplevel_list_v1         sim   1      lista de janelas, só leitura
+ext_workspace_manager_v1             sim   1      áreas de trabalho
+zxdg_decoration_manager_v1           sim   1      decoração do lado do servidor
+xdg_activation_v1                    sim   1      passar o foco ao abrir um app
+wp_cursor_shape_manager_v1           sim   1      cursor pelo nome
+ext_session_lock_manager_v1          sim   1      tela de bloqueio
+zwlr_screencopy_manager_v1           sim   3      miniaturas das janelas
+ext_image_copy_capture_manager_v1    não   -      miniaturas das janelas (novo)
+zwlr_output_manager_v1               sim   4      resolução pelas Configurações
+wp_fractional_scale_manager_v1       sim   1      escala fracionária
+zwp_linux_dmabuf_v1                  sim   4      buffers da GPU sem cópia
+wp_presentation                      sim   1      tempo de apresentação dos frames
+zwp_text_input_manager_v3            sim   1      métodos de entrada
+zwp_virtual_keyboard_manager_v1      sim   1      teclado virtual

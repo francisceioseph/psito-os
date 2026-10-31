@@ -14,6 +14,8 @@ export MEM="${MEM:-3072}"
 export SMP="${SMP:-4}"
 export SIZE="${SIZE:-40G}"
 export MONITOR="${MONITOR:-qemu/spike-monitor.sock}"
+# Os compositores Wayland querem o ponteiro absoluto (ver run.sh)
+export TABLET="${TABLET:-1}"
 
 if [ -z "$1" ]; then
     echo "Uso: spike/vm.sh <script da raiz> [args] | ssh [comando]"
