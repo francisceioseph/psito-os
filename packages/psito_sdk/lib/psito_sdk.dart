@@ -258,6 +258,7 @@ const psitoShortcuts = [
     'Super+1 a 5',
     'Alt+Shift+1 a 5',
   ),
+  PsitoShortcut('Mostrar a área de trabalho', 'Super+D', 'Alt+Shift+D'),
   PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
 ];
 
@@ -317,6 +318,9 @@ class PsitoSettings {
   /// Os ícones ficam em ordem de nome, sem buracos, e não onde foram postos.
   final bool desktopAutoArrange;
 
+  /// O canto de cima à direita da tela mostra a área de trabalho.
+  final bool desktopHotCorner;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -333,6 +337,7 @@ class PsitoSettings {
     this.desktopShowHome = false,
     this.desktopShowTrash = false,
     this.desktopAutoArrange = false,
+    this.desktopHotCorner = false,
   });
 
   static const defaults = PsitoSettings();
@@ -355,6 +360,7 @@ class PsitoSettings {
     bool? desktopShowHome,
     bool? desktopShowTrash,
     bool? desktopAutoArrange,
+    bool? desktopHotCorner,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -371,6 +377,7 @@ class PsitoSettings {
     desktopShowHome: desktopShowHome ?? this.desktopShowHome,
     desktopShowTrash: desktopShowTrash ?? this.desktopShowTrash,
     desktopAutoArrange: desktopAutoArrange ?? this.desktopAutoArrange,
+    desktopHotCorner: desktopHotCorner ?? this.desktopHotCorner,
   );
 
   Map<String, Object?> toJson() => {
@@ -389,6 +396,7 @@ class PsitoSettings {
     'desktopShowHome': desktopShowHome,
     'desktopShowTrash': desktopShowTrash,
     'desktopAutoArrange': desktopAutoArrange,
+    'desktopHotCorner': desktopHotCorner,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -431,6 +439,7 @@ class PsitoSettings {
         'desktopAutoArrange',
         defaults.desktopAutoArrange,
       ),
+      desktopHotCorner: pick('desktopHotCorner', defaults.desktopHotCorner),
     );
   }
 
@@ -451,7 +460,8 @@ class PsitoSettings {
       other.desktopIconSize == desktopIconSize &&
       other.desktopShowHome == desktopShowHome &&
       other.desktopShowTrash == desktopShowTrash &&
-      other.desktopAutoArrange == desktopAutoArrange;
+      other.desktopAutoArrange == desktopAutoArrange &&
+      other.desktopHotCorner == desktopHotCorner;
 
   @override
   int get hashCode => Object.hash(
@@ -470,6 +480,7 @@ class PsitoSettings {
     desktopShowHome,
     desktopShowTrash,
     desktopAutoArrange,
+    desktopHotCorner,
   );
 }
 

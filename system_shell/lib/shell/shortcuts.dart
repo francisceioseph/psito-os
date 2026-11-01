@@ -24,6 +24,7 @@ enum ShellAction {
   clipboard3,
   clipboard4,
   clipboard5,
+  showDesktop,
 }
 
 /// As ações de copiar de novo, na ordem do histórico.
@@ -71,6 +72,7 @@ const shellBindings = <SingleActivator, ShellAction>{
       ShellAction.clipboard4,
   SingleActivator(LogicalKeyboardKey.digit5, meta: true):
       ShellAction.clipboard5,
+  SingleActivator(LogicalKeyboardKey.keyD, meta: true): ShellAction.showDesktop,
 
   // VM
   SingleActivator(LogicalKeyboardKey.space, control: true):
@@ -111,6 +113,8 @@ const shellBindings = <SingleActivator, ShellAction>{
       ShellAction.clipboard4,
   SingleActivator(LogicalKeyboardKey.digit5, alt: true, shift: true):
       ShellAction.clipboard5,
+  SingleActivator(LogicalKeyboardKey.keyD, alt: true, shift: true):
+      ShellAction.showDesktop,
 };
 
 ShellAction? resolveShortcut(KeyEvent event, HardwareKeyboard keyboard) {

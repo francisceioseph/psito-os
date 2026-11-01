@@ -161,6 +161,95 @@ void main() {
     );
   });
 
+  group('mostrar a área de trabalho', () {
+    Future<void> minimized(int id, {bool activated = false}) =>
+        state.toplevels.handle(
+          MethodCall('changed', {
+            'id': id,
+            'appId': 'foot',
+            'minimized': true,
+            'activated': activated,
+          }),
+        );
+
+    List<Object?> calls(String method) => [
+      for (final call in toplevelCalls)
+        if (call.method == method)
+          call.arguments is Map
+              ? (call.arguments as Map)['id']
+              : call.arguments,
+    ];
+
+    Future<void> hideAll() async {
+      await window(1, 'foot');
+      await window(2, 'foot');
+      await window(3, 'foot', activated: true);
+      state.run(ShellAction.showDesktop);
+      await minimized(1);
+      await minimized(2);
+      await minimized(3);
+    }
+
+    test('minimiza as visíveis, e repetir traz de volta na ordem', () async {
+      await hideAll();
+      expect(calls('minimize'), [1, 2, 3]);
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), [1, 2, 3]);
+    });
+
+    test('a que já estava minimizada fica', () async {
+      await window(1, 'foot', activated: true);
+      await minimized(2);
+      state.run(ShellAction.showDesktop);
+      expect(calls('minimize'), [1]);
+      await minimized(1);
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), [1]);
+    });
+
+    test('o foco passando entre as que estão saindo não esquece', () async {
+      await window(1, 'foot');
+      await window(2, 'foot', activated: true);
+      state.run(ShellAction.showDesktop);
+      // O compositor foca a 1 ao minimizar a 2, antes de minimizar a 1
+      await minimized(2);
+      await window(1, 'foot', activated: true);
+      await minimized(1);
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), [1, 2]);
+    });
+
+    test('ativar uma janela nesse meio esquece a lista', () async {
+      await hideAll();
+      await window(2, 'foot', activated: true);
+      toplevelCalls.clear();
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), isEmpty);
+      expect(calls('minimize'), [2]);
+    });
+
+    test('abrir uma janela nesse meio esquece a lista', () async {
+      await hideAll();
+      await window(4, 'foot', activated: true);
+      toplevelCalls.clear();
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), isEmpty);
+      expect(calls('minimize'), [4]);
+    });
+
+    test('a que fechou nesse meio não volta', () async {
+      await hideAll();
+      await state.toplevels.handle(const MethodCall('closed', 2));
+      state.run(ShellAction.showDesktop);
+      expect(calls('activate'), [1, 3]);
+    });
+
+    test('sem janelas, não faz nada', () async {
+      state.run(ShellAction.showDesktop);
+      expect(toplevelCalls.where((c) => c.method == 'minimize'), isEmpty);
+    });
+  });
+
   test('o volume pelo atalho mostra o OSD por um tempo', () async {
     final before = state.services.audio.state.value.volume;
     state.run(ShellAction.volumeUp);

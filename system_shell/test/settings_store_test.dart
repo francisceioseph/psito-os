@@ -94,6 +94,7 @@ void main() {
       desktopShowHome: true,
       desktopShowTrash: true,
       desktopAutoArrange: true,
+      desktopHotCorner: true,
     );
     expect(PsitoSettings.fromJson(s.toJson()), s);
   });

@@ -18,6 +18,7 @@ import 'package:system_shell/widgets/battery_panel.dart';
 import 'package:system_shell/widgets/clipboard_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
+import 'package:system_shell/widgets/hot_corner.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/network_panel.dart';
@@ -276,30 +277,42 @@ class _TopBarView extends StatelessWidget {
             // A view tem espaço embaixo da barra para os tooltips
             return Align(
               alignment: Alignment.topCenter,
-              child: TopBar(
-                onMenuTap: () => state.toggle(ShellOverlay.launcher),
-                onNotificationsTap: () =>
-                    state.toggle(ShellOverlay.notifications),
-                network: services.network.state.value,
-                onNetworkTap: () => state.toggle(ShellOverlay.network),
-                audio: services.audio.state.value,
-                onVolumeTap: () => state.toggle(ShellOverlay.volume),
-                onVolumeScroll: (direction) {
-                  final audio = services.audio;
-                  final s = audio.state.value;
-                  if (s.available) audio.setVolume(s.volume + direction * 0.05);
-                },
-                battery: services.battery.state.value,
-                showBatteryPercentage: settings.showBatteryPercentage,
-                onBatteryTap: () => state.toggle(ShellOverlay.battery),
-                clipboardCount: state.clipboard.entries.length,
-                onClipboardTap: () => state.toggle(ShellOverlay.clipboard),
-                onPowerTap: () => state.toggle(ShellOverlay.power),
-                now: services.time.now,
-                unreadCount: state.notifications.unreadCount,
-                use24h: settings.use24h,
-                showSeconds: settings.showSeconds,
-                doNotDisturb: settings.doNotDisturb,
+              child: Stack(
+                children: [
+                  TopBar(
+                    onMenuTap: () => state.toggle(ShellOverlay.launcher),
+                    onNotificationsTap: () =>
+                        state.toggle(ShellOverlay.notifications),
+                    network: services.network.state.value,
+                    onNetworkTap: () => state.toggle(ShellOverlay.network),
+                    audio: services.audio.state.value,
+                    onVolumeTap: () => state.toggle(ShellOverlay.volume),
+                    onVolumeScroll: (direction) {
+                      final audio = services.audio;
+                      final s = audio.state.value;
+                      if (s.available) {
+                        audio.setVolume(s.volume + direction * 0.05);
+                      }
+                    },
+                    battery: services.battery.state.value,
+                    showBatteryPercentage: settings.showBatteryPercentage,
+                    onBatteryTap: () => state.toggle(ShellOverlay.battery),
+                    clipboardCount: state.clipboard.entries.length,
+                    onClipboardTap: () => state.toggle(ShellOverlay.clipboard),
+                    onPowerTap: () => state.toggle(ShellOverlay.power),
+                    now: services.time.now,
+                    unreadCount: state.notifications.unreadCount,
+                    use24h: settings.use24h,
+                    showSeconds: settings.showSeconds,
+                    doNotDisturb: settings.doNotDisturb,
+                  ),
+                  if (settings.desktopHotCorner)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: HotCorner(onTrigger: state.toggleDesktop),
+                    ),
+                ],
               ),
             );
           },

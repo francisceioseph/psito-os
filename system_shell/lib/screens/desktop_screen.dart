@@ -227,7 +227,8 @@ class _DesktopScreenState extends State<DesktopScreen> {
         final audio = _services.audio;
         audio.setMuted(!audio.state.value.muted);
         _showVolumeOsd();
-      case ShellAction.clipboard ||
+      case ShellAction.showDesktop ||
+          ShellAction.clipboard ||
           ShellAction.clipboard1 ||
           ShellAction.clipboard2 ||
           ShellAction.clipboard3 ||

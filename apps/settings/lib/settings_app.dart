@@ -262,6 +262,15 @@ class _SettingsViewState extends State<SettingsView> {
         value: s.desktopAutoArrange,
         onChanged: (v) => _update(s.copyWith(desktopAutoArrange: v)),
       ),
+      SwitchListTile(
+        title: const Text('Canto para mostrar a área de trabalho'),
+        subtitle: const Text(
+          'Levar o ponteiro ao canto de cima à direita da tela minimiza as '
+          'janelas, e de novo traz elas de volta.',
+        ),
+        value: s.desktopHotCorner,
+        onChanged: (v) => _update(s.copyWith(desktopHotCorner: v)),
+      ),
     ],
   ];
 

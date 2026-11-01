@@ -325,6 +325,7 @@ class ShellState {
   /// as notificações dele.
   void _windowsChanged() {
     dockUi.windowsChanged();
+    _forgetHiddenWindows();
     if (toplevels.activated case final window?) {
       notifications.markRead(appFor(window.appId).id);
     }
@@ -379,6 +380,8 @@ class ShellState {
           ShellAction.clipboard4 ||
           ShellAction.clipboard5:
         recopy(clipboardSlots.indexOf(action));
+      case ShellAction.showDesktop:
+        toggleDesktop();
       case ShellAction.volumeUp:
         _stepVolume(1);
       case ShellAction.volumeDown:
@@ -395,6 +398,59 @@ class ShellState {
           ShellAction.minimize:
         // São do compositor; a ponte não manda para o shell
         break;
+    }
+  }
+
+  // Mostrar a área de trabalho
+
+  /// O que o "Mostrar a área de trabalho" minimizou, na ordem do foco.
+  List<int>? _hiddenWindows;
+
+  /// As que ainda não avisaram que minimizaram.
+  final _hiding = <int>{};
+
+  /// Minimiza as janelas, e da próxima vez traz de volta as mesmas: as que já
+  /// estavam minimizadas ficam.
+  void toggleDesktop() {
+    closeOverlay();
+    switcher.cancel();
+    final hidden = _hiddenWindows;
+    if (hidden != null) {
+      _hiddenWindows = null;
+      _hiding.clear();
+      final open = {for (final window in toplevels.windows) window.id};
+      // A última a ativar é a que tinha o foco, e fica por cima
+      for (final id in hidden.where(open.contains)) {
+        unawaited(toplevels.activate(id));
+      }
+      return;
+    }
+    final visible = [
+      for (final window in toplevels.windows)
+        if (!window.minimized) window.id,
+    ];
+    if (visible.isEmpty) return;
+    _hiddenWindows = visible;
+    _hiding.addAll(visible);
+    for (final id in visible) {
+      unawaited(toplevels.minimize(id));
+    }
+  }
+
+  // Uma janela aberta ou ativada nesse meio: a lista não vale mais
+  void _forgetHiddenWindows() {
+    if (_hiddenWindows == null) return;
+    final windows = toplevels.windows;
+    final open = {for (final window in windows) window.id};
+    _hiding.removeWhere((id) => !open.contains(id));
+    for (final window in windows) {
+      if (window.minimized) {
+        _hiding.remove(window.id);
+      } else if (!_hiding.contains(window.id)) {
+        _hiddenWindows = null;
+        _hiding.clear();
+        return;
+      }
     }
   }
 
