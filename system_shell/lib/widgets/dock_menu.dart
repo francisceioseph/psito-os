@@ -18,12 +18,58 @@ class DockMenuItem {
   /// Um traço antes, separando de um grupo (as janelas, das ações).
   final bool separated;
 
+  /// Apagada, sem responder ao clique.
+  final bool enabled;
+
+  /// O menu fica aberto: o [onTap] troca as opções (um "Abrir com…").
+  final bool keepsOpen;
+
   const DockMenuItem(
     this.label,
     this.onTap, {
     this.checked,
     this.separated = false,
+    this.enabled = true,
+    this.keepsOpen = false,
   });
+}
+
+/// Põe o menu da mesa no ponteiro ([at]), para baixo e para a direita, e para
+/// o outro lado se não couber.
+class PointerPopupLayout extends SingleChildLayoutDelegate {
+  final Offset at;
+  final double width;
+
+  const PointerPopupLayout(this.at, this.width);
+
+  static const margin = 8.0;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      BoxConstraints(
+        maxWidth: math.max(
+          0,
+          math.min(width, constraints.maxWidth - 2 * margin),
+        ),
+        maxHeight: math.max(0, constraints.maxHeight - 2 * margin),
+      );
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    double fit(double value, double extent, double space) {
+      final start = value + extent > space - margin ? value - extent : value;
+      return start.clamp(margin, math.max(margin, space - extent - margin));
+    }
+
+    return Offset(
+      fit(at.dx, childSize.width, size.width),
+      fit(at.dy, childSize.height, size.height),
+    );
+  }
+
+  @override
+  bool shouldRelayout(PointerPopupLayout old) =>
+      old.at != at || old.width != width;
 }
 
 /// Põe um painel da dock (o menu, a pilha) ao lado do ícone [anchor], do
@@ -98,13 +144,18 @@ class DockMenu extends StatelessWidget {
   /// A borda da dock: o menu abre do lado de dentro.
   final PsitoDockPosition position;
 
+  /// Abre aqui, em vez de ao lado do [anchor] (o menu da mesa e o do
+  /// launcher, que não saem de um ícone da dock).
+  final Offset? at;
+
   const DockMenu({
     super.key,
-    required this.anchor,
+    this.anchor = Rect.zero,
     required this.title,
     required this.items,
     required this.onClose,
     this.position = PsitoDockPosition.bottom,
+    this.at,
   });
 
   static const width = 260.0;
@@ -126,12 +177,15 @@ class DockMenu extends StatelessWidget {
             ),
             Positioned.fill(
               child: CustomSingleChildLayout(
-                delegate: DockPopupLayout(anchor, position, width),
+                delegate: at != null
+                    ? PointerPopupLayout(at!, width)
+                    : DockPopupLayout(anchor, position, width),
                 child: Material(
                   color: const Color(0xFF1E252B),
                   borderRadius: BorderRadius.circular(14),
                   elevation: 12,
-                  child: Padding(
+                  clipBehavior: Clip.antiAlias,
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -160,6 +214,7 @@ class DockMenu extends StatelessWidget {
                           ListTile(
                             dense: true,
                             visualDensity: VisualDensity.compact,
+                            enabled: item.enabled,
                             title: Text(
                               item.label,
                               maxLines: 1,
@@ -169,7 +224,7 @@ class DockMenu extends StatelessWidget {
                                 ? const Icon(Icons.check, size: 18)
                                 : null,
                             onTap: () {
-                              onClose();
+                              if (!item.keepsOpen) onClose();
                               item.onTap();
                             },
                           ),

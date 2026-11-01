@@ -18,11 +18,15 @@ class DeskIcon {
   /// O campo de renomear, no lugar do nome.
   final Widget? editor;
 
+  /// Recortado: fica apagado até colar.
+  final bool dimmed;
+
   const DeskIcon({
     required this.key,
     required this.name,
     required this.icon,
     this.editor,
+    this.dimmed = false,
   });
 }
 
@@ -48,6 +52,13 @@ class PsitoDesktopIcons extends StatefulWidget {
   final bool keyboard;
   final KeyEventResult Function(KeyEvent event)? onKey;
 
+  /// O clique direito num item ou na mesa vazia (null), com o ponteiro.
+  final void Function(String? key, Offset position)? onMenu;
+
+  /// Um menu aberto na sobreposição está com o foco do Flutter: fechando, a
+  /// mesa pega de volta.
+  final bool popup;
+
   const PsitoDesktopIcons({
     super.key,
     required this.icons,
@@ -61,6 +72,8 @@ class PsitoDesktopIcons extends StatefulWidget {
     required this.onOpen,
     this.keyboard = true,
     this.onKey,
+    this.onMenu,
+    this.popup = false,
   });
 
   @override
@@ -79,7 +92,14 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
   void didUpdateWidget(PsitoDesktopIcons old) {
     super.didUpdateWidget(old);
     final wasEditing = old.icons.any((icon) => icon.editor != null);
-    if (widget.keyboard && (!old.keyboard || (wasEditing && !_editing))) {
+    if (widget.keyboard && old.popup && !widget.popup) {
+      // Depois do quadro: o menu sai da outra view neste mesmo quadro, e o foco
+      // dele indo embora levaria este pedido junto. Um campo de renomear que
+      // acabou de abrir pede depois, e fica com o foco
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focus.requestFocus();
+      });
+    } else if (widget.keyboard && (!old.keyboard || (wasEditing && !_editing))) {
       _focus.requestFocus();
     } else if (!widget.keyboard && old.keyboard && _focus.hasFocus) {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -165,6 +185,13 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
                     _bandMove(event, constraints.maxWidth),
                 onPointerUp: (_) => _bandUp(),
                 onPointerCancel: (_) => _bandUp(),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onSecondaryTapUp: widget.onMenu == null
+                      ? null
+                      : (details) =>
+                            widget.onMenu!(null, details.globalPosition),
+                ),
               ),
             ),
             for (final icon in ordered)
@@ -186,6 +213,9 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
                     onPress: () => _press(icon.key),
                     onRelease: () => widget.onRelease(icon.key),
                     onOpen: () => widget.onOpen(icon.key),
+                    onMenu: widget.onMenu == null
+                        ? null
+                        : (position) => widget.onMenu!(icon.key, position),
                   ),
                 ),
             if (bandStart != null && bandEnd != null)
@@ -219,6 +249,7 @@ class _Item extends StatelessWidget {
   final VoidCallback onPress;
   final VoidCallback onRelease;
   final VoidCallback onOpen;
+  final ValueChanged<Offset>? onMenu;
 
   const _Item({
     required this.icon,
@@ -229,6 +260,7 @@ class _Item extends StatelessWidget {
     required this.onPress,
     required this.onRelease,
     required this.onOpen,
+    this.onMenu,
   });
 
   static const _shadow = [
@@ -253,6 +285,9 @@ class _Item extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onDoubleTap: editor != null ? null : onOpen,
+        onSecondaryTapUp: editor != null || onMenu == null
+            ? null
+            : (details) => onMenu!(details.globalPosition),
         child: OverflowBox(
           alignment: Alignment.topCenter,
           maxHeight: double.infinity,
@@ -267,7 +302,10 @@ class _Item extends StatelessWidget {
                     color: selected ? accent.withValues(alpha: 0.28) : null,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: icon.icon(iconSize),
+                  child: Opacity(
+                    opacity: icon.dimmed ? 0.45 : 1,
+                    child: icon.icon(iconSize),
+                  ),
                 ),
                 const SizedBox(height: 3),
                 editor ??

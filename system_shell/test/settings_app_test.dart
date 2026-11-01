@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_settings/settings_app.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/system_services.dart';
@@ -29,7 +30,35 @@ final _topBarClock = find.descendant(
   matching: find.textContaining(RegExp(r' (AM|PM)$')),
 );
 
+class _SectionContext implements PsitoAppContext {
+  @override
+  final List<String> openedPaths;
+
+  _SectionContext(this.openedPaths);
+
+  @override
+  final settings = ValueNotifier(const PsitoSettings());
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
+  testWidgets('o argumento abre as Configurações na seção pedida', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SettingsView(
+            appContext: _SectionContext(['${psitoSettingsSectionPrefix}desktop']),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Mostrar os ícones'), findsOneWidget);
+  });
+
   testWidgets('desligar 24 horas muda o relógio da top bar', (tester) async {
     final store = await pumpOS(tester);
     await _openSettings(tester);

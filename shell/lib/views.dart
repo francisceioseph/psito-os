@@ -198,10 +198,13 @@ class _DeskView extends StatelessWidget {
               key: item.key,
               name: item.name,
               icon: (size) => _icon(item, size),
+              dimmed: desk.isCut(item),
               editor: desk.renaming == item.key
                   ? RenameField(
-                      name: item.entry!.name,
-                      isDirectory: item.entry!.isDirectory,
+                      // O atalho mostra o Name=, sem extensão para poupar
+                      name: item.shortcut?.name ?? item.entry!.name,
+                      isDirectory:
+                          item.shortcut != null || item.entry!.isDirectory,
                       textAlign: TextAlign.center,
                       onSubmit: (name) =>
                           unawaited(desk.rename(item.key, name)),
@@ -220,6 +223,8 @@ class _DeskView extends StatelessWidget {
         onOpen: desk.open,
         keyboard: desk.keyboard,
         onKey: desk.handleKey,
+        onMenu: (key, position) => unawaited(desk.openMenu(key, position)),
+        popup: desk.menuOpen,
       );
     },
   );
@@ -701,6 +706,23 @@ class _OverlayView extends StatelessWidget {
     );
   }
 
+  List<DockMenuItem> _launcherMenu(AppEntry entry) {
+    final app = state.installed(entry.id);
+    final item = DockApp(entry.id);
+    final desk = state.desk.value;
+    return [
+      if (app != null) DockMenuItem('Abrir', () => state.launch(app)),
+      state.dock.contains(item)
+          ? DockMenuItem('Remover da Dock', () => state.dock.unpin(item))
+          : DockMenuItem('Manter na Dock', () => state.dock.pin(item)),
+      if (app != null && desk != null && desk.canCreateShortcut)
+        DockMenuItem('Criar atalho na mesa', () {
+          state.closeOverlay();
+          unawaited(desk.createShortcut(app));
+        }),
+    ];
+  }
+
   Widget _content(SystemServices services) => ListenableBuilder(
     listenable: Listenable.merge([
       state.overlay,
@@ -709,6 +731,8 @@ class _OverlayView extends StatelessWidget {
       state.dockUi.menu,
       state.dockUi.stack,
       state.dockUi.askEmptyTrash,
+      state.deskMenu,
+      state.deskTrust,
     ]),
     builder: (context, _) {
       final accent = Theme.of(context).colorScheme.primary;
@@ -760,6 +784,26 @@ class _OverlayView extends StatelessWidget {
           onCancel: () => ui.askEmptyTrash.value = false,
         );
       }
+      if (state.deskTrust.value case final trust?) {
+        return DockConfirm(
+          title: 'Confiar neste atalho?',
+          message:
+              '"${trust.name}" não foi marcado como confiável, e pode abrir '
+              'qualquer programa.',
+          action: 'Confiar e abrir',
+          onConfirm: trust.onTrust,
+          onCancel: () => state.deskTrust.value = null,
+        );
+      }
+      if (state.deskMenu.value case final menu?) {
+        return DockMenu(
+          key: ValueKey(menu.title),
+          at: menu.at,
+          title: menu.title,
+          items: menu.items,
+          onClose: () => state.deskMenu.value = null,
+        );
+      }
       if (ui.stack.value case final stack?) {
         return DockStack(
           position: state.settings.value.dockPosition,
@@ -796,6 +840,7 @@ class _OverlayView extends StatelessWidget {
             DockDragSource.launcher,
             state.dockUi.lastPointer,
           ),
+          menuFor: (entry) => _launcherMenu(entry),
         ),
         ShellOverlay.notifications => NotificationPanel(
           center: state.notifications,

@@ -188,11 +188,14 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
                             : "";
     if (overlay != nullptr) {
       overlay_passive = strcmp(mode, "passive") == 0;
+      // "pointer": os cliques, sem tirar o teclado de quem tem (o menu da
+      // mesa: fechando, o foco não volta para ela, e o Renomear precisa dele)
       gtk_layer_set_keyboard_mode(
           overlay, strcmp(mode, "exclusive") == 0
                        ? GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
-                   : overlay_passive ? GTK_LAYER_SHELL_KEYBOARD_MODE_NONE
-                                     : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+                   : overlay_passive || strcmp(mode, "pointer") == 0
+                       ? GTK_LAYER_SHELL_KEYBOARD_MODE_NONE
+                       : GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
       gtk_widget_show(GTK_WIDGET(overlay));
       overlay_input(GTK_WIDGET(overlay));
       if (!overlay_passive) {

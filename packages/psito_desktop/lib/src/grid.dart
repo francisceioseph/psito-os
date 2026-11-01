@@ -2,7 +2,7 @@
 //
 // A grade da mesa. As células contam do canto de cima à direita: a coluna 0
 // é a da direita, e assim a posição não muda quando a tela muda de largura.
-import 'dart:ui' show Size;
+import 'dart:ui' show Offset, Size;
 
 class DeskCell {
   /// Da direita para a esquerda.
@@ -67,6 +67,21 @@ class DeskGrid {
 /// nome e a folga.
 Size deskCellSize(double iconSize) => Size(iconSize + 56, iconSize + 56);
 
+/// A célula de [grid] embaixo de [position] (nas coordenadas da área livre,
+/// de largura [width]). Fora da grade, a mais perto.
+DeskCell deskCellAt(
+  Offset position,
+  double width,
+  DeskGrid grid,
+  double iconSize,
+) {
+  final cell = deskCellSize(iconSize);
+  return DeskCell(
+    ((width - position.dx) / cell.width).floor().clamp(0, grid.columns - 1),
+    (position.dy / cell.height).floor().clamp(0, grid.rows - 1),
+  );
+}
+
 /// Onde cada item fica na tela.
 class DeskArrangement {
   /// A célula de cada chave.
@@ -102,7 +117,7 @@ DeskArrangement arrangeDesk(
     }
   }
   for (final key in displaced) {
-    final cell = _nearestFree(saved[key]!, grid, taken) ?? grid.last;
+    final cell = nearestFreeCell(saved[key]!, grid, taken) ?? grid.last;
     taken.add(cell);
     cells[key] = cell;
   }
@@ -118,7 +133,8 @@ DeskArrangement arrangeDesk(
   return DeskArrangement(cells, placed);
 }
 
-DeskCell? _nearestFree(DeskCell from, DeskGrid grid, Set<DeskCell> taken) {
+/// A célula de [grid] fora de [taken] mais perto de [from]; pode ser ela.
+DeskCell? nearestFreeCell(DeskCell from, DeskGrid grid, Set<DeskCell> taken) {
   DeskCell? best;
   int? bestDistance;
   for (final cell in grid.cells) {

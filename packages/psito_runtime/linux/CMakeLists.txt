@@ -15,6 +15,7 @@ set(PLUGIN_NAME "psito_runtime_plugin")
 list(APPEND PLUGIN_SOURCES
   "psito_runtime_plugin.cc"
   "psito_dnd.cc"
+  "psito_clipboard.cc"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment

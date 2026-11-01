@@ -50,6 +50,8 @@ class ShellState {
     dockUi.menu.addListener(_syncOverlay);
     dockUi.stack.addListener(_syncOverlay);
     dockUi.askEmptyTrash.addListener(_syncOverlay);
+    deskMenu.addListener(_syncOverlay);
+    deskTrust.addListener(_syncOverlay);
     // O que segura a dock na tela, com o ocultar sozinha
     for (final listenable in [
       dockUi.hovered,
@@ -91,6 +93,12 @@ class ShellState {
   /// quadro.
   final desk = ValueNotifier<DeskController?>(null);
 
+  /// O menu da mesa, que a sobreposição desenha.
+  final deskMenu = ValueNotifier<DeskMenuRequest?>(null);
+
+  /// A pergunta de um atalho não confiável.
+  final deskTrust = ValueNotifier<DeskTrustRequest?>(null);
+
   /// O autostart do XDG. Null: sem o "Abrir ao iniciar a sessão" (testes).
   final Autostart? autostart;
 
@@ -100,6 +108,10 @@ class ShellState {
 
   /// Abre o caminho no Quick Look do Files.
   Future<void> Function(String path)? previewPath;
+
+  /// Os apps que abrem o tipo, o padrão primeiro; com `''`, todos os que
+  /// recebem arquivos.
+  List<DesktopEntry> Function(String mimeType)? appsForType;
   final Surfaces surfaces;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
@@ -526,6 +538,7 @@ class ShellState {
     final drag = dockUi.drag.value;
     if (confirm.value != null ||
         dockUi.askEmptyTrash.value ||
+        deskTrust.value != null ||
         overlay.value == ShellOverlay.launcher ||
         switcher.isOpen ||
         drag?.source == DockDragSource.launcher) {
@@ -534,6 +547,8 @@ class ShellState {
         dockUi.menu.value != null ||
         dockUi.stack.value != null) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.onDemand));
+    } else if (deskMenu.value != null) {
+      unawaited(surfaces.showOverlay(OverlayKeyboard.pointer));
     } else if (drag != null) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.passive));
     } else {

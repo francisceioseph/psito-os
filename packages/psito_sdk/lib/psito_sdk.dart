@@ -235,6 +235,10 @@ class PsitoShortcut {
 /// abre no Quick Look em vez de só abrir a pasta (o Espaço na mesa).
 const psitoQuickLookPrefix = 'quicklook:';
 
+/// Um argumento com esta marca abre as Configurações naquela seção (o "Mudar
+/// o papel de parede" da mesa).
+const psitoSettingsSectionPrefix = 'section:';
+
 const psitoShortcuts = [
   PsitoShortcut('Abrir e fechar o launcher', 'Super', 'Ctrl+Espaço'),
   PsitoShortcut('Alternar janelas', 'Alt+Tab', 'Ctrl+Tab'),

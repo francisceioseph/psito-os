@@ -5,9 +5,11 @@
 // psito/icons, os ícones do tema (o PsitoIcon do SDK). Como é um plugin,
 // entra em qualquer app que dependa do psito_runtime sem mexer no runner
 // dele (e no shell, que também usa os ícones). O arrastar e soltar de
-// arquivos fica no psito_dnd.cc.
+// arquivos fica no psito_dnd.cc, e a área de transferência de arquivos no
+// psito_clipboard.cc.
 #include "include/psito_runtime/psito_runtime_plugin.h"
 
+#include "include/psito_runtime/psito_clipboard.h"
 #include "include/psito_runtime/psito_dnd.h"
 
 #include <flutter_linux/flutter_linux.h>
@@ -173,4 +175,5 @@ void psito_runtime_plugin_register_with_registrar(
   fl_method_channel_set_method_call_handler(plugin->icons_channel,
                                             icons_call_cb, nullptr, nullptr);
   if (plugin->view != nullptr) psito_dnd_attach(plugin->view);
+  psito_clipboard_register(fl_plugin_registrar_get_messenger(registrar));
 }

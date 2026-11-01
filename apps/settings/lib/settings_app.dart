@@ -31,7 +31,13 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  _Section _section = _Section.appearance;
+  // A seção pedida nos argumentos, ou a primeira
+  late _Section _section = _Section.values.firstWhere(
+    (section) => widget.appContext.openedPaths.contains(
+      '$psitoSettingsSectionPrefix${section.name}',
+    ),
+    orElse: () => _Section.appearance,
+  );
 
   /// Escolha de fuso aberta na seção Data e hora.
   bool _pickingTimezone = false;

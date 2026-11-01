@@ -84,6 +84,7 @@ Future<void> main() async {
   state.dockUi.appAccepts = (appId, paths) => paths.every(
     (path) => opener.appsFor(mime.typeOf(path)).any((app) => app.id == appId),
   );
+  state.appsForType = opener.appsFor;
   state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now);
   unawaited(state.dockUi.watchTrash());
   final desk = DeskController(

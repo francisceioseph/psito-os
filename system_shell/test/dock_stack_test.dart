@@ -98,4 +98,84 @@ void main() {
       const Offset(8, 432),
     );
   });
+
+  group('as opções do menu', () {
+    Future<List<String>> menu(
+      WidgetTester tester, {
+      Offset? at,
+      bool keepsOpen = false,
+    }) async {
+      final log = <String>[];
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DockMenu(
+              at: at,
+              anchor: const Rect.fromLTWH(380, 520, 40, 40),
+              title: 'Menu',
+              onClose: () => log.add('fechou'),
+              items: [
+                DockMenuItem('Viva', () => log.add('viva')),
+                DockMenuItem('Morta', () => log.add('morta'), enabled: false),
+                DockMenuItem(
+                  'Fica',
+                  () => log.add('fica'),
+                  keepsOpen: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      return log;
+    }
+
+    testWidgets('a apagada não responde, e a que fica não fecha', (
+      tester,
+    ) async {
+      final log = await menu(tester);
+      await tester.tap(find.text('Morta'));
+      await tester.tap(find.text('Fica'));
+      expect(log, ['fica']);
+      await tester.tap(find.text('Viva'));
+      expect(log, ['fica', 'fechou', 'viva']);
+    });
+
+    testWidgets('no ponteiro, abre para baixo, e para cima sem espaço', (
+      tester,
+    ) async {
+      await menu(tester, at: const Offset(100, 50));
+      final panel = find.ancestor(
+        of: find.text('Menu'),
+        matching: find.byType(Material),
+      );
+      expect(tester.getTopLeft(panel.first), const Offset(100, 50));
+      await menu(tester, at: const Offset(790, 590));
+      final rect = tester.getRect(panel.first);
+      expect(rect.right, lessThanOrEqualTo(800));
+      expect(rect.bottom, lessThanOrEqualTo(590));
+    });
+
+    testWidgets('muitas opções rolam, sem estourar', (tester) async {
+      tester.view.physicalSize = const Size(400, 200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DockMenu(
+            at: Offset.zero,
+            title: 'Menu',
+            onClose: () {},
+            items: [
+              for (var i = 0; i < 30; i++) DockMenuItem('Item $i', () {}),
+            ],
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

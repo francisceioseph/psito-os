@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../shell/app_entry.dart';
 import '../shell/app_search.dart';
+import 'dock_menu.dart';
 
 /// Menu Psito: busca com foco e grade de apps.
 class Launcher extends StatefulWidget {
@@ -15,12 +16,16 @@ class Launcher extends StatefulWidget {
   /// ponteiro dali em diante: o launcher pode fechar.
   final void Function(AppEntry app)? onDragStart;
 
+  /// As opções do clique direito num app. Null: sem menu.
+  final List<DockMenuItem> Function(AppEntry app)? menuFor;
+
   const Launcher({
     super.key,
     required this.apps,
     required this.onLaunch,
     required this.onClose,
     this.onDragStart,
+    this.menuFor,
   });
 
   static const columns = 5;
@@ -36,6 +41,9 @@ class _LauncherState extends State<Launcher> {
   late List<AppEntry> _results = widget.apps;
   int _selected = 0;
   int? _hovered;
+
+  /// O app com o menu aberto, e onde.
+  (AppEntry, Offset)? _menu;
 
   void _search(String query) {
     setState(() {
@@ -68,7 +76,14 @@ class _LauncherState extends State<Launcher> {
             _move(-Launcher.columns),
         const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
             _move(Launcher.columns),
-        const SingleActivator(LogicalKeyboardKey.escape): widget.onClose,
+        // O foco fica na busca: o Esc do menu aberto chega aqui
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_menu != null) {
+            setState(() => _menu = null);
+          } else {
+            widget.onClose();
+          }
+        },
       },
       child: Stack(
         children: [
@@ -80,6 +95,15 @@ class _LauncherState extends State<Launcher> {
             ),
           ),
           Center(child: _buildPanel()),
+          if (_menu case (final app, final at)?)
+            Positioned.fill(
+              child: DockMenu(
+                at: at,
+                title: app.name,
+                items: widget.menuFor!(app),
+                onClose: () => setState(() => _menu = null),
+              ),
+            ),
         ],
       ),
     );
@@ -159,6 +183,10 @@ class _LauncherState extends State<Launcher> {
       onExit: (_) => setState(() => _hovered = null),
       child: GestureDetector(
         onTap: () => widget.onLaunch(app),
+        onSecondaryTapUp: widget.menuFor == null
+            ? null
+            : (details) =>
+                  setState(() => _menu = (app, details.globalPosition)),
         onPanStart: widget.onDragStart == null
             ? null
             : (_) => widget.onDragStart!(app),

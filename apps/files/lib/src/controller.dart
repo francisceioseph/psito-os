@@ -7,8 +7,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'env.dart';
@@ -31,9 +31,12 @@ class FilesController extends ChangeNotifier {
   final tabs = <FilesTab>[];
   int _active = 0;
 
-  /// O que o Copiar ou o Recortar guardou.
-  List<String> clipboard = const [];
-  bool clipboardCut = false;
+  /// A área de transferência de arquivos, a mesma de todo o sistema.
+  final PsitoClipboard fileClipboard;
+
+  /// O que está copiado ou recortado, aqui ou em outro app.
+  List<String> get clipboard => fileClipboard.current.value?.paths ?? const [];
+  bool get clipboardCut => fileClipboard.current.value?.cut ?? false;
 
   final _undo = <FsUndo>[];
   final jobs = <RunningJob>[];
@@ -68,7 +71,10 @@ class FilesController extends ChangeNotifier {
     required this.env,
     required this.config,
     List<String> opened = const [],
-  }) {
+    PsitoClipboard? clipboard,
+  }) : fileClipboard = clipboard ?? PsitoClipboard.instance {
+    fileClipboard.current.addListener(notifyListeners);
+    unawaited(fileClipboard.read());
     if (opened.isEmpty) {
       tabs.add(FilesTab(env, config, FolderLocation(env.home)));
     } else {
@@ -366,25 +372,16 @@ class FilesController extends ChangeNotifier {
 
   void copy(List<String> paths, {bool cut = false}) {
     if (paths.isEmpty) return;
-    clipboard = List.of(paths);
-    clipboardCut = cut;
-    // Os caminhos também vão como texto, para colar num terminal ou editor
-    unawaited(Clipboard.setData(ClipboardData(text: paths.join('\n'))));
-    notifyListeners();
+    unawaited(fileClipboard.copy(List.of(paths), cut: cut));
   }
 
   Future<void> paste() async {
     final dir = tab.folder;
-    if (dir == null || tab.location is! FolderLocation || clipboard.isEmpty) {
-      return;
-    }
-    final paths = clipboard;
-    final cut = clipboardCut;
-    if (cut) {
-      clipboard = const [];
-      clipboardCut = false;
-    }
-    await transfer(paths, dir, move: cut);
+    if (dir == null || tab.location is! FolderLocation) return;
+    final clip = await fileClipboard.read();
+    if (clip == null) return;
+    if (clip.cut) await fileClipboard.clear();
+    await transfer(clip.paths, dir, move: clip.cut);
   }
 
   Future<void> duplicate(List<String> paths) async {
@@ -459,6 +456,7 @@ class FilesController extends ChangeNotifier {
 
   @override
   void dispose() {
+    fileClipboard.current.removeListener(notifyListeners);
     unawaited(_requests?.cancel());
     for (final job in jobs) {
       job.job.cancel();

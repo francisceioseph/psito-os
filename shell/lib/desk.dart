@@ -1,8 +1,9 @@
 // shell/lib/desk.dart
 //
 // A mesa: os itens da pasta da Área de Trabalho (vigiada), o home e a lixeira,
-// a célula de cada um e o que abrir faz. A grade e as posições são do
-// psito_desktop, e quem desenha é o PsitoDesktopIcons.
+// a célula de cada um, o que abrir faz e os menus do clique direito. A grade e
+// as posições são do psito_desktop, quem desenha é o PsitoDesktopIcons, e a
+// sobreposição desenha os menus.
 import 'dart:async';
 import 'dart:io';
 
@@ -11,8 +12,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
+import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 
 import 'desktop_entries.dart';
@@ -46,6 +50,27 @@ class DeskItem {
   static const trashKey = '/trash';
 }
 
+/// Um menu da mesa aberto.
+@immutable
+class DeskMenuRequest {
+  final String title;
+
+  /// O ponteiro, na tela.
+  final Offset at;
+  final List<DockMenuItem> items;
+
+  const DeskMenuRequest(this.title, this.at, this.items);
+}
+
+/// Um atalho não confiável esperando resposta.
+@immutable
+class DeskTrustRequest {
+  final String name;
+  final VoidCallback onTrust;
+
+  const DeskTrustRequest(this.name, this.onTrust);
+}
+
 class DeskController extends ChangeNotifier implements FileIconEnv {
   final ShellState state;
 
@@ -58,6 +83,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   final DeskStore store;
   final Map<UserDir, String> userDirs;
   final Map<String, String> env;
+  final PsitoClipboard clipboard;
+
+  /// Abre um atalho. Os testes trocam.
+  final Future<void> Function(DesktopEntry app) launchEntry;
 
   DeskController(
     this.state, {
@@ -67,9 +96,15 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     required this.store,
     this.userDirs = const {},
     this.env = const {},
-  }) {
+    PsitoClipboard? clipboard,
+    Future<void> Function(DesktopEntry app)? launchEntry,
+  }) : clipboard = clipboard ?? PsitoClipboard.instance,
+       launchEntry =
+           launchEntry ?? ((app) => app.launch(sandbox: state.sandbox)) {
     state.settings.addListener(_settingsChanged);
     state.apps.addListener(_appsChanged);
+    state.deskMenu.addListener(notifyListeners);
+    this.clipboard.current.addListener(notifyListeners);
     _settings = state.settings.value;
   }
 
@@ -97,6 +132,21 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
 
   /// A superfície do fundo tem o teclado.
   bool get keyboard => _keyboard;
+
+  /// Um menu da mesa está aberto.
+  bool get menuOpen => state.deskMenu.value != null;
+
+  /// Se [item] foi recortado e espera o colar.
+  bool isCut(DeskItem item) {
+    final clip = clipboard.current.value;
+    return clip != null &&
+        clip.cut &&
+        item.entry != null &&
+        clip.paths.contains(item.entry!.path);
+  }
+
+  /// Se dá para criar um atalho aqui.
+  bool get canCreateShortcut => dir != null && _settings.desktopShowIcons;
 
   @override
   String? folderIcon(String path) {
@@ -324,6 +374,18 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (ctrl && key == LogicalKeyboardKey.keyA) {
       return done(() => _selection.all(_cells));
     }
+    if (ctrl && !shift && key == LogicalKeyboardKey.keyC) {
+      copySelected();
+      return true;
+    }
+    if (ctrl && !shift && key == LogicalKeyboardKey.keyX) {
+      copySelected(cut: true);
+      return true;
+    }
+    if (ctrl && !shift && key == LogicalKeyboardKey.keyV) {
+      unawaited(paste());
+      return true;
+    }
     if (ctrl || alt) return false;
     switch (key) {
       case LogicalKeyboardKey.arrowUp:
@@ -391,10 +453,16 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   /// Renomeia, levando a célula para o nome novo. Um nome que não serve avisa.
+  /// Num atalho, o que muda é o `Name=`, que é o que a mesa mostra.
   Future<void> rename(String key, String name) async {
-    final entry = _item(key)?.entry;
+    final item = _item(key);
+    final entry = item?.entry;
     stopRename();
     if (entry == null) return;
+    if (item?.shortcut != null) {
+      await _renameShortcut(entry.path, name);
+      return;
+    }
     try {
       await renameEntry(entry.path, name);
     } on Exception catch (e) {
@@ -407,8 +475,21 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     await reload();
   }
 
-  /// Cria uma pasta na mesa, já com o nome em edição, como no Files.
-  Future<void> newFolder() async {
+  Future<void> _renameShortcut(String path, String name) async {
+    try {
+      final file = File(path);
+      await file.writeAsString(
+        renamedDeskShortcut(await file.readAsString(), name),
+      );
+    } on FileSystemException catch (e) {
+      _warn('Sem como renomear', e.message);
+    }
+    await reload();
+  }
+
+  /// Cria uma pasta na mesa (na célula de [at]), já com o nome em edição, como
+  /// no Files.
+  Future<void> newFolder({Offset? at}) async {
     final dir = this.dir;
     if (dir == null) return;
     final String path;
@@ -418,6 +499,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       _warn('Sem como criar a pasta', _message(e));
       return;
     }
+    await _placeAt(baseName(path), at);
     await reload();
     startRename(baseName(path));
   }
@@ -436,6 +518,164 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       _warn('Sem como mover para a lixeira', _message(e));
     }
     await reload();
+  }
+
+  /// Guarda a célula de [at] (a mais perto, se tiver alguém nela) para [name],
+  /// antes do reload: ele não pode cair na primeira célula livre.
+  Future<void> _placeAt(String name, Offset? at) async {
+    final grid = _grid;
+    if (at == null || grid == null) return;
+    final free = insets;
+    final cell = deskCellAt(
+      at - free.topLeft,
+      state.dockUi.screen.width - free.horizontal,
+      grid,
+      _settings.desktopIconSize,
+    );
+    final taken = {
+      for (final MapEntry(:key, :value) in _cells.entries)
+        if (key != name) value,
+    };
+    await store.put({name: nearestFreeCell(cell, grid, taken) ?? cell});
+  }
+
+  /// Os caminhos selecionados, sem o home e a lixeira.
+  List<String> get _selectedPaths => [
+    for (final key in deskOrder(_cells))
+      if (selected.contains(key))
+        if (_item(key)?.entry case final entry?) entry.path,
+  ];
+
+  void copySelected({bool cut = false}) {
+    final paths = _selectedPaths;
+    if (paths.isNotEmpty) unawaited(clipboard.copy(paths, cut: cut));
+  }
+
+  /// Traz para a mesa o que está copiado, aqui ou em outro app. Um nome que já
+  /// existe fica com os dois.
+  Future<void> paste() async {
+    final dir = this.dir;
+    if (dir == null) return;
+    final clip = await clipboard.read();
+    if (clip == null) return;
+    if (clip.cut) await clipboard.clear();
+    final sources = [
+      for (final path in clip.paths)
+        if (!(clip.cut && dirName(path) == dir)) path,
+    ];
+    if (sources.isEmpty) return;
+    final result = await FileJob.start(
+      clip.cut ? JobKind.move : JobKind.copy,
+      sources,
+      destination: dir,
+    ).result;
+    if (result.errors.isNotEmpty) {
+      _warn('Sem como colar', result.errors.join('\n'));
+    }
+    await reload();
+    _selection.press(null, _cells);
+    selectRect({for (final (_, to) in result.done) baseName(to)});
+  }
+
+  /// O atalho de [app] na mesa, já executável: uma cópia do `.desktop`, que
+  /// fica na célula de [at]. Se já tem um, é ele que vai para lá.
+  Future<void> createShortcut(DesktopEntry app, {Offset? at}) async {
+    final dir = this.dir, source = app.path;
+    if (!canCreateShortcut || dir == null || source == null) return;
+    for (final item in _items) {
+      final shortcut = item.shortcut;
+      if (shortcut != null && installedFor(shortcut)?.id == app.id) {
+        await _placeAt(item.key, at);
+        _selection.only(item.key);
+        _rebuild();
+        return;
+      }
+    }
+    final name = uniqueName(dir, '${app.id}.desktop');
+    final path = joinPath(dir, name);
+    try {
+      await File(source).copy(path);
+      await _trust(path);
+    } on Exception catch (e) {
+      _warn('Sem como criar o atalho', '$e');
+      return;
+    }
+    await _placeAt(name, at);
+    await reload();
+    _selection.only(name);
+    notifyListeners();
+  }
+
+  /// Dá o `+x`, e tira a escrita dos outros, que tira a confiança.
+  Future<void> _trust(String path) async {
+    final result = await Process.run('chmod', ['u+x,go-w', path]);
+    if (result.exitCode != 0) {
+      throw FileSystemException('${result.stderr}'.trim(), path);
+    }
+  }
+
+  /// Cria um documento na mesa, em branco ou a partir de [template], já com o
+  /// nome em edição.
+  Future<void> newDocument({String? template, Offset? at}) async {
+    final dir = this.dir;
+    if (dir == null) return;
+    final name = uniqueName(
+      dir,
+      template == null ? 'Novo documento.txt' : baseName(template),
+    );
+    final path = joinPath(dir, name);
+    try {
+      if (template == null) {
+        await File(path).create(exclusive: true);
+      } else {
+        await File(template).copy(path);
+      }
+    } on FileSystemException catch (e) {
+      _warn('Sem como criar o documento', e.message);
+      return;
+    }
+    await _placeAt(name, at);
+    await reload();
+    startRename(name);
+  }
+
+  /// "Organizar por": as chaves na ordem de [key], sem buracos. Os itens fixos
+  /// vêm primeiro. Por nome, vale o que a mesa mostra: o `Name=` de um atalho, e
+  /// não o nome do arquivo.
+  void arrangeBy(FsSortKey key) {
+    final fixed = [
+      for (final item in _items)
+        if (item.entry == null) item.key,
+    ];
+    if (key != FsSortKey.name) {
+      _pack([
+        ...fixed,
+        for (final entry in sortEntries(
+          _entries,
+          FsSort(key: key, ascending: key == FsSortKey.kind),
+        ))
+          entry.name,
+      ]);
+      return;
+    }
+    final files = _items.where((item) => item.entry != null).toList()
+      ..sort((a, b) {
+        if (a.entry!.isDirectory != b.entry!.isDirectory) {
+          return a.entry!.isDirectory ? -1 : 1;
+        }
+        return naturalCompare(foldName(a.name), foldName(b.name));
+      });
+    _pack([...fixed, for (final item in files) item.key]);
+  }
+
+  /// "Limpar": tira os buracos, na ordem em que estão.
+  void cleanUp() => _pack(deskOrder(_cells));
+
+  void _pack(List<String> keys) {
+    final grid = _grid;
+    if (grid == null) return;
+    unawaited(store.put(packDesk(keys, grid)));
+    _rebuild();
   }
 
   /// O Espaço: abre o item no Quick Look do Files.
@@ -480,35 +720,262 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     } else if (item.key == DeskItem.homeKey) {
       _openPath(home);
     } else if (item.shortcut case final shortcut?) {
-      _openShortcut(item, shortcut);
+      unawaited(_openShortcut(item, shortcut));
     } else {
       _openPath(item.entry!.path);
     }
   }
 
-  void _openPath(String path) {
+  void _openPath(String path, {String? withApp}) {
     final open = state.openPaths;
     if (open == null) return;
     unawaited(
-      open([path]).catchError((Object e) {
+      open([path], withApp: withApp).catchError((Object e) {
         _warn('Sem como abrir', '$e');
       }),
     );
   }
 
-  void _openShortcut(DeskItem item, DesktopEntry shortcut) {
-    if (!deskShortcutTrusted(item.entry!)) {
-      _warn(
-        'Atalho não confiável',
-        '"${item.name}" não é executável, e por isso não abre.',
-      );
-    } else if (item.broken) {
+  // Só abre direto se for executável e do próprio usuário. O FileStat não traz
+  // o dono, então quem responde é o `test -O`
+  Future<void> _openShortcut(DeskItem item, DesktopEntry shortcut) async {
+    final path = item.entry!.path;
+    if (item.broken) {
       _warn('Atalho quebrado', 'O programa de "${item.name}" não existe mais.');
+    } else if (deskShortcutTrusted(item.entry!) &&
+        (await Process.run('test', ['-O', path])).exitCode == 0) {
+      await _launchShortcut(shortcut);
     } else {
-      unawaited(
-        (installedFor(shortcut) ?? shortcut).launch(sandbox: state.sandbox),
+      state.deskTrust.value = DeskTrustRequest(
+        item.name,
+        () => unawaited(_trustAndOpen(path, shortcut)),
       );
     }
+  }
+
+  Future<void> _trustAndOpen(String path, DesktopEntry shortcut) async {
+    try {
+      await _trust(path);
+    } on FileSystemException catch (e) {
+      _warn('Sem como confiar no atalho', e.message);
+      return;
+    }
+    await reload();
+    await _launchShortcut(shortcut);
+  }
+
+  Future<void> _launchShortcut(DesktopEntry shortcut) =>
+      launchEntry(installedFor(shortcut) ?? shortcut);
+
+  // Menus
+
+  /// O clique direito: num item fora da seleção, só ele fica selecionado; na
+  /// mesa vazia, a seleção limpa. Um arquivo copiado em outro app só se vê
+  /// agora, porque a mesa acabou de ganhar o teclado.
+  Future<void> openMenu(String? key, Offset at) async {
+    if (key == null) {
+      _selection.clear();
+    } else if (!selected.contains(key)) {
+      _selection.only(key);
+    }
+    notifyListeners();
+    // Um dono travado não pode segurar o menu
+    final clip = await clipboard.read().timeout(
+      const Duration(milliseconds: 300),
+      onTimeout: () => clipboard.current.value,
+    );
+    final item = key == null ? null : _item(key);
+    if (item == null) {
+      _showMenu('Área de trabalho', at, _deskMenu(clip, at));
+    } else if (selected.length > 1) {
+      _showMenu('${selected.length} itens', at, _selectionMenu());
+    } else {
+      _showMenu(item.name, at, _itemMenu(item, at));
+    }
+  }
+
+  void _showMenu(String title, Offset at, List<DockMenuItem> items) =>
+      state.deskMenu.value = DeskMenuRequest(title, at, items);
+
+  void closeMenu() => state.deskMenu.value = null;
+
+  List<DockMenuItem> _deskMenu(FileClip? clip, Offset at) {
+    final count = clip?.paths.length ?? 0;
+    final auto = _settings.desktopAutoArrange;
+    final terminal = _terminal;
+    return [
+      DockMenuItem('Nova pasta', () => unawaited(newFolder(at: at))),
+      DockMenuItem(
+        'Novo documento…',
+        () => unawaited(_templatesMenu(at)),
+        keepsOpen: true,
+      ),
+      DockMenuItem(
+        count > 1 ? 'Colar $count itens' : 'Colar',
+        () => unawaited(paste()),
+        enabled: count > 0,
+      ),
+      DockMenuItem(
+        'Organizar por…',
+        () => _arrangeMenu(at),
+        keepsOpen: true,
+        separated: true,
+        enabled: !auto,
+      ),
+      DockMenuItem('Limpar', cleanUp, enabled: !auto),
+      DockMenuItem(
+        'Abrir no Files',
+        () => _openPath(dir ?? home),
+        separated: true,
+      ),
+      if (terminal != null)
+        DockMenuItem(
+          'Abrir o terminal aqui',
+          () => unawaited(terminal.launch(workingDirectory: dir ?? home)),
+        ),
+      if (state.installed('org.psito.settings') case final settings?)
+        DockMenuItem(
+          'Mudar o papel de parede',
+          () => unawaited(
+            settings.launch(
+              sandbox: state.sandbox,
+              command: [
+                ...settings.command,
+                '${psitoSettingsSectionPrefix}appearance',
+              ],
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// O foot, que vem com o Psito, ou outro terminal instalado.
+  DesktopEntry? get _terminal {
+    if (state.installed('foot') case final foot?) return foot;
+    for (final app in state.apps.value) {
+      if (app.categories.contains('TerminalEmulator')) return app;
+    }
+    return null;
+  }
+
+  void _arrangeMenu(Offset at) => _showMenu('Organizar por', at, [
+    DockMenuItem('Nome', () => arrangeBy(FsSortKey.name)),
+    DockMenuItem('Tipo', () => arrangeBy(FsSortKey.kind)),
+    DockMenuItem('Data', () => arrangeBy(FsSortKey.modified)),
+    DockMenuItem('Tamanho', () => arrangeBy(FsSortKey.size)),
+  ]);
+
+  /// Os modelos da pasta `TEMPLATES`, como no GNOME.
+  Future<void> _templatesMenu(Offset at) async {
+    var templates = const <FsEntry>[];
+    if (userDirs[UserDir.templates] case final dir?) {
+      try {
+        templates = sortEntries(
+          (await listDirectory(
+            dir,
+            mime,
+          )).where((entry) => !entry.hidden && entry.kind == FsKind.file),
+          const FsSort(),
+        );
+      } on FileSystemException catch (e) {
+        debugPrint('🦜 mesa: sem os modelos de $dir ($e)');
+      }
+    }
+    _showMenu('Novo documento', at, [
+      DockMenuItem(
+        'Documento vazio',
+        () => unawaited(newDocument(at: at)),
+      ),
+      for (final (i, template) in templates.indexed)
+        DockMenuItem(
+          splitExtension(template.name).$1,
+          () => unawaited(newDocument(template: template.path, at: at)),
+          separated: i == 0,
+        ),
+    ]);
+  }
+
+  /// O que vale para vários itens.
+  List<DockMenuItem> _selectionMenu() => [
+    DockMenuItem(
+      'Abrir',
+      () => deskOrder(_cells).where(selected.contains).forEach(open),
+    ),
+    ..._fileActions(),
+  ];
+
+  List<DockMenuItem> _fileActions() => [
+    DockMenuItem('Copiar', copySelected, separated: true),
+    DockMenuItem('Recortar', () => copySelected(cut: true)),
+    DockMenuItem(
+      'Mover para a lixeira',
+      () => unawaited(trashSelected()),
+    ),
+  ];
+
+  List<DockMenuItem> _itemMenu(DeskItem item, Offset at) {
+    if (item.key == DeskItem.trashKey) {
+      return [
+        DockMenuItem('Abrir', () => open(item.key)),
+        if (state.dockUi.trashFull.value)
+          DockMenuItem(
+            'Esvaziar a lixeira',
+            () => state.dockUi.askEmptyTrash.value = true,
+          ),
+      ];
+    }
+    final entry = item.entry;
+    if (entry == null) return [DockMenuItem('Abrir', () => open(item.key))];
+    final dockItem = _dockItem(item);
+    return [
+      DockMenuItem('Abrir', () => open(item.key)),
+      if (item.shortcut == null)
+        DockMenuItem(
+          'Abrir com…',
+          () => _openWithMenu(item, at, mime.typeOf(entry.path)),
+          keepsOpen: true,
+        ),
+      DockMenuItem('Renomear', () => startRename(item.key), separated: true),
+      ..._fileActions(),
+      DockMenuItem(
+        'Mostrar no Files',
+        () => _openPath(dirName(entry.path)),
+        separated: true,
+      ),
+      if (dockItem != null && !state.dock.contains(dockItem))
+        DockMenuItem(
+          'Fixar na Dock',
+          () => unawaited(state.dock.pin(dockItem)),
+        ),
+    ];
+  }
+
+  void _openWithMenu(DeskItem item, Offset at, String type) {
+    final path = item.entry!.path;
+    final apps = state.appsForType?.call(type) ?? const <DesktopEntry>[];
+    _showMenu('Abrir com', at, [
+      for (final app in apps)
+        DockMenuItem(app.name, () => _openPath(path, withApp: app.id)),
+      if (type.isNotEmpty)
+        DockMenuItem(
+          'Outro…',
+          () => _openWithMenu(item, at, ''),
+          keepsOpen: true,
+          separated: apps.isNotEmpty,
+        ),
+    ]);
+  }
+
+  /// O item da dock de [item]: um atalho fixa o app instalado.
+  DockItem? _dockItem(DeskItem item) {
+    if (item.shortcut case final shortcut?) {
+      return switch (installedFor(shortcut)) {
+        final app? => DockApp(app.id),
+        null => null,
+      };
+    }
+    final entry = item.entry!;
+    return entry.isDirectory ? DockFolder(entry.path) : DockFile(entry.path);
   }
 
   void _warn(String title, String body) {
@@ -523,6 +990,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   void dispose() {
     state.settings.removeListener(_settingsChanged);
     state.apps.removeListener(_appsChanged);
+    state.deskMenu.removeListener(notifyListeners);
+    clipboard.current.removeListener(notifyListeners);
     unawaited(_watch?.cancel());
     _typedTimer?.cancel();
     super.dispose();

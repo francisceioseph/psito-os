@@ -11,8 +11,9 @@ enum Surface { background, topbar, dock, overlay, toasts, osd }
 
 /// Teclado da sobreposição: o launcher pega o teclado todo; os painéis só
 /// quando clicados. Passiva, ela só desenha (o ícone arrastado da dock), sem
-/// teclado nem cliques.
-enum OverlayKeyboard { exclusive, onDemand, passive }
+/// teclado nem cliques. Com o ponteiro, ela recebe os cliques e o teclado fica
+/// onde estava (o menu da mesa).
+enum OverlayKeyboard { exclusive, onDemand, passive, pointer }
 
 class Surfaces {
   const Surfaces([this._channel = const MethodChannel('psito/surfaces')]);
@@ -37,6 +38,7 @@ class Surfaces {
         OverlayKeyboard.exclusive => 'exclusive',
         OverlayKeyboard.onDemand => 'on_demand',
         OverlayKeyboard.passive => 'passive',
+        OverlayKeyboard.pointer => 'pointer',
       });
 
   Future<void> hideOverlay() => _channel.invokeMethod('hideOverlay');

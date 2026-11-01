@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,12 +13,14 @@ void main() {
   late List<String> released;
   late List<Set<String>> rects;
   late List<String> opened;
+  late List<(String?, Offset)> menus;
 
   setUp(() {
     pressed = [];
     released = [];
     rects = [];
     opened = [];
+    menus = [];
   });
 
   Future<void> pump(
@@ -27,6 +30,8 @@ void main() {
     Widget? editor,
     bool keyboard = true,
     KeyEventResult Function(KeyEvent)? onKey,
+    bool popup = false,
+    bool dimmed = false,
   }) async {
     tester.view.physicalSize = const Size(1000, 800);
     tester.view.devicePixelRatio = 1;
@@ -41,6 +46,7 @@ void main() {
                 name: name,
                 icon: (size) => SizedBox.square(dimension: size),
                 editor: name == 'a' ? editor : null,
+                dimmed: dimmed,
               ),
           ],
           cells: const {
@@ -57,6 +63,8 @@ void main() {
           onOpen: opened.add,
           keyboard: keyboard,
           onKey: onKey,
+          onMenu: (key, position) => menus.add((key, position)),
+          popup: popup,
         ),
       ),
     );
@@ -165,5 +173,51 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(pressed, isEmpty);
     expect(opened, isEmpty);
+  });
+
+  testWidgets('o clique direito pede o menu do item ou da mesa', (
+    tester,
+  ) async {
+    await pump(tester);
+    final center = tester.getCenter(find.text('a'));
+    await tester.tapAt(center, buttons: kSecondaryMouseButton);
+    await tester.pump();
+    expect(menus, [('a', center)]);
+    // O botão direito não seleciona nem começa o retângulo: quem decide é o
+    // menu
+    expect(pressed, isEmpty);
+    await tester.tapAt(const Offset(100, 700), buttons: kSecondaryMouseButton);
+    await tester.pump();
+    expect(menus.last, (null, const Offset(100, 700)));
+    expect(pressed, isEmpty);
+  });
+
+  testWidgets('fechando o menu, a mesa pega o teclado de volta', (tester) async {
+    final keys = <KeyEvent>[];
+    KeyEventResult onKey(KeyEvent event) {
+      keys.add(event);
+      return KeyEventResult.handled;
+    }
+
+    await pump(tester, onKey: onKey);
+    await tester.tapAt(const Offset(100, 700));
+    await tester.pump();
+    final other = FocusNode();
+    addTearDown(other.dispose);
+    await pump(tester, onKey: onKey, popup: true);
+    other.requestFocus();
+    await tester.pump();
+    await pump(tester, onKey: onKey);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+    expect(keys.whereType<KeyDownEvent>(), hasLength(1));
+  });
+
+  testWidgets('um recortado fica apagado', (tester) async {
+    await pump(tester, dimmed: true);
+    expect(
+      tester.widgetList<Opacity>(find.byType(Opacity)).first.opacity,
+      lessThan(1),
+    );
   });
 }

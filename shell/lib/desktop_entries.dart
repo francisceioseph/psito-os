@@ -54,6 +54,9 @@ class DesktopEntry {
   /// O arquivo `.desktop` de onde veio.
   final String? path;
 
+  /// As categorias do `Categories=`.
+  final List<String> categories;
+
   /// As ações do `Actions=`, na ordem dele.
   final List<DesktopAction> actions;
 
@@ -69,6 +72,7 @@ class DesktopEntry {
     this.color,
     this.permissions = const [],
     this.path,
+    this.categories = const [],
     this.actions = const [],
   }) : exec = exec ?? command;
 
@@ -133,6 +137,7 @@ class DesktopEntry {
       color: _color(values['X-Psito-Color']),
       permissions: _list(values['X-Psito-Permissions']),
       path: path,
+      categories: _list(values['Categories']),
       actions: [
         for (final id in _list(values['Actions']))
           if (all['Desktop Action $id'] case final group?)
@@ -227,11 +232,13 @@ class DesktopEntry {
   /// Psito abre no [sandbox] (o `psito-sandbox`), se for dado.
   /// [command] troca o comando do `.desktop` (o de [commandsFor]), e
   /// [files] são os arquivos que o sandbox monta para o app (o caminho de
-  /// fora e o de dentro).
+  /// fora e o de dentro). [workingDirectory] é onde ele abre (o terminal da
+  /// mesa).
   Future<void> launch({
     String? sandbox,
     List<String>? command,
     List<(String, String)> files = const [],
+    String? workingDirectory,
   }) async {
     final args = launchCommand(
       random: _random.nextInt(1 << 32),
@@ -244,6 +251,7 @@ class DesktopEntry {
         args.first,
         args.sublist(1),
         mode: ProcessStartMode.detached,
+        workingDirectory: workingDirectory,
       );
     } on ProcessException {
       final direct = args.sublist(args.indexOf('--') + 1);
@@ -251,6 +259,7 @@ class DesktopEntry {
         direct.first,
         direct.sublist(1),
         mode: ProcessStartMode.detached,
+        workingDirectory: workingDirectory,
       );
     }
   }

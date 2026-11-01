@@ -408,7 +408,7 @@ class DockController {
   }
 
   /// Soltar sobre a dock fixa no lugar do espaço aberto; soltar longe tira
-  /// o que veio da dock.
+  /// o que veio da dock, e o que veio do launcher vira um atalho na mesa.
   Future<void> endDrag() async {
     final current = drag.value;
     if (current == null) return;
@@ -422,6 +422,11 @@ class DockController {
       );
     } else if (current.source == DockDragSource.dock) {
       await state.dock.unpin(current.item);
+    } else if (current.item case DockApp(:final id)) {
+      // Do launcher, longe da dock: um atalho na mesa
+      if (state.installed(id) case final app?) {
+        await state.desk.value?.createShortcut(app, at: current.position);
+      }
     }
   }
 
@@ -603,6 +608,7 @@ class DockController {
   void closePopups() {
     menu.value = null;
     stack.value = null;
+    state.deskMenu.value = null;
   }
 
   String title(DockItem item) => switch (item) {
