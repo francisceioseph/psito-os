@@ -15,6 +15,7 @@ enum _Section {
   notifications(Icons.notifications_none),
   power(Icons.battery_std_outlined),
   shortcuts(Icons.keyboard_outlined),
+  privacy(Icons.lock_outline),
   language(Icons.language),
   about(Icons.info_outline);
 
@@ -24,6 +25,7 @@ enum _Section {
 
   String label(SettingsLocalizations l) => switch (this) {
     appearance => l.sectionAppearance,
+    privacy => l.sectionPrivacy,
     language => l.sectionLanguage,
     dock => l.sectionDock,
     desktop => l.sectionDesktop,
@@ -100,6 +102,7 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 16),
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
+                  _Section.privacy => _privacy(settings),
                   _Section.language => _language(settings),
                   _Section.dock => _dock(settings),
                   _Section.desktop => _desktop(settings),
@@ -465,6 +468,27 @@ class _SettingsViewState extends State<SettingsView> {
     ),
     const SizedBox(height: 12),
     _Note(context.l10n.shortcutsNote),
+  ];
+
+  List<Widget> _privacy(PsitoSettings s) => [
+    _Label(context.l10n.lockAfter),
+    Wrap(
+      spacing: 8,
+      children: [
+        for (final minutes in const [1, 5, 15, 0])
+          ChoiceChip(
+            label: Text(
+              minutes == 0
+                  ? context.l10n.lockNever
+                  : context.l10n.lockMinutes(minutes),
+            ),
+            selected: s.lockAfterMinutes == minutes,
+            onSelected: (_) => _update(s.copyWith(lockAfterMinutes: minutes)),
+          ),
+      ],
+    ),
+    const SizedBox(height: 12),
+    _Note(context.l10n.lockNote),
   ];
 
   List<Widget> _language(PsitoSettings s) => [

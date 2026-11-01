@@ -9,6 +9,7 @@
 #include "flutter/generated_plugin_registrant.h"
 #include "psito_runtime/psito_dnd.h"
 #include "clipboard_keeper.h"
+#include "idle.h"
 #include "toplevels.h"
 
 // O shell do Psito como cliente layer-shell: um engine, uma FlView por
@@ -376,6 +377,7 @@ static void my_application_activate(GApplication* application) {
   g_signal_connect(background_window, "focus-out-event",
                    G_CALLBACK(background_focus_cb), self);
   toplevels_init(messenger);
+  idle_init(messenger);
   clipboard_keeper_init(messenger);
 
   // A sobreposição, os toasts e o OSD ficam só realizados (a view existe

@@ -259,6 +259,12 @@ abstract class SdkLocalizations {
   /// In en, this message translates to:
   /// **'The shell couldn\'t open it ({detail}).'**
   String openFailed(Object detail);
+
+  /// No description provided for @shortcutLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the screen'**
+  String get shortcutLock;
 }
 
 class _SdkLocalizationsDelegate

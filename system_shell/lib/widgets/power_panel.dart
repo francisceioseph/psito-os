@@ -13,6 +13,9 @@ import 'top_bar.dart';
 
 class PowerPanel extends StatelessWidget {
   final ValueListenable<SessionCapabilities> capabilities;
+
+  /// Sem ele, nada de "Bloquear" (o laboratório não bloqueia).
+  final VoidCallback? onLock;
   final VoidCallback onSuspend;
   final VoidCallback onReboot;
   final VoidCallback onPowerOff;
@@ -21,6 +24,7 @@ class PowerPanel extends StatelessWidget {
   const PowerPanel({
     super.key,
     required this.capabilities,
+    this.onLock,
     required this.onSuspend,
     required this.onReboot,
     required this.onPowerOff,
@@ -59,7 +63,9 @@ class PowerPanel extends StatelessWidget {
   }
 
   Widget _buildPanel(BuildContext context, SessionCapabilities can) {
+    final lock = onLock;
     final items = [
+      if (lock != null) (Icons.lock_outline, context.l10n.lock, true, lock),
       (Icons.bedtime_outlined, context.l10n.suspend, can.canSuspend, onSuspend),
       (Icons.restart_alt, context.l10n.reboot, can.canReboot, onReboot),
       (

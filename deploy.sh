@@ -29,13 +29,14 @@ ssh -p "$VM_PORT" psito@localhost '
         rm -rf $debs && mkdir -p $debs
         $deb -o $debs --runtime ~/psito-src/shell >/dev/null
         $deb -o $debs --system ~/psito-src/shell >/dev/null
+        $deb -o $debs --system ~/psito-src/lock >/dev/null
         apps=()
         for dir in ~/psito-src/apps/*/; do
             [ -f $dir/pubspec.yaml ] || continue
             apps+=("$(dpkg-deb -f "$($deb -o $debs $dir)" Package)")
         done
         version=$(sed -n "s/^version: *//p" ~/psito-src/shell/pubspec.yaml)
-        $deb -o $debs --meta psito-desktop "$version" psito-shell "${apps[@]}" >/dev/null
+        $deb -o $debs --meta psito-desktop "$version" psito-shell psito-lock "${apps[@]}" >/dev/null
         # O que as versões antigas instalavam à mão ganharia do pacote
         sudo rm -rf /opt/psito /usr/local/bin/psito-shell-start /usr/local/bin/psito-sandbox
         rm -f ~/.config/systemd/user/psito-shell.service \

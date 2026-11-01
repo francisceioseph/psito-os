@@ -925,6 +925,7 @@ class _OverlayView extends StatelessWidget {
         ),
         ShellOverlay.power => PowerPanel(
           capabilities: services.session.capabilities,
+          onLock: () => unawaited(state.lockSession()),
           onSuspend: () {
             state.closeOverlay();
             services.session.suspend();

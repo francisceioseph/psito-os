@@ -66,5 +66,6 @@
   "unmute": "Ativar som",
   "mute": "Silenciar",
   "powerOffNow": "Desligar agora",
-  "rebootNow": "Reiniciar agora"
+  "rebootNow": "Reiniciar agora",
+  "lock": "Bloquear"
 }

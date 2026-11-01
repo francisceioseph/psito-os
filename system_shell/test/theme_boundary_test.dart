@@ -19,6 +19,7 @@ void main() {
     final found = <String>[];
     for (final root in [
       '../shell',
+      '../lock',
       '.',
       for (final parent in ['../apps', '../examples'])
         ...Directory(parent)

@@ -50,7 +50,8 @@ bool shellHandles(ShellAction action) => switch (action) {
   ShellAction.clipboard3 ||
   ShellAction.clipboard4 ||
   ShellAction.clipboard5 ||
-  ShellAction.showDesktop => true,
+  ShellAction.showDesktop ||
+  ShellAction.lock => true,
   ShellAction.closeWindow ||
   ShellAction.maximize ||
   ShellAction.snapLeft ||

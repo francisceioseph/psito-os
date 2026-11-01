@@ -66,5 +66,6 @@
   "unmute": "Unmute",
   "mute": "Mute",
   "powerOffNow": "Shut down now",
-  "rebootNow": "Restart now"
+  "rebootNow": "Restart now",
+  "lock": "Lock"
 }

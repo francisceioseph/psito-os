@@ -499,6 +499,12 @@ abstract class SystemLocalizations {
   /// In en, this message translates to:
   /// **'Restart now'**
   String get rebootNow;
+
+  /// No description provided for @lock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get lock;
 }
 
 class _SystemLocalizationsDelegate

@@ -60,6 +60,7 @@ Future<void> main() async {
     state.watchApps(Platform.environment).then((_) => state.runAutostart()),
   );
   Bridge(settings).start();
+  state.watchLocking();
 
   final env = Platform.environment;
   final mime = MimeDatabase.load(MimeDatabase.dirsFor(env));

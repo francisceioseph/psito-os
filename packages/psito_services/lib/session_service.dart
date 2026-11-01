@@ -1,6 +1,9 @@
 // packages/psito_services/lib/session_service.dart
 //
 // Desligar, reiniciar e suspender pelo systemd-logind.
+import 'dart:async';
+import 'dart:io';
+
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 
@@ -55,7 +58,47 @@ abstract class SessionService {
 
   Future<void> suspend();
 
+  /// Bloqueia a sessão por conta do sistema: [beforeSleep] antes de suspender,
+  /// que segura a suspensão até completar, e [onLock] pelo `loginctl
+  /// lock-session`.
+  void watchLock({
+    required Future<void> Function() beforeSleep,
+    required VoidCallback onLock,
+  });
+
   Future<void> dispose();
+}
+
+/// Segura a suspensão enquanto a tela bloqueia, com um inibidor `delay` do
+/// logind: é pego acordado, e solto só depois de [beforeSleep].
+class SleepGuard {
+  final Future<Object?> Function() inhibit;
+  final Future<void> Function(Object handle) release;
+  final Future<void> Function() beforeSleep;
+  Object? _handle;
+
+  SleepGuard({
+    required this.inhibit,
+    required this.release,
+    required this.beforeSleep,
+  });
+
+  Future<void> start() async => _handle = await inhibit();
+
+  /// O `PrepareForSleep` do logind.
+  Future<void> prepareForSleep(bool sleeping) async {
+    if (!sleeping) {
+      _handle ??= await inhibit();
+      return;
+    }
+    try {
+      await beforeSleep();
+    } finally {
+      final handle = _handle;
+      _handle = null;
+      if (handle != null) await release(handle);
+    }
+  }
 }
 
 class LogindSessionService implements SessionService {
@@ -125,8 +168,66 @@ class LogindSessionService implements SessionService {
   @override
   Future<void> suspend() => _call('Suspend');
 
+  Future<Object?> _inhibit() async {
+    try {
+      final reply = await _manager.callMethod(interface, 'Inhibit', const [
+        DBusString('sleep'),
+        DBusString('Psito'),
+        DBusString('Lock the screen before suspending'),
+        DBusString('delay'),
+      ], replySignature: DBusSignature('h'));
+      return reply.values.first.asUnixFd();
+    } catch (e) {
+      debugPrint('🦜 Erro no Inhibit: $e');
+      return null;
+    }
+  }
+
   @override
-  Future<void> dispose() async => _capabilities.dispose();
+  void watchLock({
+    required Future<void> Function() beforeSleep,
+    required VoidCallback onLock,
+  }) {
+    final guard = SleepGuard(
+      inhibit: _inhibit,
+      release: (handle) async {
+        await (handle as ResourceHandle).toFile().close();
+      },
+      beforeSleep: beforeSleep,
+    );
+    unawaited(guard.start());
+    _subscriptions.add(
+      DBusSignalStream(
+        _bus,
+        sender: busName,
+        interface: interface,
+        name: 'PrepareForSleep',
+        signature: DBusSignature('b'),
+      ).listen(
+        (signal) =>
+            unawaited(guard.prepareForSleep(signal.values.first.asBoolean())),
+      ),
+    );
+    // De qualquer sessão: bloquear a mais nunca abre nada
+    _subscriptions.add(
+      DBusSignalStream(
+        _bus,
+        sender: busName,
+        interface: 'org.freedesktop.login1.Session',
+        name: 'Lock',
+      ).listen((_) => onLock()),
+    );
+  }
+
+  final _subscriptions = <StreamSubscription<DBusSignal>>[];
+
+  @override
+  Future<void> dispose() async {
+    for (final subscription in _subscriptions) {
+      await subscription.cancel();
+    }
+    _capabilities.dispose();
+  }
 }
 
 class FakeSessionService implements SessionService {
@@ -134,6 +235,12 @@ class FakeSessionService implements SessionService {
 
   /// Ações pedidas, na ordem: 'powerOff', 'reboot', 'suspend'.
   final List<String> calls = [];
+
+  @override
+  void watchLock({
+    required Future<void> Function() beforeSleep,
+    required VoidCallback onLock,
+  }) {}
 
   FakeSessionService([SessionCapabilities initial = SessionCapabilities.all])
     : _capabilities = ValueNotifier(initial);

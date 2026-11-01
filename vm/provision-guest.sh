@@ -19,7 +19,7 @@ apt-get install -y -qq --no-install-recommends \
 # Para compilar o shell e os apps (Flutter Linux, GTK 3 e gtk-layer-shell)
 apt-get install -y -qq \
     git rsync curl unzip xz-utils clang cmake ninja-build pkg-config \
-    libgtk-3-dev libgtk-layer-shell-dev libwayland-bin >/dev/null
+    libgtk-3-dev libgtk-layer-shell-dev libwayland-bin libpam0g-dev >/dev/null
 # Para empacotar o shell e os apps (tools/psito-deb)
 apt-get install -y -qq --no-install-recommends patchelf >/dev/null
 

@@ -93,4 +93,7 @@ class SdkLocalizationsEn extends SdkLocalizations {
   String openFailed(Object detail) {
     return 'The shell couldn\'t open it ($detail).';
   }
+
+  @override
+  String get shortcutLock => 'Lock the screen';
 }

@@ -1,0 +1,9 @@
+{
+  "@@locale": "en",
+  "passwordHint": "Password",
+  "unlock": "Unlock",
+  "wrongPassword": "Wrong password.",
+  "waitSeconds": "Wrong password. Try again in {seconds} s.",
+  "suspend": "Suspend",
+  "powerOff": "Shut down"
+}

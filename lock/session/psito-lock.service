@@ -1,0 +1,15 @@
+# A tela de bloqueio. Se cair, a tela continua bloqueada pelo compositor, e esta
+# unidade traz o campo de senha de volta. Start de novo com ela ativa não faz
+# nada, e por isso o shell pode pedir à vontade. O systemctl start só volta
+# depois do READY=1, com a tela já bloqueada.
+[Unit]
+Description=Tela de bloqueio do Psito
+StartLimitIntervalSec=30
+StartLimitBurst=10
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/lib/psito/lock/psito_lock
+Restart=on-failure
+RestartSec=0

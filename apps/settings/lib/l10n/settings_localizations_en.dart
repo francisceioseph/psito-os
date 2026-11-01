@@ -206,4 +206,22 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get settingsPath => 'Settings saved in ~/.config/psito/settings.json';
+
+  @override
+  String get sectionPrivacy => 'Privacy';
+
+  @override
+  String get lockAfter => 'Lock the screen after';
+
+  @override
+  String get lockNever => 'Never';
+
+  @override
+  String lockMinutes(Object minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get lockNote =>
+      'The screen also locks with Super+L and before suspending.';
 }

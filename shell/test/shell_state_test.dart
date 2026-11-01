@@ -371,4 +371,14 @@ void main() {
       expect(state.osdClip.value, isNull);
     });
   });
+
+  test('o atalho de bloquear fecha o que está aberto e sobe a tela', () async {
+    var locks = 0;
+    state.startLock = () async => locks++;
+    state.toggle(ShellOverlay.power);
+    state.run(ShellAction.lock);
+    await Future<void>.delayed(Duration.zero);
+    expect(locks, 1);
+    expect(state.overlay.value, isNull);
+  });
 }

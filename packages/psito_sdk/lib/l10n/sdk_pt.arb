@@ -26,5 +26,6 @@
   "shortcutShowDesktop": "Mostrar a área de trabalho",
   "shortcutDismiss": "Fechar launcher, painel ou seletor",
   "openNoApp": "Nenhum app abre \"{file}\".",
-  "openFailed": "O shell não abriu ({detail})."
+  "openFailed": "O shell não abriu ({detail}).",
+  "shortcutLock": "Bloquear a tela"
 }

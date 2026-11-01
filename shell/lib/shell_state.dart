@@ -26,6 +26,7 @@ import 'autostart.dart';
 import 'clipboard_keeper.dart';
 import 'desk.dart';
 import 'desktop_entries.dart';
+import 'idle.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
@@ -267,6 +268,52 @@ class ShellState {
 
   void _dockSettingsChanged() => applyDockSettings();
 
+  /// Sobe a tela de bloqueio, e só volta com a tela já bloqueada (o `READY=1`
+  /// da unidade). Com ela de pé, não faz nada.
+  @visibleForTesting
+  Future<void> Function() startLock = _startLockUnit;
+
+  Future<void> lockSession() async {
+    closeOverlay();
+    await startLock();
+  }
+
+  static Future<void> _startLockUnit() async {
+    try {
+      // Depois de muitas quedas seguidas o systemd recusaria o start
+      await Process.run('systemctl', [
+        '--user',
+        'reset-failed',
+        'psito-lock.service',
+      ]);
+      final result = await Process.run('systemctl', [
+        '--user',
+        'start',
+        'psito-lock.service',
+      ]);
+      if (result.exitCode != 0) {
+        debugPrint('🦜 bloqueio não subiu: ${result.stderr}');
+      }
+    } on ProcessException catch (e) {
+      debugPrint('🦜 bloqueio não subiu: $e');
+    }
+  }
+
+  /// O bloqueio por inatividade e o de antes de suspender.
+  void watchLocking() {
+    idle.onIdle = () => unawaited(lockSession());
+    unawaited(idle.setMinutes(settings.value.lockAfterMinutes));
+    settings.addListener(
+      () => unawaited(idle.setMinutes(settings.value.lockAfterMinutes)),
+    );
+    services.session.watchLock(
+      beforeSleep: lockSession,
+      onLock: () => unawaited(lockSession()),
+    );
+  }
+
+  final idle = IdleWatcher();
+
   String _language = '';
 
   /// Os nomes dos apps vêm dos `.desktop`, já no idioma.
@@ -418,6 +465,8 @@ class ShellState {
         recopy(clipboardSlots.indexOf(action));
       case ShellAction.showDesktop:
         toggleDesktop();
+      case ShellAction.lock:
+        unawaited(lockSession());
       case ShellAction.volumeUp:
         _stepVolume(1);
       case ShellAction.volumeDown:

@@ -249,4 +249,7 @@ class SystemLocalizationsEn extends SystemLocalizations {
 
   @override
   String get rebootNow => 'Restart now';
+
+  @override
+  String get lock => 'Lock';
 }

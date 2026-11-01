@@ -249,4 +249,7 @@ class SystemLocalizationsPt extends SystemLocalizations {
 
   @override
   String get rebootNow => 'Reiniciar agora';
+
+  @override
+  String get lock => 'Bloquear';
 }

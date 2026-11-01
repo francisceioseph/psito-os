@@ -1,0 +1,9 @@
+{
+  "@@locale": "pt",
+  "passwordHint": "Senha",
+  "unlock": "Desbloquear",
+  "wrongPassword": "Senha incorreta.",
+  "waitSeconds": "Senha incorreta. Tente de novo em {seconds} s.",
+  "suspend": "Suspender",
+  "powerOff": "Desligar"
+}

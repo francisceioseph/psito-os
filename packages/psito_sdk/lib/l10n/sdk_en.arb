@@ -26,5 +26,6 @@
   "shortcutShowDesktop": "Show the desktop",
   "shortcutDismiss": "Close launcher, panel or switcher",
   "openNoApp": "No app opens \"{file}\".",
-  "openFailed": "The shell couldn't open it ({detail})."
+  "openFailed": "The shell couldn't open it ({detail}).",
+  "shortcutLock": "Lock the screen"
 }

@@ -134,12 +134,16 @@ void main() {
     addTearDown(services.dispose);
     await pumpOS(tester, services: services);
     await _openSettings(tester);
+    // O item "Dock" sai da árvore ao rolar: o Scrollable fica guardado
+    final sidebar = tester.widget(
+      find
+          .ancestor(of: find.text('Dock'), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.scrollUntilVisible(
       find.text('Sobre'),
       50,
-      scrollable: find
-          .ancestor(of: find.text('Dock'), matching: find.byType(Scrollable))
-          .first,
+      scrollable: find.byWidget(sidebar),
     );
     await tester.pump();
     await tester.tap(find.text('Sobre'));

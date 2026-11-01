@@ -94,4 +94,7 @@ class SdkLocalizationsPt extends SdkLocalizations {
   String openFailed(Object detail) {
     return 'O shell não abriu ($detail).';
   }
+
+  @override
+  String get shortcutLock => 'Bloquear a tela';
 }

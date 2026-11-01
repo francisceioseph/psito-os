@@ -301,6 +301,7 @@ List<PsitoShortcut> psitoShortcuts(SdkLocalizations l) => [
     l.shortcutClipboardCopyVm,
   ),
   PsitoShortcut(l.shortcutShowDesktop, 'Super+D', 'Alt+Shift+D'),
+  PsitoShortcut(l.shortcutLock, 'Super+L', 'Alt+Shift+L'),
   PsitoShortcut(l.shortcutDismiss, 'Esc', 'Esc'),
 ];
 
@@ -390,6 +391,9 @@ class PsitoSettings {
   /// O idioma escolhido (`en`, `pt`); vazio segue o do sistema.
   final String language;
 
+  /// Bloqueia depois de tantos minutos sem uso; 0 não bloqueia sozinho.
+  final int lockAfterMinutes;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -408,6 +412,7 @@ class PsitoSettings {
     this.desktopAutoArrange = false,
     this.desktopHotCorner = false,
     this.language = '',
+    this.lockAfterMinutes = 0,
   });
 
   static const defaults = PsitoSettings();
@@ -432,6 +437,7 @@ class PsitoSettings {
     bool? desktopAutoArrange,
     bool? desktopHotCorner,
     String? language,
+    int? lockAfterMinutes,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -450,6 +456,7 @@ class PsitoSettings {
     desktopAutoArrange: desktopAutoArrange ?? this.desktopAutoArrange,
     desktopHotCorner: desktopHotCorner ?? this.desktopHotCorner,
     language: language ?? this.language,
+    lockAfterMinutes: lockAfterMinutes ?? this.lockAfterMinutes,
   );
 
   Map<String, Object?> toJson() => {
@@ -470,6 +477,7 @@ class PsitoSettings {
     'desktopAutoArrange': desktopAutoArrange,
     'desktopHotCorner': desktopHotCorner,
     'language': language,
+    'lockAfterMinutes': lockAfterMinutes,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -514,6 +522,7 @@ class PsitoSettings {
       ),
       desktopHotCorner: pick('desktopHotCorner', defaults.desktopHotCorner),
       language: pick('language', defaults.language),
+      lockAfterMinutes: pick('lockAfterMinutes', defaults.lockAfterMinutes),
     );
   }
 
@@ -536,7 +545,8 @@ class PsitoSettings {
       other.desktopShowTrash == desktopShowTrash &&
       other.desktopAutoArrange == desktopAutoArrange &&
       other.desktopHotCorner == desktopHotCorner &&
-      other.language == language;
+      other.language == language &&
+      other.lockAfterMinutes == lockAfterMinutes;
 
   @override
   int get hashCode => Object.hash(
@@ -557,6 +567,7 @@ class PsitoSettings {
     desktopAutoArrange,
     desktopHotCorner,
     language,
+    lockAfterMinutes,
   );
 }
 

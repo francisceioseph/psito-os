@@ -61,5 +61,10 @@
   "computerName": "Nome do computador",
   "system": "Sistema",
   "hardware": "Hardware",
-  "settingsPath": "Configurações salvas em ~/.config/psito/settings.json"
+  "settingsPath": "Configurações salvas em ~/.config/psito/settings.json",
+  "sectionPrivacy": "Privacidade",
+  "lockAfter": "Bloquear a tela depois de",
+  "lockNever": "Nunca",
+  "lockMinutes": "{minutes} min",
+  "lockNote": "A tela também bloqueia com Super+L e antes de suspender."
 }

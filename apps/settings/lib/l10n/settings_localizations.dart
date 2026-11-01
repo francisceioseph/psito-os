@@ -472,6 +472,36 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Settings saved in ~/.config/psito/settings.json'**
   String get settingsPath;
+
+  /// No description provided for @sectionPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get sectionPrivacy;
+
+  /// No description provided for @lockAfter.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock the screen after'**
+  String get lockAfter;
+
+  /// No description provided for @lockNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get lockNever;
+
+  /// No description provided for @lockMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String lockMinutes(Object minutes);
+
+  /// No description provided for @lockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The screen also locks with Super+L and before suspending.'**
+  String get lockNote;
 }
 
 class _SettingsLocalizationsDelegate

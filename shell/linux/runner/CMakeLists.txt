@@ -32,11 +32,24 @@ add_custom_command(
   DEPENDS "${CLIPBOARD_XML}"
 )
 
+# O do ext-idle-notify também (o idle.cc)
+set(IDLE_XML "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/ext-idle-notify-v1.xml")
+set(IDLE_PROTOCOL "${CMAKE_CURRENT_BINARY_DIR}/ext-idle-notify-v1")
+add_custom_command(
+  OUTPUT "${IDLE_PROTOCOL}-client-protocol.h" "${IDLE_PROTOCOL}-protocol.c"
+  COMMAND ${WAYLAND_SCANNER} client-header "${IDLE_XML}" "${IDLE_PROTOCOL}-client-protocol.h"
+  COMMAND ${WAYLAND_SCANNER} private-code "${IDLE_XML}" "${IDLE_PROTOCOL}-protocol.c"
+  DEPENDS "${IDLE_XML}"
+)
+
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "toplevels.cc"
   "clipboard_keeper.cc"
+  "idle.cc"
+  "${IDLE_PROTOCOL}-protocol.c"
+  "${IDLE_PROTOCOL}-client-protocol.h"
   "${TOPLEVEL_PROTOCOL}-protocol.c"
   "${TOPLEVEL_PROTOCOL}-client-protocol.h"
   "${CLIPBOARD_PROTOCOL}-protocol.c"

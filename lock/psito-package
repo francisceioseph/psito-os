@@ -1,0 +1,11 @@
+# O pacote psito-lock (tools/psito-deb --system lock): a tela de bloqueio, um
+# processo à parte para que um shell travado não trave o desbloqueio.
+PACKAGE=psito-lock
+DEST=/usr/lib/psito/lock
+BINARY=psito_lock
+DESCRIPTION="Tela de bloqueio do Psito OS (ext-session-lock e PAM)"
+DEPENDS="libpam-runtime"
+FILES=(
+    session/psito-lock.service:/usr/lib/systemd/user/psito-lock.service
+    session/psito-lock.pam:/etc/pam.d/psito-lock
+)

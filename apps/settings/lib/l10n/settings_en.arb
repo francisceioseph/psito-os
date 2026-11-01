@@ -61,5 +61,10 @@
   "computerName": "Computer name",
   "system": "System",
   "hardware": "Hardware",
-  "settingsPath": "Settings saved in ~/.config/psito/settings.json"
+  "settingsPath": "Settings saved in ~/.config/psito/settings.json",
+  "sectionPrivacy": "Privacy",
+  "lockAfter": "Lock the screen after",
+  "lockNever": "Never",
+  "lockMinutes": "{minutes} min",
+  "lockNote": "The screen also locks with Super+L and before suspending."
 }
