@@ -307,7 +307,7 @@ class DockController {
     ], pathColor),
   };
 
-  static const pathColor = Color(0xFF90A4AE);
+  static final pathColor = PsitoPalette.dark.neutral;
 
   /// Um nome único de [item], para as chaves dos widgets.
   static String keyOf(DockItem item) => switch (item) {

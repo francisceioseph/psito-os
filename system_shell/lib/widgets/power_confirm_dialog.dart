@@ -3,6 +3,7 @@
 // Confirmação de desligar ou reiniciar, que age sozinha no fim da contagem.
 import 'dart:async';
 
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:system_shell/l10n/l10n.dart';
@@ -62,10 +63,10 @@ class _PowerConfirmDialogState extends State<PowerConfirmDialog> {
       child: FocusScope(
         autofocus: true,
         child: ColoredBox(
-          color: Colors.black54,
+          color: context.palette.scrim,
           child: Center(
             child: Material(
-              color: const Color(0xFF1E252B),
+              color: context.palette.panel,
               borderRadius: BorderRadius.circular(20),
               elevation: 16,
               child: Padding(
@@ -87,7 +88,7 @@ class _PowerConfirmDialogState extends State<PowerConfirmDialog> {
                       widget.powerOff
                           ? context.l10n.powerOffCountdown(_remaining)
                           : context.l10n.rebootCountdown(_remaining),
-                      style: const TextStyle(color: Colors.white70),
+                      style: TextStyle(color: context.palette.textSecondary),
                     ),
                     const SizedBox(height: 20),
                     Row(

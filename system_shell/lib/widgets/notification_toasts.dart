@@ -1,4 +1,5 @@
 // system_shell/lib/widgets/notification_toasts.dart
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 
 import '../shell/notification_center.dart';
@@ -77,12 +78,12 @@ class _Toast extends StatelessWidget {
         width: 320,
         padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E252B),
+          color: context.palette.panel,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: n.color.withValues(alpha: 0.6)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
+              color: context.palette.shadow.withValues(alpha: 0.5),
               blurRadius: 18,
               spreadRadius: 1,
             ),
@@ -129,7 +130,10 @@ class NotificationTile extends StatelessWidget {
             children: [
               Text(
                 timeLabel == null ? n.appName : '${n.appName} · $timeLabel',
-                style: const TextStyle(fontSize: 11, color: Colors.white54),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.palette.textQuiet,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
@@ -146,7 +150,10 @@ class NotificationTile extends StatelessWidget {
                     body,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: context.palette.textSecondary,
+                    ),
                   ),
                 ),
             ],
@@ -156,7 +163,7 @@ class NotificationTile extends StatelessWidget {
           icon: const Icon(Icons.close, size: 16),
           tooltip: context.l10n.dismiss,
           onPressed: onClose,
-          color: Colors.white54,
+          color: context.palette.textQuiet,
           visualDensity: VisualDensity.compact,
         ),
       ],

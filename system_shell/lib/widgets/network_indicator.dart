@@ -11,16 +11,15 @@ class NetworkIndicator extends StatelessWidget {
 
   const NetworkIndicator({super.key, required this.state, this.onTap});
 
-  static const _warning = Color(0xFFFF9800);
-
   /// Ícone e texto do estado; null quando não há o que mostrar.
   static (IconData, String, Color?)? describe(
     SystemLocalizations l,
-    PsitoNetworkState s,
-  ) {
+    PsitoNetworkState s, {
+    PsitoPalette palette = PsitoPalette.dark,
+  }) {
     if (!s.available) return null;
     if (!s.enabled) {
-      return (Icons.signal_wifi_off, l.networkOff, Colors.white38);
+      return (Icons.signal_wifi_off, l.networkOff, palette.textDisabled);
     }
     if (s.connecting) return (Icons.sync, l.networkConnecting, null);
     final primary = s.primary;
@@ -38,13 +37,13 @@ class NetworkIndicator extends StatelessWidget {
     final noInternet =
         s.connectivity == PsitoConnectivity.limited ||
         s.connectivity == PsitoConnectivity.portal;
-    if (noInternet) return (icon, l.networkNoInternet, _warning);
+    if (noInternet) return (icon, l.networkNoInternet, palette.warning);
     return (icon, primary.connection ?? primary.interface, null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final described = describe(context.l10n, state);
+    final described = describe(context.l10n, state, palette: context.palette);
     if (described == null) return const SizedBox.shrink();
     final (icon, tooltip, color) = described;
     return Tooltip(
@@ -55,10 +54,14 @@ class NetworkIndicator extends StatelessWidget {
           key: const ValueKey('network-indicator'),
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: Colors.white12,
+          hoverColor: context.palette.lineSoft,
           child: Padding(
             padding: const EdgeInsets.all(4),
-            child: Icon(icon, size: 16, color: color ?? Colors.white70),
+            child: Icon(
+              icon,
+              size: 16,
+              color: color ?? context.palette.textSecondary,
+            ),
           ),
         ),
       ),

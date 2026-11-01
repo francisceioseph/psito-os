@@ -1,4 +1,5 @@
 // system_shell/lib/widgets/psito_window.dart
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -31,15 +32,17 @@ class PsitoWindow extends StatelessWidget {
 
     final frame = Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E252B),
+        color: context.palette.panel,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(
-          color: focused ? app.color : Colors.white24,
+          color: focused ? app.color : context.palette.line,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: focused ? 0.6 : 0.35),
+            color: context.palette.shadow.withValues(
+              alpha: focused ? 0.6 : 0.35,
+            ),
             blurRadius: focused ? 25 : 12,
             spreadRadius: 2,
           ),
@@ -150,7 +153,7 @@ class _TitleBar extends StatelessWidget {
     return Container(
       height: WindowManager.titleBarHeight,
       padding: const EdgeInsets.only(right: 4),
-      color: Colors.black.withValues(alpha: focused ? 0.3 : 0.45),
+      color: context.palette.shadow.withValues(alpha: focused ? 0.3 : 0.45),
       child: Row(
         children: [
           Expanded(
@@ -175,7 +178,9 @@ class _TitleBar extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: focused ? Colors.white : Colors.white60,
+                          color: focused
+                              ? context.palette.text
+                              : context.palette.textTertiary,
                         ),
                       ),
                     ),
@@ -184,15 +189,17 @@ class _TitleBar extends StatelessWidget {
               ),
             ),
           ),
-          _button(Icons.remove, context.l10n.minimize, () {
+          _button(context, Icons.remove, context.l10n.minimize, () {
             manager.minimize(window.id);
           }),
           _button(
+            context,
             maximized ? Icons.filter_none : Icons.crop_square,
             maximized ? context.l10n.restore : context.l10n.maximize,
             () => manager.toggleMaximize(window.id),
           ),
           _button(
+            context,
             Icons.close,
             context.l10n.close,
             () => manager.close(window.id),
@@ -202,12 +209,17 @@ class _TitleBar extends StatelessWidget {
     );
   }
 
-  Widget _button(IconData icon, String tooltip, VoidCallback onPressed) {
+  Widget _button(
+    BuildContext context,
+    IconData icon,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
     return IconButton(
       icon: Icon(icon, size: 16),
       tooltip: tooltip,
       onPressed: onPressed,
-      color: Colors.white70,
+      color: context.palette.textSecondary,
       visualDensity: VisualDensity.compact,
     );
   }

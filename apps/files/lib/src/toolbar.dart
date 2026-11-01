@@ -3,6 +3,7 @@
 // A barra de cima (voltar e avançar, o nome da pasta com o caminho num menu,
 // os modos de ver, o menu de ações e a busca), as abas, e embaixo os
 // trabalhos em andamento e a barra de status.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -38,7 +39,7 @@ class Toolbar extends StatelessWidget {
         return Container(
           height: 38,
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          color: Colors.black.withValues(alpha: 0.3),
+          color: context.palette.shadow.withValues(alpha: 0.3),
           child: Row(
             children: [
               if (onToggleSidebar != null)
@@ -100,7 +101,9 @@ class _Button extends StatelessWidget {
     visualDensity: VisualDensity.compact,
     constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
     padding: EdgeInsets.zero,
-    color: active ? Theme.of(context).colorScheme.primary : Colors.white70,
+    color: active
+        ? Theme.of(context).colorScheme.primary
+        : context.palette.textSecondary,
   );
 }
 
@@ -318,7 +321,7 @@ class _SearchField extends StatelessWidget {
         prefixIconConstraints: const BoxConstraints(minWidth: 28),
         contentPadding: const EdgeInsets.symmetric(vertical: 6),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.35),
+        fillColor: context.palette.shadow.withValues(alpha: 0.35),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(6),
           borderSide: BorderSide.none,
@@ -356,7 +359,7 @@ class TabStrip extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     return Container(
       height: 28,
-      color: Colors.black.withValues(alpha: 0.2),
+      color: context.palette.shadow.withValues(alpha: 0.2),
       child: Row(
         children: [
           for (final (i, tab) in controller.tabs.indexed)
@@ -375,16 +378,18 @@ class TabStrip extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
-                            color: active ? Colors.white : Colors.white54,
+                            color: active
+                                ? context.palette.text
+                                : context.palette.textQuiet,
                           ),
                         ),
                       ),
                       InkWell(
                         onTap: () => controller.closeTab(i),
-                        child: const Icon(
+                        child: Icon(
                           Icons.close_rounded,
                           size: 14,
-                          color: Colors.white38,
+                          color: context.palette.textDisabled,
                         ),
                       ),
                     ],
@@ -395,7 +400,7 @@ class TabStrip extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
                         color: active
-                            ? Colors.white.withValues(alpha: 0.08)
+                            ? context.palette.text.withValues(alpha: 0.08)
                             : null,
                         border: Border(
                           bottom: BorderSide(
@@ -442,7 +447,7 @@ class JobsBar extends StatelessWidget {
           Container(
             height: 30,
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            color: Colors.black.withValues(alpha: 0.35),
+            color: context.palette.shadow.withValues(alpha: 0.35),
             child: Row(
               children: [
                 Flexible(
@@ -450,7 +455,10 @@ class JobsBar extends StatelessWidget {
                     _jobText(context, running),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: context.palette.textSecondary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -503,7 +511,7 @@ class StatusBar extends StatelessWidget {
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      color: Colors.black.withValues(alpha: 0.25),
+      color: context.palette.shadow.withValues(alpha: 0.25),
       child: Row(
         children: [
           Expanded(
@@ -511,7 +519,7 @@ class StatusBar extends StatelessWidget {
               tab.searching ? l.statusSearching(text) : text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: Colors.white54),
+              style: TextStyle(fontSize: 11, color: context.palette.textQuiet),
             ),
           ),
           if (tab.mode == ViewMode.icons)

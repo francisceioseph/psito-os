@@ -18,7 +18,11 @@ class AppIcon extends StatelessWidget {
   Widget build(BuildContext context) => PsitoIcon(
     [?name],
     size: size,
-    fallback: Icon(Icons.apps_rounded, size: size, color: Colors.white70),
+    fallback: Icon(
+      Icons.apps_rounded,
+      size: size,
+      color: context.palette.textSecondary,
+    ),
   );
 }
 
@@ -50,10 +54,12 @@ AppEntry pathEntry(String id, String name, List<String> icons, Color color) =>
       icon: (size) => PsitoIcon(
         icons,
         size: size,
-        fallback: Icon(
-          Icons.insert_drive_file_outlined,
-          size: size,
-          color: Colors.white70,
+        fallback: Builder(
+          builder: (context) => Icon(
+            Icons.insert_drive_file_outlined,
+            size: size,
+            color: context.palette.textSecondary,
+          ),
         ),
       ),
     );

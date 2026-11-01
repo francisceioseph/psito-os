@@ -68,7 +68,7 @@ class _CalculatorViewState extends State<CalculatorView> {
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: Material(
-          color: color ?? const Color(0xFF263238),
+          color: color ?? context.palette.control,
           borderRadius: BorderRadius.circular(10),
           child: InkWell(
             onTap: () => _buttonPressed(text),
@@ -79,7 +79,7 @@ class _CalculatorViewState extends State<CalculatorView> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: textColor ?? Colors.white,
+                  color: textColor ?? context.palette.text,
                 ),
               ),
             ),
@@ -99,15 +99,15 @@ class _CalculatorViewState extends State<CalculatorView> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           alignment: Alignment.bottomRight,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: context.palette.shadow.withValues(alpha: 0.3),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Text(
             _output,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFFFC107), // Amarelo Calopsita
+              color: context.palette.highlight, // Amarelo Calopsita
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -124,12 +124,12 @@ class _CalculatorViewState extends State<CalculatorView> {
                     children: [
                       _buildButton(
                         'C',
-                        color: Colors.red.withValues(alpha: 0.3),
-                        textColor: Colors.redAccent,
+                        color: context.palette.danger.withValues(alpha: 0.3),
+                        textColor: context.palette.danger,
                       ),
-                      _buildButton('÷', color: const Color(0xFF37474F)),
-                      _buildButton('×', color: const Color(0xFF37474F)),
-                      _buildButton('-', color: const Color(0xFF37474F)),
+                      _buildButton('÷', color: context.palette.controlStrong),
+                      _buildButton('×', color: context.palette.controlStrong),
+                      _buildButton('-', color: context.palette.controlStrong),
                     ],
                   ),
                 ),
@@ -139,7 +139,7 @@ class _CalculatorViewState extends State<CalculatorView> {
                       _buildButton('7'),
                       _buildButton('8'),
                       _buildButton('9'),
-                      _buildButton('+', color: const Color(0xFF37474F)),
+                      _buildButton('+', color: context.palette.controlStrong),
                     ],
                   ),
                 ),
@@ -151,8 +151,8 @@ class _CalculatorViewState extends State<CalculatorView> {
                       _buildButton('6'),
                       _buildButton(
                         '=',
-                        color: const Color(0xFFFFC107),
-                        textColor: Colors.black,
+                        color: context.palette.highlight,
+                        textColor: context.palette.shadow,
                       ),
                     ],
                   ),

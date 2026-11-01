@@ -161,17 +161,17 @@ class _PsitoDockState extends State<PsitoDock> {
           ? const EdgeInsets.symmetric(horizontal: 8, vertical: 12)
           : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.4),
+        color: context.palette.shadow.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: widget.highlighted
               ? accent
-              : Colors.white.withValues(alpha: 0.1),
+              : context.palette.text.withValues(alpha: 0.1),
           width: widget.highlighted ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: context.palette.shadow.withValues(alpha: 0.5),
             blurRadius: 20,
             spreadRadius: 2,
             offset: switch (widget.position) {
@@ -263,7 +263,7 @@ class _PsitoDockState extends State<PsitoDock> {
         color: app.color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(containerSize * 0.3),
         border: Border.all(
-          color: isHovered ? app.color : Colors.white24,
+          color: isHovered ? app.color : context.palette.line,
           width: isHovered ? 2.0 : 1.0,
         ),
         boxShadow: isHovered
@@ -351,16 +351,16 @@ class _Badge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 5),
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: const Color(0xFFE53935),
+      color: context.palette.danger,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: Colors.black26),
+      border: Border.all(color: context.palette.shadowSoft),
     ),
     child: Text(
       count > 99 ? '99+' : '$count',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.bold,
-        color: Colors.white,
+        color: context.palette.text,
       ),
     ),
   );
@@ -448,7 +448,7 @@ class _Separator extends StatelessWidget {
       margin: vertical
           ? const EdgeInsets.symmetric(vertical: across, horizontal: 4)
           : const EdgeInsets.symmetric(horizontal: across, vertical: 4),
-      color: Colors.white24,
+      color: context.palette.line,
     );
   }
 }

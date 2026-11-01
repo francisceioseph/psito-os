@@ -4,7 +4,8 @@
 // Na fase 4 este contrato vira o protocolo entre processos, então tudo que um
 // app pede ao shell precisa passar pelo PsitoAppContext.
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show Brightness, ColorScheme, ThemeData;
+import 'package:flutter/material.dart'
+    show Brightness, ColorScheme, Theme, ThemeData, ThemeExtension;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -696,13 +697,120 @@ class PsitoTimeState {
       Object.hash(available, timezone, ntp, ntpSynchronized, canNtp);
 }
 
+/// As cores do sistema, pelo que cada uma faz. A interface pega daqui
+/// (`context.palette`), e o tema claro será só outra paleta.
+@immutable
+class PsitoPalette extends ThemeExtension<PsitoPalette> {
+  final Color background;
+  final Color panel;
+  final Color panelAlt;
+  final Color panelRaised;
+
+  /// O painel translúcido das camadas sobre a tela (o OSD, o seletor).
+  final Color panelGlass;
+  final Color control;
+  final Color controlStrong;
+  final Color text;
+  final Color textBody;
+  final Color textSecondary;
+  final Color textTertiary;
+  final Color textQuiet;
+  final Color textDisabled;
+  final Color line;
+  final Color lineSoft;
+  final Color hover;
+
+  /// O texto sobre a cor de destaque.
+  final Color onAccent;
+  final Color shadow;
+  final Color shadowSoft;
+  final Color scrim;
+  final Color highlight;
+  final Color cheek;
+  final Color neutral;
+  final Color success;
+  final Color warning;
+  final Color danger;
+
+  const PsitoPalette({
+    required this.background,
+    required this.panel,
+    required this.panelAlt,
+    required this.panelRaised,
+    required this.panelGlass,
+    required this.control,
+    required this.controlStrong,
+    required this.text,
+    required this.textBody,
+    required this.textSecondary,
+    required this.textTertiary,
+    required this.textQuiet,
+    required this.textDisabled,
+    required this.line,
+    required this.lineSoft,
+    required this.hover,
+    required this.onAccent,
+    required this.shadow,
+    required this.shadowSoft,
+    required this.scrim,
+    required this.highlight,
+    required this.cheek,
+    required this.neutral,
+    required this.success,
+    required this.warning,
+    required this.danger,
+  });
+
+  static const dark = PsitoPalette(
+    background: Color(0xFF12181B),
+    panel: Color(0xFF1E252B),
+    panelAlt: Color(0xFF1C2327),
+    panelRaised: Color(0xFF1E262A),
+    panelGlass: Color(0xEE1E262A),
+    control: Color(0xFF263238),
+    controlStrong: Color(0xFF37474F),
+    text: Color(0xFFFFFFFF),
+    textBody: Color(0xFFE0E0E0),
+    textSecondary: Color(0xB3FFFFFF),
+    textTertiary: Color(0x99FFFFFF),
+    textQuiet: Color(0x8AFFFFFF),
+    textDisabled: Color(0x62FFFFFF),
+    line: Color(0x3DFFFFFF),
+    lineSoft: Color(0x1FFFFFFF),
+    hover: Color(0x1AFFFFFF),
+    onAccent: Color(0xDD000000),
+    shadow: Color(0xFF000000),
+    shadowSoft: Color(0x42000000),
+    scrim: Color(0x8A000000),
+    highlight: Color(0xFFFFC107),
+    cheek: Color(0xFFFF5722),
+    neutral: Color(0xFF90A4AE),
+    success: Color(0xFF4CAF50),
+    warning: Color(0xFFFF9800),
+    danger: Color(0xFFF44336),
+  );
+
+  @override
+  PsitoPalette copyWith() => this;
+
+  @override
+  PsitoPalette lerp(PsitoPalette? other, double t) =>
+      t < 0.5 ? this : other ?? this;
+}
+
+extension PsitoPaletteContext on BuildContext {
+  PsitoPalette get palette =>
+      Theme.of(this).extension<PsitoPalette>() ?? PsitoPalette.dark;
+}
+
 /// Tema escuro do Psito com a cor de destaque das Configurações.
 ThemeData psitoTheme(Color accent) => ThemeData(
   brightness: Brightness.dark,
-  scaffoldBackgroundColor: const Color(0xFF12181B),
+  scaffoldBackgroundColor: PsitoPalette.dark.background,
+  extensions: const [PsitoPalette.dark],
   colorScheme: ColorScheme.dark(
     primary: accent, // Amarelo calopsita 🦜 por padrão
-    secondary: const Color(0xFFFF5722), // Bochecha alaranjada
+    secondary: PsitoPalette.dark.cheek, // Bochecha alaranjada
   ),
 );
 

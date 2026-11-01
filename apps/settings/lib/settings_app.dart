@@ -83,7 +83,7 @@ class _SettingsViewState extends State<SettingsView> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildNav(compact: compact),
-        const VerticalDivider(width: 1, color: Colors.white12),
+        VerticalDivider(width: 1, color: context.palette.lineSoft),
         Expanded(
           child: ValueListenableBuilder(
             valueListenable: widget.appContext.settings,
@@ -122,7 +122,7 @@ class _SettingsViewState extends State<SettingsView> {
     final accent = Theme.of(context).colorScheme.primary;
     // Material (e não Container com cor): os ListTile pintam o realce nele
     return Material(
-      color: Colors.black.withValues(alpha: 0.15),
+      color: context.palette.shadow.withValues(alpha: 0.15),
       child: SizedBox(
         width: compact ? 56 : 180,
         child: ListView(
@@ -178,12 +178,14 @@ class _SettingsViewState extends State<SettingsView> {
                 color: color,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: s.accent == color ? Colors.white : Colors.transparent,
+                  color: s.accent == color
+                      ? context.palette.text
+                      : Colors.transparent,
                   width: 3,
                 ),
               ),
               child: s.accent == color
-                  ? const Icon(Icons.check, size: 18, color: Colors.black87)
+                  ? Icon(Icons.check, size: 18, color: context.palette.onAccent)
                   : null,
             ),
           ),
@@ -543,7 +545,7 @@ class _WallpaperCard extends StatelessWidget {
                   : null,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: selected ? accent : Colors.white24,
+                color: selected ? accent : context.palette.line,
                 width: selected ? 2.5 : 1,
               ),
             ),
@@ -610,10 +612,10 @@ class _Label extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 10),
     child: Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: Colors.white70,
+        color: context.palette.textSecondary,
       ),
     ),
   );
@@ -635,7 +637,7 @@ class _Cell extends StatelessWidget {
       style: TextStyle(
         fontSize: 13,
         fontFamily: keys ? 'monospace' : null,
-        color: keys ? Colors.white : Colors.white70,
+        color: keys ? context.palette.text : context.palette.textSecondary,
       ),
     ),
   );
@@ -672,7 +674,7 @@ class _DeviceTile extends StatelessWidget {
       title: Text(device.interface),
       subtitle: Text(
         details,
-        style: const TextStyle(fontSize: 12, color: Colors.white60),
+        style: TextStyle(fontSize: 12, color: context.palette.textTertiary),
       ),
     );
   }
@@ -694,13 +696,13 @@ class _InfoRow extends StatelessWidget {
           width: 150,
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13, color: Colors.white54),
+            style: TextStyle(fontSize: 13, color: context.palette.textQuiet),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, color: Colors.white),
+            style: TextStyle(fontSize: 13, color: context.palette.text),
           ),
         ),
       ],
@@ -718,18 +720,18 @@ class _Note extends StatelessWidget {
     margin: const EdgeInsets.only(top: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.2),
+      color: context.palette.shadow.withValues(alpha: 0.2),
       borderRadius: BorderRadius.circular(10),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.info_outline, size: 16, color: Colors.white54),
+        Icon(Icons.info_outline, size: 16, color: context.palette.textQuiet),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 12, color: Colors.white54),
+            style: TextStyle(fontSize: 12, color: context.palette.textQuiet),
           ),
         ),
       ],

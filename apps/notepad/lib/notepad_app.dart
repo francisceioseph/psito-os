@@ -117,21 +117,24 @@ class _NotepadViewState extends State<NotepadView> {
         // Barra de ferramentas
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          color: Colors.black.withValues(alpha: 0.2),
+          color: context.palette.shadow.withValues(alpha: 0.2),
           child: Row(
             children: [
               TextButton.icon(
                 onPressed: () {
                   _controller.clear();
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.cleaning_services_rounded,
                   size: 16,
-                  color: Color(0xFF4CAF50),
+                  color: context.palette.success,
                 ),
                 label: Text(
                   NotepadLocalizations.of(context).clear,
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  style: TextStyle(
+                    color: context.palette.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -142,7 +145,10 @@ class _NotepadViewState extends State<NotepadView> {
                   textAlign: TextAlign.end,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(
+                    color: context.palette.textDisabled,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -160,11 +166,11 @@ class _NotepadViewState extends State<NotepadView> {
               // Desativa correções automáticas agressivas do Flutter que confundem o QEMU
               enableSuggestions: false,
               autocorrect: false,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: context.palette.text, fontSize: 14),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: NotepadLocalizations.of(context).hint,
-                hintStyle: const TextStyle(color: Colors.white24),
+                hintStyle: TextStyle(color: context.palette.line),
               ),
             ),
           ),
@@ -229,7 +235,7 @@ class _NotepadDropZoneState extends State<NotepadDropZone> {
             IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF4CAF50), width: 2),
+                  border: Border.all(color: context.palette.success, width: 2),
                 ),
               ),
             ),

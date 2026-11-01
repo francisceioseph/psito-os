@@ -113,6 +113,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - Prefira `./check.sh` e `./logs.sh` a builds e logs completos.
 - Para mostrar a hora, use `ctx.now()` (apps) ou `TimeService.now` (shell), nunca `DateTime.now()`. O fuso do `DateTime.now()` fica congelado depois que o processo começa, porque o glibc não relê o `/etc/localtime`.
 - Nenhum texto que quem usa lê fica no código: vai para os `.arb`, nos dois idiomas. O `l10n_boundary_test` do `system_shell` recusa texto com acento ou direto num `Text`, `tooltip`, `label` e parecidos, e confere se os idiomas têm as mesmas chaves. Log e mensagem de diagnóstico não passam por tradução. Os testes rodam em português (`test/flutter_test_config.dart`).
+- As cores vêm do `context.palette` (o `PsitoPalette` do SDK, a extensão do tema), pelo que cada uma faz, sem `Colors.x` nem `Color(0x...)` nos widgets. Ficam de fora a cor de cada app (`get color`) e a ponte. O `theme_boundary_test` do `system_shell` confere. O tema claro será outra paleta.
 - A UI não tem emojis, porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - Todo atalho global tem uma combinação nativa e uma de VM (`lib/shell/shortcuts.dart`, mais `psitoShortcuts` no SDK). O host Cinnamon fica com Super, Alt+Tab, Alt+\`, Ctrl+Alt+setas e Ctrl+Alt+Shift+setas, e o QEMU fica com Ctrl+Alt+G/F/Q/M/1–9. A lista completa está em `docs/FASE-1.md`.
 - Apps precisam caber no tamanho mínimo de janela (240×160). O `desktop_test` verifica todos.

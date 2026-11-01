@@ -90,30 +90,33 @@ class _ClockViewState extends State<ClockView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Ícone temático
-                const Icon(
+                Icon(
                   Icons.access_time_filled_rounded,
                   size: 40,
-                  color: Color(0xFFFF9800), // Laranja
+                  color: context.palette.warning, // Laranja
                 ),
                 const SizedBox(height: 12),
                 // Horário Grande
                 Text(
                   '$hour:$minute:$second',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 42,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2.0,
-                    color: Colors.white,
+                    color: context.palette.text,
                   ),
                 ),
                 const SizedBox(height: 8),
                 // Data Completa
                 Text(
                   date,
-                  style: const TextStyle(fontSize: 14, color: Colors.white60),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: context.palette.textTertiary,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                const Divider(color: Colors.white24),
+                Divider(color: context.palette.line),
                 const SizedBox(height: 12),
                 // Timer de demonstração das notificações
                 Container(
@@ -122,15 +125,15 @@ class _ClockViewState extends State<ClockView> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: context.palette.shadow.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.timer_outlined,
                         size: 18,
-                        color: Color(0xFFFFC107),
+                        color: context.palette.highlight,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -138,8 +141,8 @@ class _ClockViewState extends State<ClockView> {
                           _remaining == null
                               ? l.timerIdle
                               : l.timerRemaining(_remaining!),
-                          style: const TextStyle(
-                            color: Colors.white70,
+                          style: TextStyle(
+                            color: context.palette.textSecondary,
                             fontSize: 13,
                           ),
                         ),

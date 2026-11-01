@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/volume_osd.dart
 //
 // Aviso rápido do volume ao mudar pelo teclado.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 
 import 'package:psito_services/audio_service.dart';
@@ -19,7 +20,7 @@ class VolumeOsd extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     return IgnorePointer(
       child: Material(
-        color: const Color(0xEE1E262A),
+        color: context.palette.panelGlass,
         borderRadius: BorderRadius.circular(16),
         elevation: 12,
         child: Padding(
@@ -27,14 +28,14 @@ class VolumeOsd extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(VolumeIndicator.iconFor(state), color: Colors.white),
+              Icon(VolumeIndicator.iconFor(state), color: context.palette.text),
               const SizedBox(width: 14),
               SizedBox(
                 width: 160,
                 child: LinearProgressIndicator(
                   value: state.muted ? 0 : state.volume,
                   color: accent,
-                  backgroundColor: Colors.white12,
+                  backgroundColor: context.palette.lineSoft,
                   minHeight: 6,
                   borderRadius: BorderRadius.circular(3),
                 ),
@@ -46,7 +47,10 @@ class VolumeOsd extends StatelessWidget {
                   state.muted
                       ? context.l10n.muted
                       : VolumeIndicator.percent(state.volume),
-                  style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.palette.textSecondary,
+                  ),
                 ),
               ),
             ],

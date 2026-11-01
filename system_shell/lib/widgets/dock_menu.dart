@@ -182,7 +182,7 @@ class DockMenu extends StatelessWidget {
                     ? PointerPopupLayout(at!, width)
                     : DockPopupLayout(anchor, position, width),
                 child: Material(
-                  color: const Color(0xFF1E252B),
+                  color: context.palette.panel,
                   borderRadius: BorderRadius.circular(14),
                   elevation: 12,
                   clipBehavior: Clip.antiAlias,
@@ -197,20 +197,20 @@ class DockMenu extends StatelessWidget {
                           child: Text(
                             title,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white60,
+                              color: context.palette.textTertiary,
                             ),
                           ),
                         ),
                         for (final item in items) ...[
                           if (item.separated)
-                            const Divider(
+                            Divider(
                               height: 9,
                               indent: 12,
                               endIndent: 12,
-                              color: Colors.white12,
+                              color: context.palette.lineSoft,
                             ),
                           ListTile(
                             dense: true,
@@ -267,10 +267,10 @@ class DockConfirm extends StatelessWidget {
     child: FocusScope(
       autofocus: true,
       child: ColoredBox(
-        color: Colors.black54,
+        color: context.palette.scrim,
         child: Center(
           child: Material(
-            color: const Color(0xFF1E252B),
+            color: context.palette.panel,
             borderRadius: BorderRadius.circular(20),
             elevation: 16,
             child: ConstrainedBox(
@@ -291,7 +291,7 @@ class DockConfirm extends StatelessWidget {
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
+                      style: TextStyle(color: context.palette.textSecondary),
                     ),
                     const SizedBox(height: 20),
                     Row(

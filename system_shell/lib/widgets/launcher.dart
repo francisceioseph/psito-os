@@ -1,4 +1,5 @@
 // system_shell/lib/widgets/launcher.dart
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -93,7 +94,9 @@ class _LauncherState extends State<Launcher> {
           Positioned.fill(
             child: GestureDetector(
               onTap: widget.onClose,
-              child: ColoredBox(color: Colors.black.withValues(alpha: 0.45)),
+              child: ColoredBox(
+                color: context.palette.shadow.withValues(alpha: 0.45),
+              ),
             ),
           ),
           Center(child: _buildPanel()),
@@ -118,12 +121,12 @@ class _LauncherState extends State<Launcher> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E252B),
+        color: context.palette.panel,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: context.palette.text.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
+            color: context.palette.shadow.withValues(alpha: 0.6),
             blurRadius: 30,
             spreadRadius: 2,
           ),
@@ -144,7 +147,7 @@ class _LauncherState extends State<Launcher> {
                 hintText: context.l10n.searchApps,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 filled: true,
-                fillColor: Colors.black.withValues(alpha: 0.3),
+                fillColor: context.palette.shadow.withValues(alpha: 0.3),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -158,7 +161,7 @@ class _LauncherState extends State<Launcher> {
                 child: Text(
                   context.l10n.noAppsFound,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54),
+                  style: TextStyle(color: context.palette.textQuiet),
                 ),
               )
             else
@@ -201,7 +204,7 @@ class _LauncherState extends State<Launcher> {
             color: app.color.withValues(alpha: highlighted ? 0.25 : 0.1),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? app.color : Colors.white12,
+              color: selected ? app.color : context.palette.lineSoft,
               width: selected ? 2 : 1,
             ),
           ),

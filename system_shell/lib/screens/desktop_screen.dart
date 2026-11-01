@@ -626,7 +626,8 @@ class _LabDeskState extends State<_LabDesk> {
           DeskIcon(
             key: name,
             name: name,
-            icon: (size) => Icon(icon, size: size, color: Colors.white70),
+            icon: (size) =>
+                Icon(icon, size: size, color: context.palette.textSecondary),
           ),
       ],
       cells: cells,

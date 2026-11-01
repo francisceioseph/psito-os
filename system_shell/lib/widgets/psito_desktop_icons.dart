@@ -13,6 +13,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/rendering.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 
@@ -435,7 +436,7 @@ Future<Uint8List?> _renderDragImage(
                     fontWeight: FontWeight.bold,
                   ),
                 )
-                ..pushStyle(ui.TextStyle(color: Colors.black))
+                ..pushStyle(ui.TextStyle(color: PsitoPalette.dark.shadow))
                 ..addText('$count'))
               .build()
             ..layout(const ui.ParagraphConstraints(width: radius * 2));
@@ -488,7 +489,7 @@ class _Item extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = active
         ? Theme.of(context).colorScheme.primary
-        : Colors.blueGrey;
+        : context.palette.neutral;
     final editor = icon.editor;
     // Seleciona já no apertar: um onTapDown esperaria o tempo do duplo clique.
     // Com o campo aberto, os cliques são dele
@@ -542,8 +543,12 @@ class _ItemBody extends StatelessWidget {
     this.ghost = false,
   });
 
-  static const _shadow = [
-    Shadow(color: Colors.black, blurRadius: 3, offset: Offset(0, 1)),
+  List<Shadow> _shadow(BuildContext context) => [
+    Shadow(
+      color: context.palette.shadow,
+      blurRadius: 3,
+      offset: const Offset(0, 1),
+    ),
   ];
 
   @override
@@ -578,8 +583,8 @@ class _ItemBody extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white,
-                  shadows: selected ? null : _shadow,
+                  color: context.palette.text,
+                  shadows: selected ? null : _shadow(context),
                 ),
               ),
             ),

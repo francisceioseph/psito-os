@@ -33,7 +33,7 @@ class DesktopBackground extends StatelessWidget {
                 debugPrint('🦜 O Psito foi clicado!');
               },
               borderRadius: BorderRadius.circular(16),
-              hoverColor: Colors.white12,
+              hoverColor: context.palette.lineSoft,
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Icon(Icons.flutter_dash, size: 120, color: accent),
@@ -51,7 +51,7 @@ class DesktopBackground extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               context.l10n.tagline,
-              style: TextStyle(fontSize: 16, color: Colors.white54),
+              style: TextStyle(fontSize: 16, color: context.palette.textQuiet),
             ),
           ],
         ),

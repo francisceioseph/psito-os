@@ -73,10 +73,10 @@ class NetworkPanel extends StatelessWidget {
   Widget _buildPanel(BuildContext context, PsitoNetworkState s) {
     final primary = s.primary;
     final (icon, _, color) =
-        NetworkIndicator.describe(context.l10n, s) ??
+        NetworkIndicator.describe(context.l10n, s, palette: context.palette) ??
         (Icons.link_off, '', null);
     return Material(
-      color: const Color(0xFF1E252B),
+      color: context.palette.panel,
       borderRadius: BorderRadius.circular(18),
       elevation: 12,
       child: Padding(
@@ -87,7 +87,7 @@ class NetworkPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 28, color: color ?? Colors.white),
+                Icon(icon, size: 28, color: color ?? context.palette.text),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -108,9 +108,9 @@ class NetworkPanel extends StatelessWidget {
                         Text(
                           '${kindLabel(context.l10n, primary.kind)} · '
                           '${connectivityLabel(context.l10n, s.connectivity)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white60,
+                            color: context.palette.textTertiary,
                           ),
                         ),
                     ],
@@ -122,10 +122,13 @@ class NetworkPanel extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'IPv4  $ip',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.palette.textSecondary,
+                ),
               ),
             ],
-            const Divider(height: 24, color: Colors.white12),
+            Divider(height: 24, color: context.palette.lineSoft),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,

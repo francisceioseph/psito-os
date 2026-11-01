@@ -6,6 +6,7 @@
 // numa pasta (de dentro ou de outro app) e o nome em edição.
 import 'package:flutter/gestures.dart'
     show kPrimaryButton, kSecondaryMouseButton;
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
@@ -179,14 +180,14 @@ class _DragFeedback extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent,
+                    color: context.palette.danger,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white,
+                      color: context.palette.text,
                       decoration: TextDecoration.none,
                     ),
                   ),

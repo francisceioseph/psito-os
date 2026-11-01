@@ -2,6 +2,7 @@
 //
 // O que a mesa está copiando ou movendo, na top bar: a mesa fica atrás das
 // janelas, e uma cópia longa precisa aparecer e poder parar.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 
 @immutable
@@ -49,17 +50,24 @@ class TransferIndicator extends StatelessWidget {
             status.text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            style: TextStyle(
+              fontSize: 12,
+              color: context.palette.textSecondary,
+            ),
           ),
         ),
         InkWell(
           key: const ValueKey('transfer-cancel'),
           onTap: onCancel,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: Colors.white12,
-          child: const Padding(
+          hoverColor: context.palette.lineSoft,
+          child: Padding(
             padding: EdgeInsets.all(4),
-            child: Icon(Icons.close_rounded, size: 14, color: Colors.white70),
+            child: Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: context.palette.textSecondary,
+            ),
           ),
         ),
       ],

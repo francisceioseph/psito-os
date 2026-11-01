@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/window_switcher_overlay.dart
 //
 // Faixa do Alt+Tab / Ctrl+Tab: um cartão por janela, a escolhida em destaque.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 
 import '../shell/app_entry.dart';
@@ -24,7 +25,7 @@ class WindowSwitcherOverlay extends StatelessWidget {
     final selected = switcher.windows[switcher.index];
     return Center(
       child: Material(
-        color: const Color(0xEE1E262A),
+        color: context.palette.panelGlass,
         borderRadius: BorderRadius.circular(20),
         elevation: 12,
         child: Padding(
@@ -54,10 +55,10 @@ class WindowSwitcherOverlay extends StatelessWidget {
                 child: Text(
                   selected.title,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: context.palette.text,
                   ),
                 ),
               ),
@@ -96,7 +97,7 @@ class _Card extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? accent.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.05),
+              : context.palette.text.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected ? accent : Colors.transparent,

@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/battery_panel.dart
 //
 // Painel do ícone de bateria: porcentagem, estado, tempo e fonte de energia.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,7 +54,7 @@ class BatteryPanel extends StatelessWidget {
     final time = BatteryIndicator.timeFor(context.l10n, s);
     final pluggedIn = s.charging || s.full;
     return Material(
-      color: const Color(0xFF1E252B),
+      color: context.palette.panel,
       borderRadius: BorderRadius.circular(18),
       elevation: 12,
       child: Padding(
@@ -82,15 +83,18 @@ class BatteryPanel extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               [BatteryIndicator.statusFor(context.l10n, s), ?time].join(' · '),
-              style: const TextStyle(fontSize: 12, color: Colors.white60),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.palette.textTertiary,
+              ),
             ),
-            const Divider(height: 24, color: Colors.white12),
+            Divider(height: 24, color: context.palette.lineSoft),
             Row(
               children: [
                 Icon(
                   pluggedIn ? Icons.power : Icons.battery_std,
                   size: 16,
-                  color: Colors.white54,
+                  color: context.palette.textQuiet,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -100,7 +104,10 @@ class BatteryPanel extends StatelessWidget {
                           ? context.l10n.powerSourceAdapter
                           : context.l10n.powerSourceBattery,
                     ),
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.palette.textSecondary,
+                    ),
                   ),
                 ),
               ],

@@ -2,6 +2,7 @@
 //
 // O campo de renomear no próprio item: começa com o nome sem a extensão
 // selecionado, o Enter ou perder o foco confirmam, e o Esc cancela.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -87,12 +88,12 @@ class _RenameFieldState extends State<RenameField> {
       selectAllOnFocus: false,
       autocorrect: false,
       enableSuggestions: false,
-      style: const TextStyle(fontSize: 12, color: Colors.white),
+      style: TextStyle(fontSize: 12, color: context.palette.text),
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.6),
+        fillColor: context.palette.shadow.withValues(alpha: 0.6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
           borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),

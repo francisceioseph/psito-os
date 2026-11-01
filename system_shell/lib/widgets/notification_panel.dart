@@ -1,4 +1,5 @@
 // system_shell/lib/widgets/notification_panel.dart
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -74,12 +75,12 @@ class NotificationPanel extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(maxHeight: 480),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E252B),
+        color: context.palette.panel,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: context.palette.text.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
+            color: context.palette.shadow.withValues(alpha: 0.6),
             blurRadius: 30,
             spreadRadius: 2,
           ),
@@ -118,7 +119,7 @@ class NotificationPanel extends StatelessWidget {
                 child: Text(
                   context.l10n.noNotifications,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54),
+                  style: TextStyle(color: context.palette.textQuiet),
                 ),
               )
             else
@@ -128,11 +129,11 @@ class NotificationPanel extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 4, 6, 12),
                   itemCount: items.length,
                   separatorBuilder: (_, _) =>
-                      const Divider(color: Colors.white12, height: 16),
+                      Divider(color: context.palette.lineSoft, height: 16),
                   itemBuilder: (context, i) => InkWell(
                     key: ValueKey('panel-${items[i].id}'),
                     borderRadius: BorderRadius.circular(10),
-                    hoverColor: Colors.white10,
+                    hoverColor: context.palette.hover,
                     onTap: () => onTap(items[i]),
                     child: NotificationTile(
                       notification: items[i],

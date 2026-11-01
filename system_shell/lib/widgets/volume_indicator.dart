@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/volume_indicator.dart
 //
 // Ícone de volume da top bar. Clique abre o painel; a roda ajusta.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:system_shell/l10n/l10n.dart';
@@ -49,10 +50,14 @@ class VolumeIndicator extends StatelessWidget {
             key: const ValueKey('volume-indicator'),
             onTap: onTap,
             borderRadius: BorderRadius.circular(6),
-            hoverColor: Colors.white12,
+            hoverColor: context.palette.lineSoft,
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Icon(iconFor(state), size: 16, color: Colors.white70),
+              child: Icon(
+                iconFor(state),
+                size: 16,
+                color: context.palette.textSecondary,
+              ),
             ),
           ),
         ),

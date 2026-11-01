@@ -30,9 +30,7 @@ class ShellBusObject extends DBusObject {
         final name = methodCall.values.single.asString();
         final action = ShellAction.values.asNameMap()[name];
         if (action == null) {
-          return DBusMethodErrorResponse.invalidArgs(
-            'unknown action: $name',
-          );
+          return DBusMethodErrorResponse.invalidArgs('unknown action: $name');
         }
         onRun(action);
         return DBusMethodSuccessResponse();

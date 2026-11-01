@@ -164,11 +164,11 @@ class _DeskView extends StatelessWidget {
   final DeskController desk;
   const _DeskView(this.desk);
 
-  Widget _icon(DeskItem item, double size) {
+  Widget _icon(BuildContext context, DeskItem item, double size) {
     final fallback = Icon(
       Icons.insert_drive_file_outlined,
       size: size,
-      color: Colors.white70,
+      color: context.palette.textSecondary,
     );
     if (item.key == DeskItem.homeKey) {
       return PsitoIcon(const ['user-home', 'folder'], size: size);
@@ -184,7 +184,11 @@ class _DeskView extends StatelessWidget {
       );
     }
     if (item.broken) {
-      return Icon(Icons.link_off_rounded, size: size, color: Colors.white70);
+      return Icon(
+        Icons.link_off_rounded,
+        size: size,
+        color: context.palette.textSecondary,
+      );
     }
     if (item.shortcut case final shortcut?) {
       return AppIcon(shortcut.icon, size: size);
@@ -213,7 +217,7 @@ class _DeskView extends StatelessWidget {
               DeskIcon(
                 key: item.key,
                 name: item.name,
-                icon: (size) => _icon(item, size),
+                icon: (size) => _icon(context, item, size),
                 dimmed: desk.isCut(item),
                 leavesDesk: item.entry != null,
                 editor: desk.renaming == item.key

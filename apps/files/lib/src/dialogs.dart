@@ -26,7 +26,7 @@ import 'package:psito_files/l10n/l10n.dart';
 Future<void> showQuickLook(BuildContext context, FilesController controller) =>
     showDialog<void>(
       context: context,
-      barrierColor: Colors.black54,
+      barrierColor: context.palette.scrim,
       builder: (_) => FilesScope(
         controller: controller,
         showMenu: (_, _) {},
@@ -55,7 +55,7 @@ class _QuickLook extends StatelessWidget {
       child: Focus(
         autofocus: true,
         child: Dialog(
-          backgroundColor: const Color(0xFF1C2327),
+          backgroundColor: context.palette.panelAlt,
           insetPadding: const EdgeInsets.all(16),
           child: ListenableBuilder(
             listenable: tab,
@@ -167,7 +167,7 @@ class _Preview extends StatelessWidget {
           return Container(
             width: double.infinity,
             padding: const EdgeInsets.all(10),
-            color: Colors.black26,
+            color: context.palette.shadowSoft,
             child: SingleChildScrollView(
               child: SelectableText(
                 text,
@@ -190,18 +190,18 @@ class _Preview extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           env.describe(entry.mimeType),
-          style: const TextStyle(fontSize: 12, color: Colors.white60),
+          style: TextStyle(fontSize: 12, color: context.palette.textTertiary),
         ),
         if (!entry.isDirectory)
           Text(
             formatSize(context.l10n, entry.size),
-            style: const TextStyle(fontSize: 12, color: Colors.white60),
+            style: TextStyle(fontSize: 12, color: context.palette.textTertiary),
           ),
         Text(
           context.l10n.modifiedAt(
             formatDate(context.l10n, entry.modified, now),
           ),
-          style: const TextStyle(fontSize: 12, color: Colors.white60),
+          style: TextStyle(fontSize: 12, color: context.palette.textTertiary),
         ),
       ],
     );
@@ -257,7 +257,10 @@ class _InfoDialogState extends State<_InfoDialog> {
             child: Text(
               label,
               textAlign: TextAlign.end,
-              style: const TextStyle(fontSize: 12, color: Colors.white38),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.palette.textDisabled,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -265,10 +268,12 @@ class _InfoDialogState extends State<_InfoDialog> {
         ],
       ),
     );
-    Text text(String value) =>
-        Text(value, style: const TextStyle(fontSize: 12, color: Colors.white));
+    Text text(String value) => Text(
+      value,
+      style: TextStyle(fontSize: 12, color: context.palette.text),
+    );
     return AlertDialog(
-      backgroundColor: const Color(0xFF1C2327),
+      backgroundColor: context.palette.panelAlt,
       title: Row(
         children: [
           FileIcon(entry: entry, env: env, size: 40),
@@ -397,7 +402,7 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
     barrierDismissible: false,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        backgroundColor: const Color(0xFF1C2327),
+        backgroundColor: context.palette.panelAlt,
         title: Text(
           context.l10n.conflictExists(
             baseName(dirName(c.target)),
@@ -413,7 +418,10 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
               c.targetIsDirectory && c.sourceIsDirectory
                   ? context.l10n.conflictFolderHint
                   : context.l10n.conflictFileHint,
-              style: const TextStyle(fontSize: 12, color: Colors.white60),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.palette.textTertiary,
+              ),
             ),
             CheckboxListTile(
               value: all,
@@ -463,7 +471,7 @@ Future<void> showOpenWithOther(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        backgroundColor: const Color(0xFF1C2327),
+        backgroundColor: context.palette.panelAlt,
         title: Text(context.l10n.openWith, style: TextStyle(fontSize: 14)),
         content: SizedBox(
           width: 320,
@@ -528,7 +536,7 @@ Future<bool> showConfirm(
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1C2327),
+        backgroundColor: context.palette.panelAlt,
         title: Text(question, style: const TextStyle(fontSize: 14)),
         content: Text(detail, style: const TextStyle(fontSize: 12)),
         actions: [
@@ -537,7 +545,9 @@ Future<bool> showConfirm(
             child: Text(context.l10n.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: FilledButton.styleFrom(
+              backgroundColor: context.palette.danger,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(action),
           ),

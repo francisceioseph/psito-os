@@ -35,7 +35,10 @@ List<Widget> contextMenu(
             ? null
             : Text(
                 hint,
-                style: const TextStyle(fontSize: 11, color: Colors.white38),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.palette.textDisabled,
+                ),
               ),
         child: Text(label, style: const TextStyle(fontSize: 12)),
       );

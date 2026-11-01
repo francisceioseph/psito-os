@@ -4,6 +4,7 @@
 // últimas cópias e o aviso de quando um atalho copia de novo.
 import 'dart:async';
 
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -40,13 +41,15 @@ class ClipboardIndicator extends StatelessWidget {
         key: const ValueKey('clipboard-indicator'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(6),
-        hoverColor: Colors.white12,
+        hoverColor: context.palette.lineSoft,
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Icon(
             Icons.content_paste_rounded,
             size: 16,
-            color: count == 0 ? Colors.white38 : Colors.white70,
+            color: count == 0
+                ? context.palette.textDisabled
+                : context.palette.textSecondary,
           ),
         ),
       ),
@@ -143,7 +146,7 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
   Widget _panel(BuildContext context) {
     final entries = widget.history.entries;
     return Material(
-      color: const Color(0xFF1E252B),
+      color: context.palette.panel,
       borderRadius: BorderRadius.circular(18),
       elevation: 12,
       clipBehavior: Clip.antiAlias,
@@ -182,7 +185,10 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
                 padding: EdgeInsets.fromLTRB(16, 8, 16, 14),
                 child: Text(
                   context.l10n.clipboardEmpty,
-                  style: TextStyle(fontSize: 12, color: Colors.white54),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.palette.textQuiet,
+                  ),
                 ),
               ),
             for (final (i, entry) in entries.indexed) _row(i, entry),
@@ -208,11 +214,13 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
                       entry.image!,
                       fit: BoxFit.cover,
                       cacheWidth: 72,
-                      errorBuilder: (_, _, _) =>
-                          Icon(_iconFor(entry.kind), color: Colors.white54),
+                      errorBuilder: (_, _, _) => Icon(
+                        _iconFor(entry.kind),
+                        color: context.palette.textQuiet,
+                      ),
                     ),
                   )
-                : Icon(_iconFor(entry.kind), color: Colors.white54),
+                : Icon(_iconFor(entry.kind), color: context.palette.textQuiet),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -228,7 +236,10 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
                 const SizedBox(height: 2),
                 Text(
                   _age(entry),
-                  style: const TextStyle(fontSize: 11, color: Colors.white54),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: context.palette.textQuiet,
+                  ),
                 ),
               ],
             ),
@@ -239,12 +250,15 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white10,
+                color: context.palette.hover,
                 borderRadius: BorderRadius.circular(5),
               ),
               child: Text(
                 clipboardShortcutLabel(index),
-                style: const TextStyle(fontSize: 11, color: Colors.white70),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: context.palette.textSecondary,
+                ),
               ),
             ),
           ),
@@ -263,7 +277,7 @@ class ClipboardOsd extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IgnorePointer(
     child: Material(
-      color: const Color(0xEE1E262A),
+      color: context.palette.panelGlass,
       borderRadius: BorderRadius.circular(16),
       elevation: 12,
       child: Padding(
@@ -273,14 +287,17 @@ class ClipboardOsd extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_iconFor(entry.kind), color: Colors.white),
+              Icon(_iconFor(entry.kind), color: context.palette.text),
               const SizedBox(width: 14),
               Flexible(
                 child: Text(
                   context.l10n.copied(entry.text(context.l10n)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: context.palette.textSecondary,
+                  ),
                 ),
               ),
             ],

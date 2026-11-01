@@ -97,7 +97,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      color: Colors.black.withValues(alpha: 0.65),
+      color: context.palette.shadow.withValues(alpha: 0.65),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -112,7 +112,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: InkWell(
                   onTap: onMenuTap,
                   borderRadius: BorderRadius.circular(6),
-                  hoverColor: Colors.white12,
+                  hoverColor: context.palette.lineSoft,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -169,12 +169,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 onTap: onBatteryTap,
               ),
 
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text('|', style: TextStyle(color: Colors.white24)),
+                child: Text('|', style: TextStyle(color: context.palette.line)),
               ),
 
-              _buildBell(accent),
+              _buildBell(context, accent),
               const SizedBox(width: 8),
 
               // Relógio / Data completa estilo Cinnamon
@@ -198,10 +198,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                     onTap: onNotificationsTap,
                     child: Text(
                       formattedDateTime,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.white,
+                        color: context.palette.text,
                       ),
                     ),
                   );
@@ -225,13 +225,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           key: const ValueKey('power-button'),
           onTap: onPowerTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: Colors.white12,
-          child: const Padding(
+          hoverColor: context.palette.lineSoft,
+          child: Padding(
             padding: EdgeInsets.all(4),
             child: Icon(
               Icons.power_settings_new,
               size: 16,
-              color: Colors.white70,
+              color: context.palette.textSecondary,
             ),
           ),
         ),
@@ -239,20 +239,20 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildBell(Color accent) {
+  Widget _buildBell(BuildContext context, Color accent) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         key: const ValueKey('notifications-bell'),
         onTap: onNotificationsTap,
         borderRadius: BorderRadius.circular(6),
-        hoverColor: Colors.white12,
+        hoverColor: context.palette.lineSoft,
         child: Padding(
           padding: const EdgeInsets.all(4),
           child: Badge(
             isLabelVisible: unreadCount > 0,
             label: Text('$unreadCount'),
-            backgroundColor: const Color(0xFFFF5722),
+            backgroundColor: context.palette.cheek,
             child: Icon(
               doNotDisturb
                   ? Icons.notifications_off
@@ -260,7 +260,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   ? Icons.notifications_active
                   : Icons.notifications_none,
               size: 16,
-              color: unreadCount > 0 ? accent : Colors.white70,
+              color: unreadCount > 0 ? accent : context.palette.textSecondary,
             ),
           ),
         ),

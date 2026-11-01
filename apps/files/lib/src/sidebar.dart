@@ -6,6 +6,7 @@
 // ali; soltar arquivos num favorito move para ele.
 import 'dart:io';
 
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -32,7 +33,7 @@ class Sidebar extends StatelessWidget {
 
     return Container(
       width: width,
-      color: Colors.black.withValues(alpha: 0.25),
+      color: context.palette.shadow.withValues(alpha: 0.25),
       child: ListenableBuilder(
         listenable: config,
         builder: (context, _) => CustomScrollView(
@@ -140,10 +141,10 @@ class _Section extends StatelessWidget {
         : null,
     child: Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.bold,
-        color: Colors.white38,
+        color: context.palette.textDisabled,
       ),
     ),
   );
@@ -194,7 +195,7 @@ class _Item extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
               color: selected
-                  ? Colors.white.withValues(alpha: 0.12)
+                  ? context.palette.text.withValues(alpha: 0.12)
                   : highlight
                   ? primary.withValues(alpha: 0.25)
                   : null,
@@ -209,7 +210,7 @@ class _Item extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                    style: TextStyle(fontSize: 12, color: context.palette.text),
                   ),
                 ),
               ],

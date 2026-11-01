@@ -102,9 +102,9 @@ class DockStack extends StatelessWidget {
           onClose();
           onOpenFolder();
         },
-        child: const SizedBox.square(
+        child: SizedBox.square(
           dimension: icon,
-          child: Icon(Icons.open_in_new, color: Colors.white70),
+          child: Icon(Icons.open_in_new, color: context.palette.textSecondary),
         ),
       ),
       for (final item in entries.reversed)
@@ -143,7 +143,7 @@ class DockStack extends StatelessWidget {
       child: CustomSingleChildLayout(
         delegate: DockPopupLayout(anchor, position, columns * cell + 24),
         child: Material(
-          color: const Color(0xFF1E252B),
+          color: context.palette.panel,
           borderRadius: BorderRadius.circular(18),
           elevation: 12,
           child: Padding(
@@ -177,7 +177,7 @@ class DockStack extends StatelessWidget {
                     child: Text(
                       context.l10n.folderEmpty,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white60),
+                      style: TextStyle(color: context.palette.textTertiary),
                     ),
                   )
                 else
@@ -240,7 +240,7 @@ class _FanRow extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 220),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.75),
+              color: context.palette.shadow.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/power_panel.dart
 //
 // Menu do botão de energia: suspender, reiniciar e desligar.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:system_shell/l10n/l10n.dart';
@@ -70,7 +71,7 @@ class PowerPanel extends StatelessWidget {
     ];
     final firstEnabled = items.indexWhere((item) => item.$3);
     return Material(
-      color: const Color(0xFF1E252B),
+      color: context.palette.panel,
       borderRadius: BorderRadius.circular(18),
       elevation: 12,
       child: Padding(

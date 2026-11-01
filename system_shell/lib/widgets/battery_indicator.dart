@@ -2,6 +2,7 @@
 //
 // Bateria na top bar, como no macOS: some sem bateria (ex.: na VM), a
 // porcentagem é opcional e o clique abre o painel com os detalhes.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:system_shell/l10n/l10n.dart';
 
@@ -18,8 +19,6 @@ class BatteryIndicator extends StatelessWidget {
     this.showPercentage = true,
     this.onTap,
   });
-
-  static const _low = Color(0xFFF44336);
 
   /// Ex.: "menos de 1 min", "40 min", "3 h 20 min".
   static String formatDuration(SystemLocalizations l, Duration d) {
@@ -74,7 +73,9 @@ class BatteryIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!state.available || !state.present) return const SizedBox.shrink();
-    final color = isLow(state) ? _low : Theme.of(context).colorScheme.primary;
+    final color = isLow(state)
+        ? context.palette.danger
+        : Theme.of(context).colorScheme.primary;
     return Tooltip(
       message: context.l10n.batteryTooltip(percent(state)),
       child: Material(
@@ -83,7 +84,7 @@ class BatteryIndicator extends StatelessWidget {
           key: const ValueKey('battery-indicator'),
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
-          hoverColor: Colors.white12,
+          hoverColor: context.palette.lineSoft,
           child: Padding(
             padding: const EdgeInsets.all(4),
             child: Row(

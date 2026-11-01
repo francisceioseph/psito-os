@@ -7,6 +7,7 @@
 // seleção.
 import 'package:flutter/gestures.dart'
     show kPrimaryButton, kSecondaryMouseButton;
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
@@ -63,7 +64,7 @@ class _Message extends StatelessWidget {
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 12,
-          color: error ? Colors.redAccent : Colors.white38,
+          color: error ? context.palette.danger : context.palette.textDisabled,
         ),
       ),
     ),
@@ -320,7 +321,9 @@ class _IconTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: selected ? Colors.black : Colors.white,
+                            color: selected
+                                ? context.palette.shadow
+                                : context.palette.text,
                             fontStyle: entry.isLink
                                 ? FontStyle.italic
                                 : FontStyle.normal,
@@ -478,7 +481,7 @@ class _Header extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                    color: Colors.white60,
+                    color: context.palette.textTertiary,
                   ),
                 ),
               ),
@@ -488,7 +491,7 @@ class _Header extends StatelessWidget {
                       ? Icons.arrow_drop_up_rounded
                       : Icons.arrow_drop_down_rounded,
                   size: 16,
-                  color: Colors.white60,
+                  color: context.palette.textTertiary,
                 ),
             ],
           ),
@@ -502,8 +505,8 @@ class _Header extends StatelessWidget {
 
     return Container(
       height: 24,
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.palette.lineSoft)),
       ),
       child: Row(children: [for (final c in columns) cell(c)]),
     );
@@ -542,7 +545,9 @@ class _ListRow extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 12,
-          color: selected ? Colors.black : Colors.white60,
+          color: selected
+              ? context.palette.shadow
+              : context.palette.textTertiary,
         ),
       ),
     );
@@ -562,7 +567,9 @@ class _ListRow extends StatelessWidget {
                             ? Icons.arrow_drop_down_rounded
                             : Icons.arrow_right_rounded,
                         size: 18,
-                        color: selected ? Colors.black54 : Colors.white54,
+                        color: selected
+                            ? context.palette.scrim
+                            : context.palette.textQuiet,
                       ),
                     )
                   : null,
@@ -578,7 +585,9 @@ class _ListRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: selected ? Colors.black : Colors.white,
+                        color: selected
+                            ? context.palette.shadow
+                            : context.palette.text,
                         fontStyle: entry.isLink
                             ? FontStyle.italic
                             : FontStyle.normal,
@@ -618,7 +627,7 @@ class _ListRow extends StatelessWidget {
             color: selected
                 ? Theme.of(context).colorScheme.primary
                 : odd
-                ? Colors.white.withValues(alpha: 0.03)
+                ? context.palette.text.withValues(alpha: 0.03)
                 : null,
             borderRadius: BorderRadius.circular(4),
           ),
@@ -736,8 +745,8 @@ class _Column extends StatelessWidget {
     final env = FilesScope.of(context).controller.env;
     final primary = Theme.of(context).colorScheme.primary;
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        border: Border(right: BorderSide(color: Colors.white12)),
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: context.palette.lineSoft)),
       ),
       child: FolderDropTarget(
         path: path,
@@ -786,8 +795,8 @@ class _Column extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: selected && last
-                                    ? Colors.black
-                                    : Colors.white,
+                                    ? context.palette.shadow
+                                    : context.palette.text,
                               ),
                             ),
                     ),
@@ -796,8 +805,8 @@ class _Column extends StatelessWidget {
                         Icons.chevron_right_rounded,
                         size: 16,
                         color: selected && last
-                            ? Colors.black54
-                            : Colors.white38,
+                            ? context.palette.scrim
+                            : context.palette.textDisabled,
                       ),
                   ],
                 ),
@@ -880,14 +889,20 @@ class PreviewPane extends StatelessWidget {
             child: Text(
               label,
               textAlign: TextAlign.end,
-              style: const TextStyle(fontSize: 11, color: Colors.white38),
+              style: TextStyle(
+                fontSize: 11,
+                color: context.palette.textDisabled,
+              ),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 11, color: Colors.white70),
+              style: TextStyle(
+                fontSize: 11,
+                color: context.palette.textSecondary,
+              ),
             ),
           ),
         ],

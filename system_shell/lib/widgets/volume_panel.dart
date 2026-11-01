@@ -1,6 +1,7 @@
 // system_shell/lib/widgets/volume_panel.dart
 //
 // Painel do ícone de volume: mudo e slider.
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -59,7 +60,7 @@ class VolumePanel extends StatelessWidget {
 
   Widget _buildPanel(BuildContext context, AudioState s) {
     return Material(
-      color: const Color(0xFF1E252B),
+      color: context.palette.panel,
       borderRadius: BorderRadius.circular(18),
       elevation: 12,
       child: Padding(
@@ -79,7 +80,10 @@ class VolumePanel extends StatelessWidget {
               child: Text(
                 VolumeIndicator.percent(s.volume),
                 textAlign: TextAlign.end,
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.palette.textSecondary,
+                ),
               ),
             ),
           ],

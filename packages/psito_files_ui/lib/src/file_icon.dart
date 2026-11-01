@@ -37,7 +37,7 @@ class FileIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themed = _themed();
+    final themed = _themed(context);
     if (!thumbnail ||
         size < 32 ||
         !entry.mimeType.startsWith('image/') ||
@@ -60,7 +60,7 @@ class FileIcon extends StatelessWidget {
     );
   }
 
-  Widget _themed() {
+  Widget _themed(BuildContext context) {
     final known = entry.isDirectory ? env.folderIcon(entry.path) : null;
     return PsitoIcon(
       [
@@ -73,7 +73,9 @@ class FileIcon extends StatelessWidget {
       fallback: Icon(
         materialIcon(entry),
         size: size * 0.9,
-        color: entry.isDirectory ? const Color(0xFFFFC107) : Colors.white60,
+        color: entry.isDirectory
+            ? context.palette.highlight
+            : context.palette.textTertiary,
       ),
     );
   }
@@ -116,6 +118,10 @@ class ThemedIcon extends StatelessWidget {
   Widget build(BuildContext context) => PsitoIcon(
     names,
     size: size,
-    fallback: Icon(fallback, size: size, color: color ?? Colors.white70),
+    fallback: Icon(
+      fallback,
+      size: size,
+      color: color ?? context.palette.textSecondary,
+    ),
   );
 }
