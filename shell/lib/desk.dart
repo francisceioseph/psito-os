@@ -286,6 +286,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   void _rebuild() {
+    // Uma cópia em andamento recarrega ao terminar, mesmo com a mesa já fechada
+    if (_disposed) return;
     final show = _settings.desktopShowIcons;
     _items = !show
         ? const []

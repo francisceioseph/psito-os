@@ -230,6 +230,102 @@ abstract class SystemLocalizations {
   /// **'{count} files: {names}'**
   String clipFiles(Object count, Object names);
 
+  /// No description provided for @wifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi'**
+  String get wifi;
+
+  /// No description provided for @wifiSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for networks…'**
+  String get wifiSearching;
+
+  /// No description provided for @wifiNoNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'No networks found'**
+  String get wifiNoNetworks;
+
+  /// No description provided for @wifiOtherNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Other network…'**
+  String get wifiOtherNetwork;
+
+  /// No description provided for @wifiNetworkName.
+  ///
+  /// In en, this message translates to:
+  /// **'Network name'**
+  String get wifiNetworkName;
+
+  /// No description provided for @wifiPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get wifiPassword;
+
+  /// No description provided for @wifiShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get wifiShowPassword;
+
+  /// No description provided for @wifiHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get wifiHidePassword;
+
+  /// No description provided for @wifiConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get wifiConnect;
+
+  /// No description provided for @wifiCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get wifiCancel;
+
+  /// No description provided for @wifiDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get wifiDisconnect;
+
+  /// No description provided for @wifiWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password'**
+  String get wifiWrongPassword;
+
+  /// No description provided for @wifiNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Network not found'**
+  String get wifiNotFound;
+
+  /// No description provided for @wifiFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect'**
+  String get wifiFailed;
+
+  /// No description provided for @wifiUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This kind of network is not supported yet'**
+  String get wifiUnsupported;
+
+  /// No description provided for @networkSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Network settings'**
+  String get networkSettings;
+
   /// No description provided for @networkOff.
   ///
   /// In en, this message translates to:

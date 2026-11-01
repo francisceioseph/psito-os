@@ -445,6 +445,19 @@ class ShellState {
     }
   }
 
+  /// Abre as Configurações na seção de rede, fechando o painel.
+  void openNetworkSettings() {
+    closeOverlay();
+    final settings = installed('org.psito.settings');
+    if (settings == null) return;
+    unawaited(
+      settings.launch(
+        sandbox: sandbox,
+        command: [...settings.command, '${psitoSettingsSectionPrefix}network'],
+      ),
+    );
+  }
+
   void launch(DesktopEntry entry) {
     closeOverlay();
     unawaited(entry.launch(sandbox: sandbox));

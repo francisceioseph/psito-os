@@ -41,6 +41,8 @@ PsitoNetworkState _wifi(int strength) => PsitoNetworkState(
 );
 
 void main() {
+  group('Wi-Fi no painel', wifiPanelTests);
+
   testWidgets('o ícone acompanha o estado da rede', (tester) async {
     final network = await _pump(tester);
     expect(_icon(tester), Icons.lan);
@@ -146,4 +148,123 @@ void main() {
       findsOneWidget,
     );
   });
+}
+
+void wifiPanelTests() {
+  Future<FakeNetworkService> open(WidgetTester tester) async {
+    final network = await _pump(tester);
+    await tester.tap(_indicator);
+    await tester.pump();
+    return network;
+  }
+
+  Finder row(String ssid) => find.byKey(ValueKey('wifi-$ssid'));
+  final password = find.byKey(const ValueKey('wifi-password'));
+  final connect = find.byKey(const ValueKey('wifi-connect'));
+
+  testWidgets('abrir procura redes e lista pelo sinal', (tester) async {
+    final network = await open(tester);
+    expect(network.scans, 1);
+    final ys = [
+      for (final ssid in ['Casa', 'Cafeteria', 'Vizinho'])
+        tester.getTopLeft(row(ssid)).dy,
+    ];
+    expect(ys, orderedEquals([...ys]..sort()));
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('rede aberta conecta com um clique', (tester) async {
+    final network = await open(tester);
+    await tester.tap(row('Cafeteria'));
+    await tester.pump();
+    expect(password, findsNothing);
+    final active = network.state.value.wifi!.networks.first;
+    expect((active.ssid, active.active), ('Cafeteria', true));
+    expect(find.byKey(const ValueKey('wifi-disconnect')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('wifi-disconnect')));
+    await tester.pump();
+    expect(network.state.value.wifi!.networks.any((n) => n.active), isFalse);
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('senha errada avisa e mantém o que foi digitado', (tester) async {
+    final network = await open(tester);
+    await tester.tap(row('Vizinho'));
+    await tester.pump();
+    await tester.pump();
+    // O foco já vai para o campo, sem precisar clicar nele
+    expect(tester.widget<TextField>(password).focusNode!.hasFocus, isTrue);
+    await tester.enterText(password, 'errada');
+    await tester.tap(connect);
+    await tester.pump();
+    expect(find.text('Senha incorreta'), findsOneWidget);
+    expect(tester.widget<TextField>(password).controller!.text, 'errada');
+
+    await tester.enterText(password, FakeNetworkService.wifiPassword);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    expect(password, findsNothing);
+    expect(network.state.value.wifi!.networks.first.ssid, 'Vizinho');
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('rede guardada não pede senha, e a corporativa não abre', (
+    tester,
+  ) async {
+    final network = await open(tester);
+    await tester.tap(row('Firma'));
+    await tester.pump();
+    expect(password, findsNothing);
+    expect(network.state.value.wifi!.networks.any((n) => n.active), isFalse);
+
+    await tester.tap(row('Casa'));
+    await tester.pump();
+    expect(password, findsNothing);
+    expect(network.state.value.wifi!.networks.first.active, isTrue);
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('outra rede pede o nome e a senha', (tester) async {
+    final network = await open(tester);
+    await tester.tap(find.byKey(const ValueKey('wifi-other')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const ValueKey('wifi-name')), 'Sumida');
+    await tester.enterText(password, FakeNetworkService.wifiPassword);
+    await tester.tap(connect);
+    await tester.pump();
+    final first = network.state.value.wifi!.networks.first;
+    expect((first.ssid, first.active), ('Sumida', true));
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('desligar o Wi-Fi esconde a lista', (tester) async {
+    await open(tester);
+    expect(row('Casa'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('wifi-switch')));
+    await tester.pump();
+    expect(row('Casa'), findsNothing);
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('sem adaptador não há nada de Wi-Fi', (tester) async {
+    await _pump(
+      tester,
+      const PsitoNetworkState(
+        available: true,
+        connectivity: PsitoConnectivity.full,
+        primary: FakeNetworkService.ethernet,
+        devices: [FakeNetworkService.ethernet],
+      ),
+    );
+    await tester.tap(_indicator);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('wifi-switch')), findsNothing);
+    await _closePanelAndSettle(tester);
+  });
+}
+
+// Os timers do painel só somem com ele fechado
+Future<void> _closePanelAndSettle(WidgetTester tester) async {
+  await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+  await tester.pump();
 }

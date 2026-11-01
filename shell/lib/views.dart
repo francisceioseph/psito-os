@@ -919,9 +919,9 @@ class _OverlayView extends StatelessWidget {
           onTap: state.openNotification,
         ),
         ShellOverlay.network => NetworkPanel(
-          state: services.network.state,
-          onSetEnabled: services.network.setEnabled,
+          service: services.network,
           onClose: state.closeOverlay,
+          onOpenSettings: state.openNetworkSettings,
         ),
         ShellOverlay.volume => VolumePanel(
           state: services.audio.state,

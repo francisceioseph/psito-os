@@ -43,7 +43,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - `PSITO_SERVICES=fake` força os falsos.
   - Hoje:
     - `system_info_service` (hostnamed);
-    - `network_service` (NetworkManager pelo pacote `nm`);
+    - `network_service` (NetworkManager pelo pacote `nm`, e pelo D-Bus direto no que precisa dos caminhos: as redes Wi-Fi, conectar com senha, esquecer). As conexões novas são só da conta (`connection.permissions`), sem pedir administrador, e uma que falha não fica guardada. O falso aceita a senha `FakeNetworkService.wifiPassword`;
     - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
     - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell;
     - `time_service` (timedated: fuso e NTP);
@@ -66,7 +66,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
     - `psito_window` (a moldura), `top_bar`, `psito_dock`, `desktop_background`;
     - `psito_desktop_icons` (os ícones da mesa);
     - `launcher`, `notification_toasts`, `notification_panel`, `window_switcher_overlay`;
-    - `network_indicator` e `network_panel`;
+    - `network_indicator` e `network_panel` (as redes Wi-Fi, com a senha no próprio painel e a rede oculta em "Outra rede");
     - `volume_indicator`, `volume_panel` e `volume_osd`;
     - `battery_indicator`, `battery_panel`, `power_panel` e `power_confirm_dialog`;
     - `clipboard_panel` (o applet da área de transferência, só no shell) e `hot_corner` (o canto da tela, também só no shell).
@@ -91,7 +91,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `tools/`:
   - `psito-deb [-o pasta] [--runtime|--system] <projeto>` e `--meta <nome> <versão> <pacote>...`: empacota um app (`psito-app-<id>`, sem o `libflutter`, com o `RUNPATH` para o runtime via `patchelf`), o `psito-flutter-runtime` (`/usr/lib/psito/flutter/<versão>/`), um componente do sistema descrito no `psito-package` do projeto (o shell) ou um metapacote (`psito-desktop`). Roda na VM, a partir do bundle de release;
   - `measure-apps.sh`: memória e tempo até o primeiro quadro dos apps, com e sem sandbox e com bundles separados (`ssh -p 2222 psito@localhost 'bash -s' < tools/measure-apps.sh`).
-- `vm/`: arquivos instalados na VM pelo `provision.sh`: o login automático do greetd e o script do guest. A sessão vem do pacote `psito-shell`
+- `vm/`: arquivos instalados na VM pelo `provision.sh`: o login automático do greetd e o script do guest. A sessão vem do pacote `psito-shell`. O `wifi-lab.sh up|down` (na VM, com `sudo`) sobe redes de teste em rádios virtuais: aberta, WPA2, WPA3 e oculta, com as senhas no script
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)

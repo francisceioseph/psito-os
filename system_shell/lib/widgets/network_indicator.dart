@@ -11,6 +11,12 @@ class NetworkIndicator extends StatelessWidget {
 
   const NetworkIndicator({super.key, required this.state, this.onTap});
 
+  static IconData wifiIcon(int strength) => switch (strength) {
+    > 66 => Icons.wifi,
+    > 33 => Icons.wifi_2_bar,
+    _ => Icons.wifi_1_bar,
+  };
+
   /// Ícone e texto do estado; null quando não há o que mostrar.
   static (IconData, String, Color?)? describe(
     SystemLocalizations l,
@@ -26,11 +32,7 @@ class NetworkIndicator extends StatelessWidget {
     if (primary == null) return (Icons.link_off, l.networkDisconnected, null);
 
     final icon = switch (primary.kind) {
-      PsitoNetworkKind.wifi => switch (primary.wifiStrength ?? 100) {
-        > 66 => Icons.wifi,
-        > 33 => Icons.wifi_2_bar,
-        _ => Icons.wifi_1_bar,
-      },
+      PsitoNetworkKind.wifi => wifiIcon(primary.wifiStrength ?? 100),
       PsitoNetworkKind.ethernet => Icons.lan,
       PsitoNetworkKind.other => Icons.settings_ethernet,
     };

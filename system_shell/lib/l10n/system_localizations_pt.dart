@@ -110,6 +110,54 @@ class SystemLocalizationsPt extends SystemLocalizations {
   }
 
   @override
+  String get wifi => 'Wi-Fi';
+
+  @override
+  String get wifiSearching => 'Procurando redes…';
+
+  @override
+  String get wifiNoNetworks => 'Nenhuma rede encontrada';
+
+  @override
+  String get wifiOtherNetwork => 'Outra rede…';
+
+  @override
+  String get wifiNetworkName => 'Nome da rede';
+
+  @override
+  String get wifiPassword => 'Senha';
+
+  @override
+  String get wifiShowPassword => 'Mostrar a senha';
+
+  @override
+  String get wifiHidePassword => 'Esconder a senha';
+
+  @override
+  String get wifiConnect => 'Conectar';
+
+  @override
+  String get wifiCancel => 'Cancelar';
+
+  @override
+  String get wifiDisconnect => 'Desconectar';
+
+  @override
+  String get wifiWrongPassword => 'Senha incorreta';
+
+  @override
+  String get wifiNotFound => 'Rede não encontrada';
+
+  @override
+  String get wifiFailed => 'Não foi possível conectar';
+
+  @override
+  String get wifiUnsupported => 'Este tipo de rede ainda não é aceito';
+
+  @override
+  String get networkSettings => 'Configurações de rede';
+
+  @override
   String get networkOff => 'Rede desativada';
 
   @override

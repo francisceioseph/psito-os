@@ -110,6 +110,54 @@ class SystemLocalizationsEn extends SystemLocalizations {
   }
 
   @override
+  String get wifi => 'Wi-Fi';
+
+  @override
+  String get wifiSearching => 'Searching for networks…';
+
+  @override
+  String get wifiNoNetworks => 'No networks found';
+
+  @override
+  String get wifiOtherNetwork => 'Other network…';
+
+  @override
+  String get wifiNetworkName => 'Network name';
+
+  @override
+  String get wifiPassword => 'Password';
+
+  @override
+  String get wifiShowPassword => 'Show password';
+
+  @override
+  String get wifiHidePassword => 'Hide password';
+
+  @override
+  String get wifiConnect => 'Connect';
+
+  @override
+  String get wifiCancel => 'Cancel';
+
+  @override
+  String get wifiDisconnect => 'Disconnect';
+
+  @override
+  String get wifiWrongPassword => 'Wrong password';
+
+  @override
+  String get wifiNotFound => 'Network not found';
+
+  @override
+  String get wifiFailed => 'Could not connect';
+
+  @override
+  String get wifiUnsupported => 'This kind of network is not supported yet';
+
+  @override
+  String get networkSettings => 'Network settings';
+
+  @override
   String get networkOff => 'Network off';
 
   @override

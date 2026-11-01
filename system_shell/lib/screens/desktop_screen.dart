@@ -457,8 +457,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                         onTap: _openNotificationSource,
                       ),
                       _Overlay.network => NetworkPanel(
-                        state: _services.network.state,
-                        onSetEnabled: _services.network.setEnabled,
+                        service: _services.network,
                         onClose: _closeOverlay,
                       ),
                       _Overlay.volume => VolumePanel(

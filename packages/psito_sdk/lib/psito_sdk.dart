@@ -628,6 +628,81 @@ class PsitoNetworkDevice {
 }
 
 /// O que a rede está fazendo (NetworkManager no Linux).
+enum PsitoWifiSecurity {
+  open,
+
+  /// Com senha: WPA2 ou WPA3.
+  personal,
+
+  /// WEP ou corporativa, que o Psito ainda não conecta.
+  unsupported,
+}
+
+/// Uma rede ao alcance: os pontos de acesso do mesmo nome viram um só, com o
+/// sinal do mais forte.
+@immutable
+class PsitoWifiNetwork {
+  final String ssid;
+
+  /// 0–100.
+  final int strength;
+  final PsitoWifiSecurity security;
+  final bool active;
+
+  /// Já tem uma conexão guardada, então não pede a senha.
+  final bool saved;
+
+  const PsitoWifiNetwork({
+    required this.ssid,
+    required this.strength,
+    this.security = PsitoWifiSecurity.open,
+    this.active = false,
+    this.saved = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoWifiNetwork &&
+      other.ssid == ssid &&
+      other.strength == strength &&
+      other.security == security &&
+      other.active == active &&
+      other.saved == saved;
+
+  @override
+  int get hashCode => Object.hash(ssid, strength, security, active, saved);
+}
+
+/// O rádio de Wi-Fi, quando há um.
+@immutable
+class PsitoWifiState {
+  final bool enabled;
+
+  /// A ativa primeiro, depois por sinal.
+  final List<PsitoWifiNetwork> networks;
+
+  const PsitoWifiState({this.enabled = true, this.networks = const []});
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoWifiState &&
+      other.enabled == enabled &&
+      listEquals(other.networks, networks);
+
+  @override
+  int get hashCode => Object.hash(enabled, Object.hashAll(networks));
+}
+
+enum PsitoWifiResult {
+  connected,
+
+  /// A rede pede senha, e não veio nenhuma.
+  needsPassword,
+  wrongPassword,
+  notFound,
+  failed,
+}
+
 @immutable
 class PsitoNetworkState {
   /// False enquanto carrega ou se não há gerenciador de rede.
@@ -640,6 +715,9 @@ class PsitoNetworkState {
   final PsitoNetworkDevice? primary;
   final List<PsitoNetworkDevice> devices;
 
+  /// Null quando não há adaptador de Wi-Fi.
+  final PsitoWifiState? wifi;
+
   const PsitoNetworkState({
     required this.available,
     this.enabled = true,
@@ -647,6 +725,7 @@ class PsitoNetworkState {
     this.connecting = false,
     this.primary,
     this.devices = const [],
+    this.wifi,
   });
 
   static const unavailable = PsitoNetworkState(available: false);
@@ -659,7 +738,8 @@ class PsitoNetworkState {
       other.connectivity == connectivity &&
       other.connecting == connecting &&
       other.primary == primary &&
-      listEquals(other.devices, devices);
+      listEquals(other.devices, devices) &&
+      other.wifi == wifi;
 
   @override
   int get hashCode => Object.hash(
@@ -669,6 +749,7 @@ class PsitoNetworkState {
     connecting,
     primary,
     Object.hashAll(devices),
+    wifi,
   );
 }
 
