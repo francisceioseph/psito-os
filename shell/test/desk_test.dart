@@ -1176,6 +1176,39 @@ void main() {
       expect(state.notifications.history.single.body, contains('em uso'));
     });
 
+    test('diz quem está usando', () async {
+      locked = true;
+      await plug();
+      disks.answer = PsitoDiskResult.busy;
+      disks.users = ['foot'];
+      await state.ejectVolume(pendrive);
+      expect(state.notifications.history.single.body, contains('foot'));
+    });
+
+    test('ejetar rápido não avisa que está gravando', () async {
+      locked = true;
+      await plug();
+      await state.ejectVolume(pendrive);
+      await Future<void>.delayed(Duration.zero);
+      expect(state.notifications.history.map((n) => n.body), [
+        'Já pode tirar o disco.',
+      ]);
+    });
+
+    test('puxar o cabo de um montado avisa', () async {
+      locked = true;
+      await plug(pendrive.copyWith(mountPoint: () => '/media/x/PENDRIVE'));
+      disks.volumes.value = const [];
+      expect(state.notifications.history.single.body, contains('sem ejetar'));
+    });
+
+    test('um disco que já foi desmontado sai sem aviso', () async {
+      locked = true;
+      await plug();
+      disks.volumes.value = const [];
+      expect(state.notifications.history, isEmpty);
+    });
+
     test('só recebe arquivo depois de montado, e copia', () async {
       File(path('a.txt')).writeAsStringSync('a');
       final inside = Directory(path('dentro'))..createSync();

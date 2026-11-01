@@ -71,20 +71,47 @@ class FilesController extends ChangeNotifier {
   /// Sai das abas que estão no disco antes de pedir para tirar: a própria
   /// janela não pode ser o motivo de ele estar ocupado.
   Future<void> ejectVolume(PsitoVolume volume) async {
-    if (volume.mountPoint case final mount?) {
-      for (final tab in tabs) {
-        final folder = tab.folder;
-        if (folder == mount || (folder?.startsWith('$mount/') ?? false)) {
-          tab.go(FolderLocation(env.home));
-        }
-      }
-    }
+    if (volume.mountPoint case final mount?) _leave(mount);
+    ejecting.value = {...ejecting.value, volume.id};
     final result = await volumes.eject(volume.id);
+    final users = result == PsitoDiskResult.busy
+        ? await volumes.usersOf(volume.id)
+        : const <String>[];
+    ejecting.value = {...ejecting.value}..remove(volume.id);
     onError?.call(switch (result) {
       PsitoDiskResult.ok => l10n.volumeSafeToRemove,
+      PsitoDiskResult.busy when users.isNotEmpty => l10n.volumeBusyBy(
+        users.join(', '),
+      ),
       PsitoDiskResult.busy => l10n.volumeBusy,
       _ => l10n.volumeEjectFailed,
     });
+  }
+
+  /// Os discos sendo ejetados: pode demorar, se ainda há o que gravar.
+  final ejecting = ValueNotifier<Set<String>>(const {});
+
+  /// As montagens de agora, para ver qual sumiu.
+  Set<String> _mounts = const {};
+
+  void _leaveLostVolumes() {
+    final now = {
+      for (final volume in volumes.volumes.value) ?volume.mountPoint,
+    };
+    // Um disco puxado sem ejetar deixaria a aba numa pasta que não existe
+    for (final lost in _mounts.difference(now)) {
+      _leave(lost);
+    }
+    _mounts = now;
+  }
+
+  void _leave(String mount) {
+    for (final tab in tabs) {
+      final folder = tab.folder;
+      if (folder == mount || (folder?.startsWith('$mount/') ?? false)) {
+        tab.go(FolderLocation(env.home));
+      }
+    }
   }
 
   /// Mostra um erro (a barra embaixo).
@@ -129,6 +156,8 @@ class FilesController extends ChangeNotifier {
       tab.addListener(_tabChanged);
     }
     _requests = ctx.openRequests.listen(openPaths);
+    volumes.volumes.addListener(_leaveLostVolumes);
+    _leaveLostVolumes();
     _updateTitle();
   }
 
@@ -505,6 +534,8 @@ class FilesController extends ChangeNotifier {
 
   @override
   void dispose() {
+    volumes.volumes.removeListener(_leaveLostVolumes);
+    ejecting.dispose();
     fileClipboard.current.removeListener(notifyListeners);
     unawaited(_requests?.cancel());
     for (final job in jobs) {

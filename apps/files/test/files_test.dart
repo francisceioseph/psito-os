@@ -15,7 +15,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 /// Os discos sem o shell: guarda o que o Files pediu.
 class FakeVolumes implements PsitoVolumes {
   @override
-  final volumes = ValueNotifier<List<PsitoVolume>>(const []);
+  final ValueNotifier<List<PsitoVolume>> volumes = ValueNotifier(const []);
   final asked = <String>[];
   String? mounted;
   PsitoDiskResult answer = PsitoDiskResult.ok;
@@ -37,6 +37,11 @@ class FakeVolumes implements PsitoVolumes {
 
   @override
   Future<PsitoDiskResult> unlock(String id, String password) async => answer;
+
+  List<String> users = const [];
+
+  @override
+  Future<List<String>> usersOf(String id) async => users;
 }
 
 /// O contexto de um app sem o shell: guarda o que o Files pediu.
@@ -252,6 +257,34 @@ void main() {
         ctx.volumes.answer = PsitoDiskResult.busy;
         await files.ejectVolume(volume);
         expect(messages.single, contains('em uso'));
+      });
+
+      test('diz quem está usando, quando dá para saber', () async {
+        ctx.volumes.answer = PsitoDiskResult.busy;
+        ctx.volumes.users = ['foot', 'vlc'];
+        await files.ejectVolume(volume);
+        expect(messages.single, contains('foot, vlc'));
+      });
+
+      test('enquanto ejeta, marca o disco, e depois solta', () async {
+        final done = files.ejectVolume(volume);
+        expect(files.ejecting.value, {'v'});
+        await done;
+        expect(files.ejecting.value, isEmpty);
+      });
+
+      test('um disco puxado tira as abas de lá', () async {
+        final inside = volume.copyWith(mountPoint: () => mount);
+        ctx.volumes.volumes.value = [inside];
+        await files.openVolume(inside);
+        files.newTab(FolderLocation(p('Documentos/a')));
+        files.newTab(FolderLocation(p('Documentos2')));
+        ctx.volumes.volumes.value = const [];
+        expect(files.tabs.map((t) => t.folder), [
+          files.env.home,
+          files.env.home,
+          p('Documentos2'),
+        ]);
       });
     });
 

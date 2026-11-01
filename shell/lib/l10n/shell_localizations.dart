@@ -589,6 +589,24 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'Could not eject the disk.'**
   String get diskEjectFailed;
+
+  /// No description provided for @diskBusyBy.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is in use by {names}. Close it and try again.'**
+  String diskBusyBy(String names);
+
+  /// No description provided for @diskWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing to the disk. Do not remove it yet.'**
+  String get diskWriting;
+
+  /// No description provided for @diskPulledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk was removed without ejecting. Recent files may be incomplete.'**
+  String get diskPulledBody;
 }
 
 class _ShellLocalizationsDelegate

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -294,6 +296,47 @@ void main() {
       sdb1.error = '$_udisks.Error.Failed';
       expect(await service.unmount(sdb1.path.value), PsitoDiskResult.failed);
       expect(await service.mount(sdb1.path.value), isNull);
+    });
+  });
+
+  group('usersOfMount', () {
+    Future<ProcessResult> Function(String, List<String>) fuser(String out) =>
+        (exe, args) async {
+          expect(exe, 'fuser');
+          expect(args, ['-m', '/media/ana/UM']);
+          return ProcessResult(1, 0, out, ' c c');
+        };
+
+    test('o nome de cada um, sem repetir', () async {
+      final names = await usersOfMount(
+        '/media/ana/UM',
+        run: fuser(' 10 11  12'),
+        nameOf: (pid) async => pid == '12' ? 'vlc' : 'foot',
+      );
+      expect(names, ['foot', 'vlc']);
+    });
+
+    test('quem já saiu fica de fora', () async {
+      final names = await usersOfMount(
+        '/media/ana/UM',
+        run: fuser('10 11'),
+        nameOf: (pid) async {
+          if (pid == '10') throw const FileSystemException('sumiu');
+          return 'foot';
+        },
+      );
+      expect(names, ['foot']);
+    });
+
+    test('ninguém, ou sem o fuser, é uma lista vazia', () async {
+      expect(await usersOfMount('/media/ana/UM', run: fuser('')), isEmpty);
+      expect(
+        await usersOfMount(
+          '/m',
+          run: (exe, args) async => throw const ProcessException('fuser', []),
+        ),
+        isEmpty,
+      );
     });
   });
 

@@ -152,15 +152,30 @@ class Sidebar extends StatelessWidget {
       selected: current is FolderLocation && current.path == mount,
       onTap: () => unawaited(controller.openVolume(volume)),
       trailing: volume.canEject && !volume.locked
-          ? IconButton(
-              key: ValueKey('eject-${volume.id}'),
-              tooltip: context.l10n.volumeEject,
-              icon: const Icon(Icons.eject_rounded, size: 14),
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-              padding: EdgeInsets.zero,
-              color: context.palette.textSecondary,
-              onPressed: () => unawaited(controller.ejectVolume(volume)),
+          ? ValueListenableBuilder(
+              valueListenable: controller.ejecting,
+              builder: (context, ejecting, _) => ejecting.contains(volume.id)
+                  ? Tooltip(
+                      message: context.l10n.volumeWriting,
+                      child: const SizedBox.square(
+                        dimension: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                    )
+                  : IconButton(
+                      key: ValueKey('eject-${volume.id}'),
+                      tooltip: context.l10n.volumeEject,
+                      icon: const Icon(Icons.eject_rounded, size: 14),
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 22,
+                        minHeight: 22,
+                      ),
+                      padding: EdgeInsets.zero,
+                      color: context.palette.textSecondary,
+                      onPressed: () =>
+                          unawaited(controller.ejectVolume(volume)),
+                    ),
             )
           : null,
     );

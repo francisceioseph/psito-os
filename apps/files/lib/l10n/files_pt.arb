@@ -110,5 +110,7 @@
   "volumeMountFailed": "Não foi possível abrir este disco.",
   "volumeSafeToRemove": "Já pode tirar o disco.",
   "volumeBusy": "O disco está em uso. Feche o que está usando e tente de novo.",
-  "volumeEjectFailed": "Não foi possível ejetar o disco."
+  "volumeEjectFailed": "Não foi possível ejetar o disco.",
+  "volumeBusyBy": "O disco está em uso por {names}. Feche e tente de novo.",
+  "volumeWriting": "Gravando…"
 }

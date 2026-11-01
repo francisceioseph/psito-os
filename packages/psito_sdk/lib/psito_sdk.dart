@@ -1008,6 +1008,9 @@ abstract class PsitoVolumes {
 
   /// Destranca um volume criptografado e monta o que tem dentro.
   Future<PsitoDiskResult> unlock(String id, String password);
+
+  /// O nome de quem está segurando o disco: o motivo do [PsitoDiskResult.busy].
+  Future<List<String>> usersOf(String id);
 }
 
 enum PsitoDiskResult {

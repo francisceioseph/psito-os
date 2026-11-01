@@ -81,5 +81,8 @@
   "diskOpenFailed": "Não foi possível abrir este disco.",
   "diskSafeToRemove": "Já pode tirar o disco.",
   "diskBusy": "O disco está em uso. Feche o que está usando e tente de novo.",
-  "diskEjectFailed": "Não foi possível ejetar o disco."
+  "diskEjectFailed": "Não foi possível ejetar o disco.",
+  "diskBusyBy": "O disco está em uso por {names}. Feche e tente de novo.",
+  "diskWriting": "Gravando no disco. Não tire ainda.",
+  "diskPulledBody": "O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos."
 }

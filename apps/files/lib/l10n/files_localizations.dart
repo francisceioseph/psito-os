@@ -763,6 +763,18 @@ abstract class FilesLocalizations {
   /// In en, this message translates to:
   /// **'Could not eject the disk.'**
   String get volumeEjectFailed;
+
+  /// No description provided for @volumeBusyBy.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is in use by {names}. Close it and try again.'**
+  String volumeBusyBy(String names);
+
+  /// No description provided for @volumeWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing…'**
+  String get volumeWriting;
 }
 
 class _FilesLocalizationsDelegate

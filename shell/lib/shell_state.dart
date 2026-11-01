@@ -470,7 +470,7 @@ class ShellState {
   }
 
   /// Os discos de antes: quem aparece fora deles acabou de ser ligado.
-  Set<String> _knownVolumes = const {};
+  Map<String, PsitoVolume> _knownVolumes = const {};
 
   /// Os que já estavam ligados ao subir o shell não merecem aviso.
   bool _servicesReady = false;
@@ -492,9 +492,20 @@ class ShellState {
     final volumes = services.disks.volumes.value;
     final fresh = [
       for (final volume in volumes)
-        if (!_knownVolumes.contains(volume.id)) volume,
+        if (!_knownVolumes.containsKey(volume.id)) volume,
     ];
-    _knownVolumes = {for (final volume in volumes) volume.id};
+    final ids = {for (final volume in volumes) volume.id};
+    // Quem ejeta desmonta antes: sumir ainda montado é o cabo puxado
+    for (final old in _knownVolumes.values) {
+      if (!ids.contains(old.id) && old.mountPoint != null) {
+        notifications.add(
+          app: _disksApp,
+          title: volumeName(old),
+          body: l10n.diskPulledBody,
+        );
+      }
+    }
+    _knownVolumes = {for (final volume in volumes) volume.id: volume};
     if (fresh.isNotEmpty) unawaited(_volumesPlugged(fresh));
   }
 
@@ -554,13 +565,31 @@ class ShellState {
     await openPaths?.call([where]);
   }
 
+  /// Depois disso, ejetar avisa que está gravando: o que é rápido não pisca.
+  static const ejectNoticeDelay = Duration(seconds: 2);
+
   Future<void> ejectVolume(PsitoVolume volume) async {
+    // O sistema ainda pode estar gravando o que ficou no cache
+    final writing = Timer(ejectNoticeDelay, () {
+      notifications.add(
+        app: _disksApp,
+        title: volumeName(volume),
+        body: l10n.diskWriting,
+      );
+    });
     final result = await services.disks.eject(volume.id);
+    writing.cancel();
+    final users = result == PsitoDiskResult.busy
+        ? await services.disks.usersOf(volume.id)
+        : const <String>[];
     notifications.add(
       app: _disksApp,
       title: volumeName(volume),
       body: switch (result) {
         PsitoDiskResult.ok => l10n.diskSafeToRemove,
+        PsitoDiskResult.busy when users.isNotEmpty => l10n.diskBusyBy(
+          users.join(', '),
+        ),
         PsitoDiskResult.busy => l10n.diskBusy,
         _ => l10n.diskEjectFailed,
       },

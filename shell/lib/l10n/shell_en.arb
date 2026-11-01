@@ -81,5 +81,9 @@
   "diskOpenFailed": "Could not open this disk.",
   "diskSafeToRemove": "You can remove the disk now.",
   "diskBusy": "The disk is in use. Close what is using it and try again.",
-  "diskEjectFailed": "Could not eject the disk."
+  "diskEjectFailed": "Could not eject the disk.",
+  "diskBusyBy": "The disk is in use by {names}. Close it and try again.",
+  "@diskBusyBy": {"placeholders": {"names": {"type": "String"}}},
+  "diskWriting": "Writing to the disk. Do not remove it yet.",
+  "diskPulledBody": "The disk was removed without ejecting. Recent files may be incomplete."
 }

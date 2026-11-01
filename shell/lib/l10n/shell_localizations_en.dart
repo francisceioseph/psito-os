@@ -276,4 +276,16 @@ class ShellLocalizationsEn extends ShellLocalizations {
 
   @override
   String get diskEjectFailed => 'Could not eject the disk.';
+
+  @override
+  String diskBusyBy(String names) {
+    return 'The disk is in use by $names. Close it and try again.';
+  }
+
+  @override
+  String get diskWriting => 'Writing to the disk. Do not remove it yet.';
+
+  @override
+  String get diskPulledBody =>
+      'The disk was removed without ejecting. Recent files may be incomplete.';
 }

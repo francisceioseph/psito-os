@@ -275,4 +275,16 @@ class ShellLocalizationsPt extends ShellLocalizations {
 
   @override
   String get diskEjectFailed => 'Não foi possível ejetar o disco.';
+
+  @override
+  String diskBusyBy(String names) {
+    return 'O disco está em uso por $names. Feche e tente de novo.';
+  }
+
+  @override
+  String get diskWriting => 'Gravando no disco. Não tire ainda.';
+
+  @override
+  String get diskPulledBody =>
+      'O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos.';
 }

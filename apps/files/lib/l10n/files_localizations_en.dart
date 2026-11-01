@@ -415,4 +415,12 @@ class FilesLocalizationsEn extends FilesLocalizations {
 
   @override
   String get volumeEjectFailed => 'Could not eject the disk.';
+
+  @override
+  String volumeBusyBy(String names) {
+    return 'The disk is in use by $names. Close it and try again.';
+  }
+
+  @override
+  String get volumeWriting => 'Writing…';
 }

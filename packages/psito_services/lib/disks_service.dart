@@ -4,6 +4,7 @@
 // Só o shell fala com ele: os apps no sandbox nem veem o barramento.
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
@@ -79,6 +80,37 @@ List<PsitoVolume> volumesFrom(UDisksObjects objects) {
     return byName != 0 ? byName : a.device.compareTo(b.device);
   });
 }
+
+/// Os programas com algo aberto em [mount], pelo `fuser`, que é quem sabe olhar
+/// cada processo. O nome vem do `/proc`, sem repetir.
+Future<List<String>> usersOfMount(
+  String mount, {
+  Future<ProcessResult> Function(String, List<String>) run = Process.run,
+  Future<String> Function(String pid)? nameOf,
+}) async {
+  final ProcessResult result;
+  try {
+    result = await run('fuser', ['-m', mount]);
+  } on ProcessException catch (e) {
+    debugPrint('🦜 Sem o fuser: $e');
+    return const [];
+  }
+  final names = <String>{};
+  // Os pids saem na saída padrão, e as letras do que cada um faz, no erro
+  for (final pid in '${result.stdout}'.trim().split(RegExp(r'\s+'))) {
+    if (pid.isEmpty) continue;
+    try {
+      final name = await (nameOf ?? _processName)(pid);
+      if (name.isNotEmpty) names.add(name);
+    } on FileSystemException {
+      // Já saiu
+    }
+  }
+  return names.toList();
+}
+
+Future<String> _processName(String pid) async =>
+    (await File('/proc/$pid/comm').readAsString()).trim();
 
 abstract class DisksService implements PsitoVolumes {
   Future<void> dispose();
@@ -276,6 +308,15 @@ class UDisks2Service implements DisksService {
   }
 
   @override
+  Future<List<String>> usersOf(String id) async {
+    final mount = _volumes.value
+        .where((v) => v.id == id)
+        .firstOrNull
+        ?.mountPoint;
+    return mount == null ? const [] : usersOfMount(mount);
+  }
+
+  @override
   Future<void> dispose() async {
     for (final sub in _subscriptions) {
       await sub.cancel();
@@ -308,6 +349,9 @@ class FakeDisksService implements DisksService {
 
   /// O que os próximos pedidos respondem.
   PsitoDiskResult answer = PsitoDiskResult.ok;
+
+  /// O que o [usersOf] responde.
+  List<String> users = const [];
 
   FakeDisksService([List<PsitoVolume> initial = const []])
     : volumes = ValueNotifier(initial);
@@ -358,6 +402,9 @@ class FakeDisksService implements DisksService {
     );
     return PsitoDiskResult.ok;
   }
+
+  @override
+  Future<List<String>> usersOf(String id) async => users;
 
   @override
   Future<void> dispose() async => volumes.dispose();

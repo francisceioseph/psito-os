@@ -3,7 +3,8 @@
 // O shell dá os discos externos aos apps em org.psito.Volumes:
 // - List() → aa{sv}, e o sinal Changed() quando a lista muda;
 // - Mount(s id) → s: onde montou, ou vazio;
-// - Unmount(s id), Eject(s id), Unlock(s id, s senha) → s: o PsitoDiskResult.
+// - Unmount(s id), Eject(s id), Unlock(s id, s senha) → s: o PsitoDiskResult;
+// - UsersOf(s id) → as: o nome de quem está segurando o disco.
 // Quem passa é o filtro do sandbox (`files:removable`). O cliente é o
 // VolumesClient do psito_services.
 import 'package:dbus/dbus.dart';
@@ -63,6 +64,10 @@ class VolumesBusObject extends DBusObject {
         return result(await disks.unmount(call.values[0].asString()));
       case ('Eject', 's'):
         return result(await disks.eject(call.values[0].asString()));
+      case ('UsersOf', 's'):
+        return DBusMethodSuccessResponse([
+          DBusArray.string(await disks.usersOf(call.values[0].asString())),
+        ]);
       case ('Unlock', 'ss'):
         return result(
           await disks.unlock(

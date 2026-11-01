@@ -135,6 +135,19 @@ class VolumesClient implements PsitoVolumes {
   Future<PsitoDiskResult> unlock(String id, String password) =>
       _call('Unlock', [DBusString(id), DBusString(password)]);
 
+  @override
+  Future<List<String>> usersOf(String id) async {
+    try {
+      final reply = await _object.callMethod(volumesInterface, 'UsersOf', [
+        DBusString(id),
+      ], replySignature: DBusSignature('as'));
+      return reply.returnValues[0].asStringArray().toList();
+    } catch (e) {
+      debugPrint('🦜 Erro em UsersOf: $e');
+      return const [];
+    }
+  }
+
   Future<void> dispose() async {
     await _changed?.cancel();
     _volumes.dispose();

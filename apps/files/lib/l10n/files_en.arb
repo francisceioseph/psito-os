@@ -111,5 +111,8 @@
   "volumeMountFailed": "Could not open this disk.",
   "volumeSafeToRemove": "You can remove the disk now.",
   "volumeBusy": "The disk is in use. Close what is using it and try again.",
-  "volumeEjectFailed": "Could not eject the disk."
+  "volumeEjectFailed": "Could not eject the disk.",
+  "volumeBusyBy": "The disk is in use by {names}. Close it and try again.",
+  "@volumeBusyBy": {"placeholders": {"names": {"type": "String"}}},
+  "volumeWriting": "Writing…"
 }
