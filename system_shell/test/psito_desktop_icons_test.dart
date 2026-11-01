@@ -14,6 +14,9 @@ void main() {
   late List<Set<String>> rects;
   late List<String> opened;
   late List<(String?, Offset)> menus;
+  late List<String> started;
+  late List<(String, Set<String>, Offset)> moved;
+  late List<(String, Set<String>)> droppedOn;
 
   setUp(() {
     pressed = [];
@@ -21,6 +24,9 @@ void main() {
     rects = [];
     opened = [];
     menus = [];
+    started = [];
+    moved = [];
+    droppedOn = [];
   });
 
   Future<void> pump(
@@ -32,6 +38,7 @@ void main() {
     KeyEventResult Function(KeyEvent)? onKey,
     bool popup = false,
     bool dimmed = false,
+    bool drag = false,
   }) async {
     tester.view.physicalSize = const Size(1000, 800);
     tester.view.devicePixelRatio = 1;
@@ -65,6 +72,15 @@ void main() {
           onKey: onKey,
           onMenu: (key, position) => menus.add((key, position)),
           popup: popup,
+          onDragStart: drag ? started.add : null,
+          onMove: drag
+              ? (grabbed, keys, position) =>
+                    moved.add((grabbed, keys, position))
+              : null,
+          canDropOn: drag ? (target, _) => target == 'b' : null,
+          onDropOn: drag
+              ? (target, keys) => droppedOn.add((target, keys))
+              : null,
         ),
       ),
     );
@@ -192,7 +208,9 @@ void main() {
     expect(pressed, isEmpty);
   });
 
-  testWidgets('fechando o menu, a mesa pega o teclado de volta', (tester) async {
+  testWidgets('fechando o menu, a mesa pega o teclado de volta', (
+    tester,
+  ) async {
     final keys = <KeyEvent>[];
     KeyEventResult onKey(KeyEvent event) {
       keys.add(event);
@@ -219,5 +237,84 @@ void main() {
       tester.widgetList<Opacity>(find.byType(Opacity)).first.opacity,
       lessThan(1),
     );
+  });
+
+  group('arrastar', () {
+    Future<void> dragFrom(WidgetTester tester, String name, Offset to) async {
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text(name)),
+      );
+      await gesture.moveBy(const Offset(30, 30));
+      await tester.pump();
+      await gesture.moveTo(to);
+      await tester.pump();
+      await gesture.up();
+      // O tempo do duplo clique
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    testWidgets('soltar na mesa leva o selecionado até o ponto', (
+      tester,
+    ) async {
+      await pump(tester, drag: true, current: {'a', _long});
+      await dragFrom(tester, 'a', const Offset(300, 400));
+      expect(started, ['a']);
+      expect(moved.single.$1, 'a');
+      expect(moved.single.$2, {'a', _long});
+      expect(moved.single.$3, const Offset(300, 400));
+      expect(droppedOn, isEmpty);
+    });
+
+    testWidgets('um item fora da seleção vai sozinho', (tester) async {
+      await pump(tester, drag: true, current: {'b'});
+      await dragFrom(tester, 'a', const Offset(300, 400));
+      expect(moved.single.$2, {'a'});
+    });
+
+    testWidgets('arrastar não é clique: a seleção fica', (tester) async {
+      await pump(tester, drag: true, current: {'a', _long});
+      await dragFrom(tester, 'a', const Offset(300, 400));
+      expect(released, isEmpty);
+    });
+
+    testWidgets('um alvo que aceita recebe, e a mesa não', (tester) async {
+      await pump(tester, drag: true);
+      await dragFrom(tester, 'a', tester.getCenter(find.text('b')));
+      expect(droppedOn.single.$1, 'b');
+      expect(droppedOn.single.$2, {'a'});
+      expect(moved, isEmpty);
+    });
+
+    testWidgets('um item que não aceita cai na mesa', (tester) async {
+      await pump(tester, drag: true);
+      await dragFrom(tester, 'b', tester.getCenter(find.text(_long)));
+      expect(droppedOn, isEmpty);
+      expect(moved.single.$1, 'b');
+    });
+
+    testWidgets('o duplo clique continua abrindo', (tester) async {
+      await pump(tester, drag: true);
+      await tester.tap(find.text('b'));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text('b'));
+      await tester.pump(const Duration(seconds: 1));
+      expect(opened, ['b']);
+      expect(started, isEmpty);
+    });
+
+    testWidgets('com o campo aberto, não arrasta', (tester) async {
+      await pump(
+        tester,
+        drag: true,
+        editor: const SizedBox(width: 90, height: 20),
+      );
+      final center = tester.getCenter(find.byKey(const ValueKey('desk-a')));
+      final gesture = await tester.startGesture(center);
+      await gesture.moveBy(const Offset(40, 40));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(started, isEmpty);
+    });
   });
 }

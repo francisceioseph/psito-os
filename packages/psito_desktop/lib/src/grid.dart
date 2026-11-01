@@ -149,6 +149,39 @@ DeskCell? nearestFreeCell(DeskCell from, DeskGrid grid, Set<DeskCell> taken) {
   return best;
 }
 
+/// As células novas de [keys], arrastados de modo que [grabbed] caia em [to]:
+/// andam juntos, com a mesma distância entre eles. Quem cairia fora da grade ou
+/// sobre outro item vai para a livre mais perto, e sem nenhuma livre fica onde
+/// está. Vazio se [grabbed] não saiu do lugar.
+Map<String, DeskCell> moveDeskCells(
+  Map<String, DeskCell> cells,
+  List<String> keys,
+  String grabbed,
+  DeskCell to,
+  DeskGrid grid,
+) {
+  final origin = cells[grabbed];
+  if (origin == null || origin == to) return const {};
+  final dx = to.column - origin.column, dy = to.row - origin.row;
+  final moving = keys.toSet();
+  final taken = {
+    for (final MapEntry(:key, :value) in cells.entries)
+      if (!moving.contains(key)) value,
+  };
+  final out = <String, DeskCell>{};
+  for (final key in [grabbed, ...keys.where((key) => key != grabbed)]) {
+    final from = cells[key];
+    if (from == null) continue;
+    final wanted = DeskCell(from.column + dx, from.row + dy);
+    final free = grid.contains(wanted) && !taken.contains(wanted)
+        ? wanted
+        : nearestFreeCell(wanted, grid, taken) ?? from;
+    taken.add(free);
+    out[key] = free;
+  }
+  return out;
+}
+
 /// [keys] na ordem, sem buracos: o "Organizar por" e o organizar sozinha.
 Map<String, DeskCell> packDesk(List<String> keys, DeskGrid grid) {
   final free = grid.cells.iterator;

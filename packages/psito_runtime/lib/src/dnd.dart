@@ -124,7 +124,7 @@ class PsitoDnd {
           return false;
         }
         final action = DropAction.values.byName(args['action'] as String);
-        return await target.widget.onAccept(paths, action);
+        return await target.widget.onAccept(paths, action, position);
     }
     return null;
   }
@@ -132,9 +132,15 @@ class PsitoDnd {
 
 /// Onde arquivos de fora da view podem ser soltos. [onWillAccept] diz com que
 /// ação (null recusa); o mais de dentro, entre os alvos sobrepostos, decide.
+/// O [onAccept] recebe o ponto do soltar, nas coordenadas da view.
 class PsitoDropTarget extends StatefulWidget {
   final DropAction? Function(List<String> paths) onWillAccept;
-  final FutureOr<bool> Function(List<String> paths, DropAction action) onAccept;
+  final FutureOr<bool> Function(
+    List<String> paths,
+    DropAction action,
+    Offset position,
+  )
+  onAccept;
   final Widget Function(BuildContext context, bool hovering) builder;
 
   const PsitoDropTarget({

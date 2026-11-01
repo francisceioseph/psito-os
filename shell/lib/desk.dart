@@ -122,6 +122,12 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   Timer? _typedTimer;
   StreamSubscription<void>? _watch;
 
+  /// As células de quem está chegando: o nome ainda não pode ir para o
+  /// [store], que esquece quem não está na pasta.
+  final _arriving = <String, DeskCell>{};
+  String? _deviceKey;
+  bool _deviceSame = false;
+
   List<DeskItem> get items => _items;
   Map<String, DeskCell> get cells => _cells;
   Set<String> get selected => _selection.keys;
@@ -292,7 +298,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       _cells = packDesk(keys, grid);
       return;
     }
-    final result = arrangeDesk(keys, store.cells, grid);
+    final result = arrangeDesk(keys, {...store.cells, ..._arriving}, grid);
     _cells = result.cells;
     unawaited(store.put(result.placed));
   }
@@ -523,20 +529,38 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   /// Guarda a célula de [at] (a mais perto, se tiver alguém nela) para [name],
   /// antes do reload: ele não pode cair na primeira célula livre.
   Future<void> _placeAt(String name, Offset? at) async {
-    final grid = _grid;
-    if (at == null || grid == null) return;
+    if (at != null) await store.put(_cellsNear([name], at));
+  }
+
+  /// A célula embaixo de [at], na área livre.
+  DeskCell _cellAt(DeskGrid grid, Offset at) {
     final free = insets;
-    final cell = deskCellAt(
+    return deskCellAt(
       at - free.topLeft,
       state.dockUi.screen.width - free.horizontal,
       grid,
       _settings.desktopIconSize,
     );
+  }
+
+  /// Uma célula livre para cada um de [names], a partir de [at].
+  Map<String, DeskCell> _cellsNear(List<String> names, Offset at) {
+    final grid = _grid;
+    if (grid == null) return const {};
+    final cell = _cellAt(grid, at);
     final taken = {
       for (final MapEntry(:key, :value) in _cells.entries)
-        if (key != name) value,
+        if (!names.contains(key)) value,
+      ..._arriving.values,
     };
-    await store.put({name: nearestFreeCell(cell, grid, taken) ?? cell});
+    return {
+      for (final name in names)
+        name: () {
+          final free = nearestFreeCell(cell, grid, taken) ?? cell;
+          taken.add(free);
+          return free;
+        }(),
+    };
   }
 
   /// Os caminhos selecionados, sem o home e a lixeira.
@@ -564,18 +588,200 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         if (!(clip.cut && dirName(path) == dir)) path,
     ];
     if (sources.isEmpty) return;
-    final result = await FileJob.start(
+    await _transfer(
       clip.cut ? JobKind.move : JobKind.copy,
       sources,
-      destination: dir,
+      dir,
+      failure: 'Sem como colar',
+    );
+  }
+
+  /// Copia ou move [sources] para [folder]. O que chega na mesa fica
+  /// selecionado, e nas células de [_arriving].
+  Future<void> _transfer(
+    JobKind kind,
+    List<String> sources,
+    String folder, {
+    required String failure,
+  }) async {
+    final result = await FileJob.start(
+      kind,
+      sources,
+      destination: folder,
     ).result;
-    if (result.errors.isNotEmpty) {
-      _warn('Sem como colar', result.errors.join('\n'));
+    if (result.errors.isNotEmpty) _warn(failure, result.errors.join('\n'));
+    final names = {for (final (_, to) in result.done) baseName(to)};
+    if (folder == dir) {
+      await store.put({
+        for (final name in names)
+          name: ?_arriving[name],
+      });
+      _arriving.clear();
     }
     await reload();
-    _selection.press(null, _cells);
-    selectRect({for (final (_, to) in result.done) baseName(to)});
+    if (folder == dir) {
+      _selection.press(null, _cells);
+      selectRect(names);
+    }
   }
+
+  // Arrastar
+
+  /// Com o botão apertado num item fora da seleção, só ele vai.
+  void dragStarted(String key) {
+    if (selected.contains(key)) return;
+    _selection.only(key);
+    notifyListeners();
+  }
+
+  /// Leva os arquivos de [keys] para fora da mesa, pela view [viewId].
+  void dragOut(int viewId, Set<String> keys, Uint8List? icon, Offset hotspot) {
+    final paths = [
+      for (final key in deskOrder(_cells))
+        if (keys.contains(key))
+          if (_item(key)?.entry case final entry?) entry.path,
+    ];
+    if (paths.isEmpty) return;
+    unawaited(
+      PsitoDnd.instance.startDrag(viewId, paths, icon: icon, hotspot: hotspot),
+    );
+  }
+
+  /// Soltou [keys] na mesa, com [grabbed] no ponto [at]. Organizando sozinha,
+  /// a mesa é quem decide as células.
+  void moveKeys(String grabbed, Set<String> keys, Offset at) {
+    final grid = _grid;
+    if (grid == null || _settings.desktopAutoArrange) return;
+    final moved = moveDeskCells(
+      _cells,
+      deskOrder(_cells).where(keys.contains).toList(),
+      grabbed,
+      _cellAt(grid, at),
+      grid,
+    );
+    if (moved.isEmpty) return;
+    unawaited(store.put(moved));
+    _rebuild();
+  }
+
+  /// Se o item recebe arquivos soltos em cima dele.
+  bool acceptsDrops(String key) {
+    if (key == DeskItem.trashKey || key == DeskItem.homeKey) return true;
+    final item = _item(key);
+    return item != null &&
+        (item.shortcut != null || (item.entry?.isDirectory ?? false));
+  }
+
+  /// A pasta para onde vai o que se solta em [key] (null: a mesa).
+  String? _dropFolder(String? key) {
+    if (key == null) return canCreateShortcut ? dir : null;
+    if (key == DeskItem.homeKey) return home;
+    final entry = _item(key)?.entry;
+    return entry != null && entry.isDirectory ? entry.path : null;
+  }
+
+  /// O app em que abre o que se solta em [key], se for um atalho.
+  DockApp? _dropApp(String? key) {
+    final shortcut = key == null ? null : _item(key)?.shortcut;
+    final app = shortcut == null ? null : installedFor(shortcut);
+    return app == null ? null : DockApp(app.id);
+  }
+
+  /// Com que ação [key] (null: a mesa) aceita [paths]. Null recusa. A resposta
+  /// do disco chega depois: até lá é copiar, que não perde nada, e o próximo
+  /// movimento do ponteiro já vê.
+  DropAction? dropAction(String? key, List<String> paths) {
+    if (paths.isEmpty) return null;
+    if (key == DeskItem.trashKey) {
+      return state.dockUi.dropAction(const DockTrash(), paths);
+    }
+    if (_dropApp(key) case final app?) {
+      return state.dockUi.dropAction(app, paths);
+    }
+    final folder = _dropFolder(key);
+    if (folder == null || paths.any((path) => isWithin(path, folder))) {
+      return null;
+    }
+    return _sameDevice(paths, folder) ? DropAction.move : DropAction.copy;
+  }
+
+  bool _sameDevice(List<String> paths, String folder) {
+    final key = [folder, ...paths].join('\n');
+    if (key != _deviceKey) {
+      _deviceKey = key;
+      _deviceSame = false;
+      unawaited(
+        sameDevice(paths, folder).then((same) {
+          if (key == _deviceKey) _deviceSame = same;
+        }),
+      );
+    }
+    return _deviceSame;
+  }
+
+  /// [paths] de fora soltos em [key] (null: a mesa, no ponto [at]). A cópia não
+  /// segura o soltar: o outro app fica esperando a resposta.
+  Future<bool> drop(
+    String? key,
+    List<String> paths,
+    DropAction action, {
+    Offset? at,
+  }) async {
+    if (dropAction(key, paths) == null) return false;
+    if (key == DeskItem.trashKey) {
+      await state.dockUi.dropOn(const DockTrash(), paths);
+      await reload();
+      return true;
+    }
+    if (_dropApp(key) case final app?) {
+      return state.dockUi.dropOn(app, paths);
+    }
+    final folder = _dropFolder(key)!;
+    // Quem já está na pasta só muda de célula
+    final sources = [
+      for (final path in paths)
+        if (dirName(path) != folder) path,
+    ];
+    if (key == null && at != null && !_settings.desktopAutoArrange) {
+      final here = [
+        for (final path in paths)
+          if (dirName(path) == folder) baseName(path),
+      ];
+      if (here.isNotEmpty) {
+        await store.put(_cellsNear(here, at));
+        _rebuild();
+      }
+      _arriving.addAll(
+        _cellsNear([
+          for (final path in sources) uniqueName(folder, baseName(path)),
+        ], at),
+      );
+    }
+    if (sources.isNotEmpty) {
+      unawaited(
+        _transfer(
+          action == DropAction.move ? JobKind.move : JobKind.copy,
+          sources,
+          folder,
+          failure: 'Sem como trazer para a mesa',
+        ),
+      );
+    }
+    return true;
+  }
+
+  List<String> _pathsOf(Set<String> keys) => [
+    for (final key in keys)
+      if (_item(key)?.entry case final entry?) entry.path,
+  ];
+
+  /// Se [target] aceita [keys], arrastados na própria mesa.
+  bool canDropOn(String target, Set<String> keys) =>
+      acceptsDrops(target) && dropAction(target, _pathsOf(keys)) != null;
+
+  /// [keys] soltos em cima de [target], dentro da mesa: é sempre mover.
+  void dropOn(String target, Set<String> keys) =>
+      unawaited(drop(target, _pathsOf(keys), DropAction.move));
 
   /// O atalho de [app] na mesa, já executável: uma cópia do `.desktop`, que
   /// fica na célula de [at]. Se já tem um, é ele que vai para lá.
@@ -882,10 +1088,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       }
     }
     _showMenu('Novo documento', at, [
-      DockMenuItem(
-        'Documento vazio',
-        () => unawaited(newDocument(at: at)),
-      ),
+      DockMenuItem('Documento vazio', () => unawaited(newDocument(at: at))),
       for (final (i, template) in templates.indexed)
         DockMenuItem(
           splitExtension(template.name).$1,
@@ -907,10 +1110,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   List<DockMenuItem> _fileActions() => [
     DockMenuItem('Copiar', copySelected, separated: true),
     DockMenuItem('Recortar', () => copySelected(cut: true)),
-    DockMenuItem(
-      'Mover para a lixeira',
-      () => unawaited(trashSelected()),
-    ),
+    DockMenuItem('Mover para a lixeira', () => unawaited(trashSelected())),
   ];
 
   List<DockMenuItem> _itemMenu(DeskItem item, Offset at) {

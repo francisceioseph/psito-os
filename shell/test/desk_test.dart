@@ -17,6 +17,7 @@ import 'package:psito_shell/surfaces.dart';
 import 'package:psito_shell/toplevels.dart';
 import 'package:system_shell/shell/settings_store.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
+import 'package:system_shell/widgets/top_bar.dart';
 
 const _surfaces = MethodChannel('psito_test/desk_surfaces');
 const _clipboard = MethodChannel('psito_test/desk_clipboard');
@@ -507,7 +508,9 @@ void main() {
               const DesktopEntry(id: 'a', name: 'App A', command: ['a']),
               const DesktopEntry(id: 'b', name: 'App B', command: ['b']),
             ]
-          : [const DesktopEntry(id: 'a', name: 'App A', command: ['a'])];
+          : [
+              const DesktopEntry(id: 'a', name: 'App A', command: ['a']),
+            ];
     });
 
     test('a mesa vazia limpa a seleção, e o teclado fica onde está', () async {
@@ -668,9 +671,8 @@ void main() {
     });
 
     test('por nome, um atalho vale pelo nome que a mesa mostra', () async {
-      File(path('z.desktop')).writeAsStringSync(
-        '[Desktop Entry]\nName=Aaa\nExec=/nao/existe/x\n',
-      );
+      File(path('z.desktop'))
+          .writeAsStringSync('[Desktop Entry]\nName=Aaa\nExec=/nao/existe/x\n');
       File(path('b.txt')).writeAsStringSync('');
       Directory(path('pasta')).createSync();
       await desk.reload();
@@ -758,6 +760,163 @@ void main() {
       );
       await desk.createShortcut(app);
       expect(File(path('gimp.desktop')).existsSync(), isFalse);
+    });
+  });
+
+  group('arrastar e soltar', () {
+    late Directory fora;
+    const at = Offset(1440 - 104 - 10, TopBar.height + 10);
+
+    setUp(() async {
+      fora = await Directory.systemTemp.createTemp('psito_fora_');
+      state.dockUi.screen = const Size(1440, 900);
+      state.dockUi.trash = Trash('${dir.path}/.lixo');
+    });
+
+    tearDown(() => fora.delete(recursive: true));
+
+    Future<String> arquivoFora(String name) async {
+      final file = File('${fora.path}/$name')..writeAsStringSync(name);
+      return file.path;
+    }
+
+    test('mover na mesa salva a célula, e vários andam juntos', () async {
+      File(path('a.txt')).writeAsStringSync('');
+      File(path('b.txt')).writeAsStringSync('');
+      await desk.reload();
+      desk.moveKeys('a.txt', {'a.txt', 'b.txt'}, at);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+      expect(desk.cells['b.txt'], const DeskCell(1, 1));
+      expect(desk.store.cells['b.txt'], const DeskCell(1, 1));
+    });
+
+    test('organizando sozinha, a célula não muda', () async {
+      File(path('a.txt')).writeAsStringSync('');
+      await desk.reload();
+      state.settings.update(
+        state.settings.value.copyWith(desktopAutoArrange: true),
+      );
+      desk.moveKeys('a.txt', {'a.txt'}, at);
+      expect(desk.cells['a.txt'], const DeskCell(0, 0));
+    });
+
+    test('começar a arrastar fora da seleção deixa só ele', () async {
+      File(path('a.txt')).writeAsStringSync('');
+      File(path('b.txt')).writeAsStringSync('');
+      await desk.reload();
+      desk.press('b.txt');
+      desk.dragStarted('a.txt');
+      expect(desk.selected, {'a.txt'});
+      desk.press('a.txt');
+      desk.selectRect({'a.txt', 'b.txt'});
+      desk.dragStarted('a.txt');
+      expect(desk.selected, {'a.txt', 'b.txt'});
+    });
+
+    test('um arquivo de fora copia para a célula do soltar', () async {
+      final source = await arquivoFora('c.txt');
+      expect(await desk.drop(null, [source], DropAction.copy, at: at), isTrue);
+      await until(() => desk.selected.contains('c.txt'));
+      expect(File(source).existsSync(), isTrue);
+      expect(desk.cells['c.txt'], const DeskCell(1, 0));
+      expect(desk.store.cells['c.txt'], const DeskCell(1, 0));
+    });
+
+    test('mover tira do lugar de origem', () async {
+      final source = await arquivoFora('c.txt');
+      await desk.drop(null, [source], DropAction.move, at: at);
+      await until(() => desk.selected.contains('c.txt'));
+      expect(File(source).existsSync(), isFalse);
+      expect(File(path('c.txt')).existsSync(), isTrue);
+    });
+
+    test('o nome que já existe fica com os dois, na célula certa', () async {
+      File(path('c.txt')).writeAsStringSync('antigo');
+      await desk.reload();
+      final source = await arquivoFora('c.txt');
+      await desk.drop(null, [source], DropAction.copy, at: at);
+      await until(() => desk.selected.length == 1);
+      expect(File(path('c.txt')).readAsStringSync(), 'antigo');
+      final novo = desk.selected.single;
+      expect(novo, isNot('c.txt'));
+      expect(desk.cells[novo], const DeskCell(1, 0));
+    });
+
+    test('quem já está na mesa só muda de célula', () async {
+      File(path('a.txt')).writeAsStringSync('a');
+      await desk.reload();
+      await desk.drop(null, [path('a.txt')], DropAction.copy, at: at);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+      expect(desk.items.where((i) => i.entry != null).length, 1);
+    });
+
+    test('a ação diz copiar até saber que é o mesmo disco', () async {
+      final source = await arquivoFora('c.txt');
+      expect(desk.dropAction(null, [source]), DropAction.copy);
+      await until(() => desk.dropAction(null, [source]) == DropAction.move);
+      expect(desk.dropAction(null, ['/proc/self']), DropAction.copy);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(desk.dropAction(null, ['/proc/self']), DropAction.copy);
+    });
+
+    test('a mesa não aceita a pasta em que ela mesma está', () {
+      expect(desk.dropAction(null, [dirName(dir.path)]), isNull);
+      expect(desk.dropAction(null, [dir.path]), isNull);
+      expect(desk.dropAction(null, const []), isNull);
+    });
+
+    test('soltar numa pasta leva para dentro, e ela não recebe a si', () async {
+      Directory(path('p')).createSync();
+      File(path('a.txt')).writeAsStringSync('a');
+      await desk.reload();
+      expect(desk.canDropOn('p', {'a.txt'}), isTrue);
+      expect(desk.canDropOn('p', {'p'}), isFalse);
+      expect(desk.canDropOn('a.txt', {'p'}), isFalse);
+      desk.dropOn('p', {'a.txt'});
+      await until(() => File(path('p/a.txt')).existsSync());
+      expect(File(path('a.txt')).existsSync(), isFalse);
+    });
+
+    test('soltar na lixeira joga fora', () async {
+      File(path('a.txt')).writeAsStringSync('a');
+      await desk.reload();
+      expect(desk.canDropOn(DeskItem.trashKey, {'a.txt'}), isTrue);
+      await desk.drop(DeskItem.trashKey, [path('a.txt')], DropAction.move);
+      expect(File(path('a.txt')).existsSync(), isFalse);
+      expect(
+        File('${state.dockUi.trash!.filesDir}/a.txt').existsSync(),
+        isTrue,
+      );
+    });
+
+    test('o home e a lixeira não saem da mesa', () async {
+      state.settings.update(
+        state.settings.value.copyWith(
+          desktopShowHome: true,
+          desktopShowTrash: true,
+        ),
+      );
+      await desk.reload();
+      expect(desk.canDropOn('a.txt', {DeskItem.homeKey}), isFalse);
+      expect(desk.canDropOn(DeskItem.trashKey, {DeskItem.homeKey}), isFalse);
+    });
+
+    test('um atalho abre no app dele só o que ele aceita', () async {
+      File(path('gimp.desktop')).writeAsStringSync(_shortcut);
+      state.apps.value = [
+        DesktopEntry(
+          id: 'gimp',
+          name: 'GIMP',
+          command: const ['/nao/existe/meu-app'],
+        ),
+      ];
+      state.dockUi.appAccepts = (id, paths) => paths.first.endsWith('.png');
+      await desk.reload();
+      expect(desk.acceptsDrops('gimp.desktop'), isTrue);
+      expect(desk.dropAction('gimp.desktop', ['/tmp/x.txt']), isNull);
+      expect(desk.dropAction('gimp.desktop', ['/tmp/x.png']), DropAction.copy);
+      await desk.drop('gimp.desktop', ['/tmp/x.png'], DropAction.copy);
+      expect(opened.single, ['/tmp/x.png', 'gimp']);
     });
   });
 }

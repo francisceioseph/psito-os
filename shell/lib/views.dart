@@ -193,40 +193,59 @@ class _DeskView extends StatelessWidget {
         deskCellSize(size),
       );
       WidgetsBinding.instance.addPostFrameCallback((_) => desk.setGrid(grid));
-      return PsitoDesktopIcons(
-        icons: [
-          for (final item in desk.items)
-            DeskIcon(
-              key: item.key,
-              name: item.name,
-              icon: (size) => _icon(item, size),
-              dimmed: desk.isCut(item),
-              editor: desk.renaming == item.key
-                  ? RenameField(
-                      // O atalho mostra o Name=, sem extensão para poupar
-                      name: item.shortcut?.name ?? item.entry!.name,
-                      isDirectory:
-                          item.shortcut != null || item.entry!.isDirectory,
-                      textAlign: TextAlign.center,
-                      onSubmit: (name) =>
-                          unawaited(desk.rename(item.key, name)),
-                      onCancel: desk.stopRename,
-                    )
-                  : null,
-            ),
-        ],
-        cells: desk.cells,
-        iconSize: size,
-        insets: insets,
-        selected: desk.selected,
-        onPress: desk.press,
-        onRelease: desk.release,
-        onRect: desk.selectRect,
-        onOpen: desk.open,
-        keyboard: desk.keyboard,
-        onKey: desk.handleKey,
-        onMenu: (key, position) => unawaited(desk.openMenu(key, position)),
-        popup: desk.menuOpen,
+      final viewId = View.of(context).viewId;
+      return PsitoDropTarget(
+        onWillAccept: (paths) => desk.dropAction(null, paths),
+        onAccept: (paths, action, at) => desk.drop(null, paths, action, at: at),
+        builder: (context, _) => PsitoDesktopIcons(
+          icons: [
+            for (final item in desk.items)
+              DeskIcon(
+                key: item.key,
+                name: item.name,
+                icon: (size) => _icon(item, size),
+                dimmed: desk.isCut(item),
+                leavesDesk: item.entry != null,
+                editor: desk.renaming == item.key
+                    ? RenameField(
+                        // O atalho mostra o Name=, sem extensão para poupar
+                        name: item.shortcut?.name ?? item.entry!.name,
+                        isDirectory:
+                            item.shortcut != null || item.entry!.isDirectory,
+                        textAlign: TextAlign.center,
+                        onSubmit: (name) =>
+                            unawaited(desk.rename(item.key, name)),
+                        onCancel: desk.stopRename,
+                      )
+                    : null,
+              ),
+          ],
+          cells: desk.cells,
+          iconSize: size,
+          insets: insets,
+          selected: desk.selected,
+          onPress: desk.press,
+          onRelease: desk.release,
+          onRect: desk.selectRect,
+          onOpen: desk.open,
+          keyboard: desk.keyboard,
+          onKey: desk.handleKey,
+          onMenu: (key, position) => unawaited(desk.openMenu(key, position)),
+          popup: desk.menuOpen,
+          onDragStart: desk.dragStarted,
+          onDragOut: (keys, icon, hotspot) =>
+              desk.dragOut(viewId, keys, icon, hotspot),
+          onMove: desk.moveKeys,
+          canDropOn: desk.canDropOn,
+          onDropOn: desk.dropOn,
+          wrapItem: (key, child) => !desk.acceptsDrops(key)
+              ? child(false)
+              : PsitoDropTarget(
+                  onWillAccept: (paths) => desk.dropAction(key, paths),
+                  onAccept: (paths, action, _) => desk.drop(key, paths, action),
+                  builder: (context, hovering) => child(hovering),
+                ),
+        ),
       );
     },
   );
@@ -511,7 +530,7 @@ class _DockViewState extends State<_DockView>
             ui.reveal();
             return paths.isEmpty ? null : DropAction.link;
           },
-          onAccept: (paths, _) => ui.dropPaths(paths),
+          onAccept: (paths, _, _) => ui.dropPaths(paths),
           builder: (context, hovering) => PsitoDock(
             tiles: [
               for (final item in row.items)
@@ -572,7 +591,7 @@ class _DockStrip extends StatelessWidget {
           ui.reveal();
           return null;
         },
-        onAccept: (_, _) => false,
+        onAccept: (_, _, _) => false,
         builder: (context, _) => SizedBox.fromSize(size: size),
       ),
     );
@@ -609,7 +628,7 @@ class _TileDropTarget extends StatelessWidget {
         ui.reveal();
         return ui.dropAction(item, paths);
       },
-      onAccept: (paths, _) => ui.dropOn(item, paths),
+      onAccept: (paths, _, _) => ui.dropOn(item, paths),
       builder: (context, hovering) => AnimatedScale(
         scale: hovering ? 1.15 : 1,
         duration: const Duration(milliseconds: 150),

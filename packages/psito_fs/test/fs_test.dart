@@ -568,4 +568,23 @@ image/png=img.desktop
       );
     });
   });
+
+  group('sameDevice', () {
+    test('a mesma pasta é o mesmo disco', () async {
+      final dir = await Directory.systemTemp.createTemp('psito_device_');
+      addTearDown(() => dir.delete(recursive: true));
+      final file = File('${dir.path}/a')..createSync();
+      expect(await sameDevice([file.path], dir.path), isTrue);
+    });
+
+    test('o /proc é outro disco', () async {
+      final dir = await Directory.systemTemp.createTemp('psito_device_');
+      addTearDown(() => dir.delete(recursive: true));
+      expect(await sameDevice(['/proc/self'], dir.path), isFalse);
+    });
+
+    test('sem o arquivo, responde não', () async {
+      expect(await sameDevice(['/nao/existe'], '/tmp'), isFalse);
+    });
+  });
 }

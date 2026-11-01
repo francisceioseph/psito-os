@@ -150,6 +150,25 @@ enum JobKind {
   const JobKind(this.label);
 }
 
+/// Se [paths] estão todos no mesmo disco que [dir]. Sem como saber, não: quem
+/// pergunta copia, o que não perde nada.
+Future<bool> sameDevice(List<String> paths, String dir) async {
+  try {
+    final result = await Process.run('stat', [
+      '-L',
+      '-c',
+      '%d',
+      '--',
+      dir,
+      ...paths,
+    ]).timeout(const Duration(seconds: 2));
+    if (result.exitCode != 0) return false;
+    return '${result.stdout}'.trim().split('\n').toSet().length == 1;
+  } on Exception {
+    return false;
+  }
+}
+
 enum ConflictChoice { replace, keepBoth, skip }
 
 /// Já existe um item com o nome do que chega.

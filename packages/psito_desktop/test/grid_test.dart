@@ -77,10 +77,22 @@ void main() {
 
     test('conta da direita, e o de fora fica na mais perto', () {
       // Células de 104, numa área de 1000 de largura
-      expect(deskCellAt(const Offset(990, 5), 1000, grid, 48), const DeskCell(0, 0));
-      expect(deskCellAt(const Offset(800, 110), 1000, grid, 48), const DeskCell(1, 1));
-      expect(deskCellAt(const Offset(10, 900), 1000, grid, 48), const DeskCell(2, 1));
-      expect(deskCellAt(const Offset(1200, -9), 1000, grid, 48), const DeskCell(0, 0));
+      expect(
+        deskCellAt(const Offset(990, 5), 1000, grid, 48),
+        const DeskCell(0, 0),
+      );
+      expect(
+        deskCellAt(const Offset(800, 110), 1000, grid, 48),
+        const DeskCell(1, 1),
+      );
+      expect(
+        deskCellAt(const Offset(10, 900), 1000, grid, 48),
+        const DeskCell(2, 1),
+      );
+      expect(
+        deskCellAt(const Offset(1200, -9), 1000, grid, 48),
+        const DeskCell(0, 0),
+      );
     });
 
     test('a livre mais perto pode ser ela mesma', () {
@@ -90,7 +102,10 @@ void main() {
         nearestFreeCell(from, grid, {from}),
         anyOf(const DeskCell(0, 0), const DeskCell(2, 0), const DeskCell(1, 1)),
       );
-      expect(nearestFreeCell(from, const DeskGrid(1, 1), {const DeskCell(0, 0)}), isNull);
+      expect(
+        nearestFreeCell(from, const DeskGrid(1, 1), {const DeskCell(0, 0)}),
+        isNull,
+      );
     });
   });
 
@@ -120,7 +135,83 @@ Name=Nova janela
         renamedDeskShortcut('[Desktop Entry]\nExec=x\n[Outro]\nA=b', 'N'),
         '[Desktop Entry]\nExec=x\nName=N\n[Outro]\nA=b',
       );
-      expect(renamedDeskShortcut('[Desktop Entry]\nExec=x', 'N'), '[Desktop Entry]\nExec=x\nName=N');
+      expect(
+        renamedDeskShortcut('[Desktop Entry]\nExec=x', 'N'),
+        '[Desktop Entry]\nExec=x\nName=N',
+      );
+    });
+  });
+
+  group('moveDeskCells', () {
+    const grid = DeskGrid(4, 4);
+    const cells = {
+      'a': DeskCell(0, 0),
+      'b': DeskCell(0, 1),
+      'c': DeskCell(2, 2),
+    };
+
+    test('um item vai para a célula', () {
+      expect(moveDeskCells(cells, ['a'], 'a', const DeskCell(3, 3), grid), {
+        'a': const DeskCell(3, 3),
+      });
+    });
+
+    test('sem sair do lugar, nada muda', () {
+      expect(moveDeskCells(cells, ['a'], 'a', const DeskCell(0, 0), grid), {});
+    });
+
+    test('vários andam juntos, com a mesma distância', () {
+      expect(
+        moveDeskCells(cells, ['a', 'b'], 'a', const DeskCell(1, 0), grid),
+        {'a': const DeskCell(1, 0), 'b': const DeskCell(1, 1)},
+      );
+    });
+
+    test('um grupo pode cair sobre as próprias células', () {
+      expect(
+        moveDeskCells(cells, ['a', 'b'], 'a', const DeskCell(0, 1), grid),
+        {'a': const DeskCell(0, 1), 'b': const DeskCell(0, 2)},
+      );
+    });
+
+    test('sobre outro item, vai para a livre mais perto', () {
+      final moved = moveDeskCells(
+        cells,
+        ['a'],
+        'a',
+        const DeskCell(2, 2),
+        grid,
+      );
+      expect(moved['a'], isNot(const DeskCell(2, 2)));
+      final dx = moved['a']!.column - 2, dy = moved['a']!.row - 2;
+      expect(dx * dx + dy * dy, 1);
+    });
+
+    test('quem cairia fora da grade fica dentro dela', () {
+      final moved = moveDeskCells(
+        cells,
+        ['a', 'b'],
+        'b',
+        const DeskCell(0, 0),
+        grid,
+      );
+      expect(moved['b'], const DeskCell(0, 0));
+      expect(grid.contains(moved['a']!), isTrue);
+      expect(moved['a'], isNot(const DeskCell(0, 0)));
+    });
+
+    test('sem célula livre, fica onde está', () {
+      const full = DeskGrid(1, 2);
+      expect(
+        moveDeskCells(
+          const {'a': DeskCell(0, 0), 'b': DeskCell(0, 1)},
+          ['a'],
+          'a',
+          const DeskCell(0, 1),
+          full,
+        ),
+        {'a': const DeskCell(0, 0)},
+      );
     });
   });
 }

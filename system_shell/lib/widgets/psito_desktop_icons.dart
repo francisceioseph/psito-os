@@ -3,10 +3,17 @@
 // Os ícones da mesa, por cima do papel de parede. As células contam do canto
 // de cima à direita da área livre (a tela sem a top bar e a dock). Quem
 // decide a célula de cada um é o modelo (o psito_desktop); aqui ficam os
-// cliques, o retângulo de seleção e o foco.
+// cliques, o retângulo de seleção, o arrastar e o foco.
+//
+// O fundo fica por baixo das janelas, então o arrastar de um arquivo vai pelo
+// sistema desde o começo, e quem desenha o ícone é o compositor. O Draggable
+// segue vivo por baixo: de volta à mesa, ele solta nos DragTargets daqui.
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 
 class DeskIcon {
@@ -21,13 +28,26 @@ class DeskIcon {
   /// Recortado: fica apagado até colar.
   final bool dimmed;
 
+  /// É um arquivo, que dá para levar para fora da mesa. O home e a lixeira só
+  /// mudam de célula.
+  final bool leavesDesk;
+
   const DeskIcon({
     required this.key,
     required this.name,
     required this.icon,
     this.editor,
     this.dimmed = false,
+    this.leavesDesk = true,
   });
+}
+
+/// O que está sendo arrastado dentro da mesa.
+class _DeskDrag {
+  final String grabbed;
+  final Set<String> keys;
+
+  const _DeskDrag(this.grabbed, this.keys);
 }
 
 class PsitoDesktopIcons extends StatefulWidget {
@@ -59,6 +79,28 @@ class PsitoDesktopIcons extends StatefulWidget {
   /// mesa pega de volta.
   final bool popup;
 
+  /// O arrastar começou em [key].
+  final ValueChanged<String>? onDragStart;
+
+  /// Leva [keys] para fora da mesa, pelo sistema: tem que sair com o botão
+  /// ainda apertado. [icon] é o PNG do ícone, pego em [hotspot].
+  final void Function(Set<String> keys, Uint8List? icon, Offset hotspot)?
+  onDragOut;
+
+  /// Soltou na mesa, com [grabbed] levado para o ponto [position]. Sem ele, os
+  /// ícones não arrastam.
+  final void Function(String grabbed, Set<String> keys, Offset position)?
+  onMove;
+
+  /// Se o item [target] aceita [keys] soltos em cima dele.
+  final bool Function(String target, Set<String> keys)? canDropOn;
+  final void Function(String target, Set<String> keys)? onDropOn;
+
+  /// Põe em volta de um item o alvo do que vem de fora; [child] recebe se tem
+  /// algo aceitável em cima dele.
+  final Widget Function(String key, Widget Function(bool hovering) child)?
+  wrapItem;
+
   const PsitoDesktopIcons({
     super.key,
     required this.icons,
@@ -74,6 +116,12 @@ class PsitoDesktopIcons extends StatefulWidget {
     this.onKey,
     this.onMenu,
     this.popup = false,
+    this.onDragStart,
+    this.onDragOut,
+    this.onMove,
+    this.canDropOn,
+    this.onDropOn,
+    this.wrapItem,
   });
 
   @override
@@ -85,6 +133,14 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
   Offset? _bandStart;
   Offset? _bandEnd;
   Set<String> _bandHits = const {};
+  final _boundaries = <String, GlobalKey>{};
+  Set<String>? _dragging;
+  Future<Uint8List?>? _dragImage;
+  Offset _dragHotspot = Offset.zero;
+
+  /// O arrastar saiu pelo sistema: o compositor desenha o ícone, e não o
+  /// Flutter.
+  final _outside = ValueNotifier(false);
 
   bool get _editing => widget.icons.any((icon) => icon.editor != null);
 
@@ -99,7 +155,8 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _focus.requestFocus();
       });
-    } else if (widget.keyboard && (!old.keyboard || (wasEditing && !_editing))) {
+    } else if (widget.keyboard &&
+        (!old.keyboard || (wasEditing && !_editing))) {
       _focus.requestFocus();
     } else if (!widget.keyboard && old.keyboard && _focus.hasFocus) {
       FocusManager.instance.primaryFocus?.unfocus();
@@ -109,12 +166,66 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
   @override
   void dispose() {
     _focus.dispose();
+    _outside.dispose();
     super.dispose();
   }
 
   void _press(String? key) {
     _focus.requestFocus();
+    // Um arrastar cujo item sumiu no meio não avisa que acabou
+    _dragging = null;
     widget.onPress(key);
+  }
+
+  void _pressItem(DeskIcon icon, Offset position) {
+    _prepareDragImage(icon, position);
+    _press(icon.key);
+  }
+
+  // O PNG tem que estar pronto quando o arrastar começar, porque o sistema só
+  // aceita com o botão apertado. Fica no apertar, antes de a seleção repintar
+  void _prepareDragImage(DeskIcon icon, Offset position) {
+    _dragImage = null;
+    if (widget.onDragOut == null || !icon.leavesDesk) return;
+    final box = _boundaries[icon.key]?.currentContext?.findRenderObject();
+    if (box is! RenderRepaintBoundary) return;
+    _dragHotspot = box.globalToLocal(position);
+    final count = !widget.selected.contains(icon.key)
+        ? 1
+        : widget.icons
+              .where((i) => i.leavesDesk && widget.selected.contains(i.key))
+              .length;
+    _dragImage = _renderDragImage(
+      box,
+      count,
+      Theme.of(context).colorScheme.primary,
+    );
+  }
+
+  void _dragStarted(String key, Set<String> keys) {
+    setState(() => _dragging = keys);
+    widget.onDragStart?.call(key);
+    final out = widget.onDragOut;
+    final leaves = widget.icons.any(
+      (icon) => icon.leavesDesk && keys.contains(icon.key),
+    );
+    if (out == null || !leaves) return;
+    _outside.value = true;
+    final image = _dragImage;
+    if (image == null) {
+      out(keys, null, Offset.zero);
+      return;
+    }
+    final hotspot = _dragHotspot;
+    image.then((png) {
+      // Soltou antes de o PNG ficar pronto: sem o botão, não tem arrastar
+      if (mounted && identical(_dragging, keys)) out(keys, png, hotspot);
+    });
+  }
+
+  void _dragEnded() {
+    _outside.value = false;
+    if (mounted && _dragging != null) setState(() => _dragging = null);
   }
 
   void _bandDown(PointerDownEvent event) {
@@ -174,67 +285,171 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
       onKeyEvent: widget.onKey == null
           ? null
           : (_, event) => widget.onKey!(event),
-      child: LayoutBuilder(
-        builder: (context, constraints) => Stack(
-          children: [
-            Positioned.fill(
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerDown: _bandDown,
-                onPointerMove: (event) =>
-                    _bandMove(event, constraints.maxWidth),
-                onPointerUp: (_) => _bandUp(),
-                onPointerCancel: (_) => _bandUp(),
-                child: GestureDetector(
+      child: DragTarget<_DeskDrag>(
+        onAcceptWithDetails: (details) => widget.onMove?.call(
+          details.data.grabbed,
+          details.data.keys,
+          details.offset,
+        ),
+        builder: (context, _, _) => LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            children: [
+              Positioned.fill(
+                child: Listener(
                   behavior: HitTestBehavior.opaque,
-                  onSecondaryTapUp: widget.onMenu == null
-                      ? null
-                      : (details) =>
-                            widget.onMenu!(null, details.globalPosition),
-                ),
-              ),
-            ),
-            for (final icon in ordered)
-              if (widget.cells[icon.key] case final at?)
-                Positioned(
-                  key: ValueKey('desk-${icon.key}'),
-                  right: widget.insets.right + at.column * cell.width,
-                  top: widget.insets.top + at.row * cell.height,
-                  width: cell.width,
-                  height: cell.height,
-                  child: _Item(
-                    icon: icon,
-                    iconSize: widget.iconSize,
-                    selected: selected.contains(icon.key),
-                    // Só um mostra o nome inteiro: vários se cobririam
-                    expanded:
-                        selected.length == 1 && selected.contains(icon.key),
-                    active: widget.keyboard,
-                    onPress: () => _press(icon.key),
-                    onRelease: () => widget.onRelease(icon.key),
-                    onOpen: () => widget.onOpen(icon.key),
-                    onMenu: widget.onMenu == null
+                  onPointerDown: _bandDown,
+                  onPointerMove: (event) =>
+                      _bandMove(event, constraints.maxWidth),
+                  onPointerUp: (_) => _bandUp(),
+                  onPointerCancel: (_) => _bandUp(),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onSecondaryTapUp: widget.onMenu == null
                         ? null
-                        : (position) => widget.onMenu!(icon.key, position),
+                        : (details) =>
+                              widget.onMenu!(null, details.globalPosition),
                   ),
                 ),
-            if (bandStart != null && bandEnd != null)
-              Positioned.fromRect(
-                key: const ValueKey('desk-band'),
-                rect: Rect.fromPoints(bandStart, bandEnd),
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.18),
-                      border: Border.all(color: accent),
+              ),
+              for (final icon in ordered)
+                if (widget.cells[icon.key] case final at?)
+                  Positioned(
+                    key: ValueKey('desk-${icon.key}'),
+                    right: widget.insets.right + at.column * cell.width,
+                    top: widget.insets.top + at.row * cell.height,
+                    width: cell.width,
+                    height: cell.height,
+                    child: _target(icon),
+                  ),
+              if (bandStart != null && bandEnd != null)
+                Positioned.fromRect(
+                  key: const ValueKey('desk-band'),
+                  rect: Rect.fromPoints(bandStart, bandEnd),
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.18),
+                        border: Border.all(color: accent),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // O item é alvo do que vem da mesa e, pelo wrapItem, do que vem de fora
+  Widget _target(DeskIcon icon) {
+    Widget build(bool outside) => DragTarget<_DeskDrag>(
+      onWillAcceptWithDetails: (details) =>
+          !details.data.keys.contains(icon.key) &&
+          (widget.canDropOn?.call(icon.key, details.data.keys) ?? false),
+      onAcceptWithDetails: (details) =>
+          widget.onDropOn?.call(icon.key, details.data.keys),
+      builder: (context, candidates, _) =>
+          _draggable(icon, outside || candidates.isNotEmpty),
+    );
+    return widget.wrapItem?.call(icon.key, build) ?? build(false);
+  }
+
+  Widget _draggable(DeskIcon icon, bool hovering) {
+    final selected = widget.selected;
+    final item = _Item(
+      icon: icon,
+      iconSize: widget.iconSize,
+      selected: selected.contains(icon.key) || hovering,
+      // Só um mostra o nome inteiro: vários se cobririam
+      expanded: selected.length == 1 && selected.contains(icon.key),
+      active: widget.keyboard,
+      ghost: _dragging?.contains(icon.key) ?? false,
+      boundary: _boundaries.putIfAbsent(icon.key, GlobalKey.new),
+      onPress: (position) => _pressItem(icon, position),
+      // Um arrastar que acabou não é um clique: a seleção fica
+      onRelease: () {
+        if (_dragging == null) widget.onRelease(icon.key);
+      },
+      onOpen: () => widget.onOpen(icon.key),
+      onMenu: widget.onMenu == null
+          ? null
+          : (position) => widget.onMenu!(icon.key, position),
+    );
+    if (widget.onMove == null) return item;
+    final keys = selected.contains(icon.key) ? selected : {icon.key};
+    final cell = deskCellSize(widget.iconSize);
+    return Draggable<_DeskDrag>(
+      data: _DeskDrag(icon.key, keys),
+      maxSimultaneousDrags: icon.editor == null ? 1 : 0,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      onDragStarted: () => _dragStarted(icon.key, keys),
+      onDragEnd: (_) => _dragEnded(),
+      feedback: ValueListenableBuilder(
+        valueListenable: _outside,
+        builder: (context, outside, _) => outside
+            ? const SizedBox.shrink()
+            : Transform.translate(
+                offset: Offset(-cell.width / 2, -cell.height / 2),
+                child: SizedBox.fromSize(
+                  size: cell,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Opacity(
+                      opacity: 0.8,
+                      child: _ItemBody(
+                        icon: icon,
+                        iconSize: widget.iconSize,
+                        accent: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
       ),
+      child: item,
     );
+  }
+}
+
+/// O item como imagem, com a bolinha de quantos vão quando são vários.
+Future<Uint8List?> _renderDragImage(
+  RenderRepaintBoundary box,
+  int count,
+  Color accent,
+) async {
+  try {
+    final item = await box.toImage();
+    var image = item;
+    if (count > 1) {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder)..drawImage(item, Offset.zero, Paint());
+      const radius = 11.0;
+      final center = Offset(item.width - radius, radius);
+      canvas.drawCircle(center, radius, Paint()..color = accent);
+      final text =
+          (ui.ParagraphBuilder(
+                  ui.ParagraphStyle(
+                    textAlign: TextAlign.center,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+                ..pushStyle(ui.TextStyle(color: Colors.black))
+                ..addText('$count'))
+              .build()
+            ..layout(const ui.ParagraphConstraints(width: radius * 2));
+      canvas.drawParagraph(text, center - Offset(radius, text.height / 2));
+      image = await recorder.endRecording().toImage(item.width, item.height);
+    }
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (!identical(image, item)) image.dispose();
+    item.dispose();
+    return data?.buffer.asUint8List();
+  } on Object catch (e) {
+    // Fica o ícone padrão do arrastar
+    debugPrint('🦜 mesa: sem a imagem do arrastar ($e)');
+    return null;
   }
 }
 
@@ -246,7 +461,11 @@ class _Item extends StatelessWidget {
 
   /// A mesa tem o teclado; sem ele, a seleção fica apagada.
   final bool active;
-  final VoidCallback onPress;
+
+  /// Está sendo arrastado.
+  final bool ghost;
+  final GlobalKey boundary;
+  final ValueChanged<Offset> onPress;
   final VoidCallback onRelease;
   final VoidCallback onOpen;
   final ValueChanged<Offset>? onMenu;
@@ -257,15 +476,13 @@ class _Item extends StatelessWidget {
     required this.selected,
     required this.expanded,
     required this.active,
+    required this.ghost,
+    required this.boundary,
     required this.onPress,
     required this.onRelease,
     required this.onOpen,
     this.onMenu,
   });
-
-  static const _shadow = [
-    Shadow(color: Colors.black, blurRadius: 3, offset: Offset(0, 1)),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +496,7 @@ class _Item extends StatelessWidget {
       onPointerDown: editor != null
           ? null
           : (event) {
-              if (event.buttons & kPrimaryButton != 0) onPress();
+              if (event.buttons & kPrimaryButton != 0) onPress(event.position);
             },
       onPointerUp: editor != null ? null : (_) => onRelease(),
       child: GestureDetector(
@@ -291,50 +508,82 @@ class _Item extends StatelessWidget {
         child: OverflowBox(
           alignment: Alignment.topCenter,
           maxHeight: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: selected ? accent.withValues(alpha: 0.28) : null,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Opacity(
-                    opacity: icon.dimmed ? 0.45 : 1,
-                    child: icon.icon(iconSize),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                editor ??
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected ? accent.withValues(alpha: 0.85) : null,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        icon.name,
-                        maxLines: expanded ? null : 2,
-                        overflow: expanded ? null : TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          shadows: selected ? null : _shadow,
-                        ),
-                      ),
-                    ),
-              ],
+          child: RepaintBoundary(
+            key: boundary,
+            child: _ItemBody(
+              icon: icon,
+              iconSize: iconSize,
+              accent: accent,
+              selected: selected,
+              expanded: expanded,
+              ghost: ghost,
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _ItemBody extends StatelessWidget {
+  final DeskIcon icon;
+  final double iconSize;
+  final Color accent;
+  final bool selected;
+  final bool expanded;
+  final bool ghost;
+
+  const _ItemBody({
+    required this.icon,
+    required this.iconSize,
+    required this.accent,
+    this.selected = false,
+    this.expanded = false,
+    this.ghost = false,
+  });
+
+  static const _shadow = [
+    Shadow(color: Colors.black, blurRadius: 3, offset: Offset(0, 1)),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: selected ? accent.withValues(alpha: 0.28) : null,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Opacity(
+            opacity: icon.dimmed || ghost ? 0.45 : 1,
+            child: icon.icon(iconSize),
+          ),
+        ),
+        const SizedBox(height: 3),
+        icon.editor ??
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: selected ? accent.withValues(alpha: 0.85) : null,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                icon.name,
+                maxLines: expanded ? null : 2,
+                overflow: expanded ? null : TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white,
+                  shadows: selected ? null : _shadow,
+                ),
+              ),
+            ),
+      ],
+    ),
+  );
 }

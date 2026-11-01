@@ -47,7 +47,7 @@ void main() {
     Widget target(String name, {DropAction? action = DropAction.copy}) =>
         PsitoDropTarget(
           onWillAccept: (paths) => action,
-          onAccept: (paths, action) {
+          onAccept: (paths, action, _) {
             log.add('$name ${action.name} $paths');
             return true;
           },
@@ -69,7 +69,7 @@ void main() {
               height: 400,
               child: PsitoDropTarget(
                 onWillAccept: (_) => DropAction.move,
-                onAccept: (paths, action) {
+                onAccept: (paths, action, _) {
                   log.add('fora ${action.name} $paths');
                   return true;
                 },

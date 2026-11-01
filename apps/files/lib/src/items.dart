@@ -223,7 +223,7 @@ class FolderDropTarget extends StatelessWidget {
     final controller = FilesScope.of(context).controller;
     return PsitoDropTarget(
       onWillAccept: (paths) => _accepts(paths) ? DropAction.copy : null,
-      onAccept: (paths, action) {
+      onAccept: (paths, action, _) {
         controller.transfer(paths, path, move: action == DropAction.move);
         return true;
       },
