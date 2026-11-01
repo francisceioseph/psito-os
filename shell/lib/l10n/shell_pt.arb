@@ -9,7 +9,7 @@
   "desktop": "Área de trabalho",
   "notification": "Notificação",
   "trustBody": "\"{name}\" não foi marcado como confiável, e pode abrir qualquer programa.",
-  "closeWindows": "{count, plural, =1{Fechar} other{Fechar {count} janelas}}",
+  "closeWindows": "{count, plural, =0{Fechar} =1{Fechar} other{Fechar {count} janelas}}",
   "home": "Pasta pessoal",
   "trash": "Lixeira",
   "cantRename": "Sem como renomear",

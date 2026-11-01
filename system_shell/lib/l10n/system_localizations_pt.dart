@@ -69,6 +69,7 @@ class SystemLocalizationsPt extends SystemLocalizations {
       locale: localeName,
       other: 'Área de transferência: $count itens',
       one: 'Área de transferência: 1 item',
+      zero: 'Área de transferência: 0 itens',
     );
     return '$_temp0';
   }

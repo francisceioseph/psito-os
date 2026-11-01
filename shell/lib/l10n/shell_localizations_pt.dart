@@ -53,6 +53,7 @@ class ShellLocalizationsPt extends ShellLocalizations {
       locale: localeName,
       other: 'Fechar $count janelas',
       one: 'Fechar',
+      zero: 'Fechar',
     );
     return '$_temp0';
   }

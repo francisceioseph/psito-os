@@ -13,7 +13,7 @@
   "powerSource": "Fonte de energia: {source}",
   "powerSourceAdapter": "Adaptador",
   "powerSourceBattery": "Bateria",
-  "clipboardTooltip": "{count, plural, =1{Área de transferência: 1 item} other{Área de transferência: {count} itens}}",
+  "clipboardTooltip": "{count, plural, =0{Área de transferência: 0 itens} =1{Área de transferência: 1 item} other{Área de transferência: {count} itens}}",
   "timeNow": "agora",
   "timeMinutesAgo": "há {minutes} min",
   "timeHoursAgo": "há {hours} h",

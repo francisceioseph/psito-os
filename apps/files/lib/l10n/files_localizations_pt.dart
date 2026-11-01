@@ -16,6 +16,7 @@ class FilesLocalizationsPt extends FilesLocalizations {
       locale: localeName,
       other: '$count bytes',
       one: '1 byte',
+      zero: '0 bytes',
     );
     return '$_temp0';
   }
@@ -103,6 +104,7 @@ class FilesLocalizationsPt extends FilesLocalizations {
       locale: localeName,
       other: '$count itens',
       one: '1 item',
+      zero: '0 itens',
     );
     return '$_temp0';
   }
@@ -114,6 +116,7 @@ class FilesLocalizationsPt extends FilesLocalizations {
       locale: localeName,
       other: '$count itens',
       one: '1 item',
+      zero: '0 itens',
     );
     return '$selected de $_temp0 selecionados';
   }
@@ -150,6 +153,7 @@ class FilesLocalizationsPt extends FilesLocalizations {
       locale: localeName,
       other: 'Colar $count itens',
       one: 'Colar 1 item',
+      zero: 'Colar 0 itens',
     );
     return '$_temp0';
   }
@@ -171,6 +175,7 @@ class FilesLocalizationsPt extends FilesLocalizations {
       locale: localeName,
       other: '$count itens',
       one: '1 item',
+      zero: '0 itens',
     );
     return '$size, $_temp0';
   }

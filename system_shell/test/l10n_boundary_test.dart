@@ -125,6 +125,22 @@ void main() {
     expect(checked, greaterThan(0));
   });
 
+  // O gen-l10n faz do =1 o "one" do idioma, e em português o 0 também é "one":
+  // sem o =0, uma pasta vazia diria "1 item", e um arquivo vazio, "1 byte".
+  test('em português, um plural com =1 tem também o =0', () {
+    for (final project in _projects) {
+      final dir = Directory('${project.path}/lib/l10n');
+      if (!dir.existsSync()) continue;
+      for (final file in dir.listSync().whereType<File>()) {
+        if (!file.path.endsWith('_pt.arb')) continue;
+        for (final MapEntry(:key, :value) in _arb(file).entries) {
+          if (value is! String || !value.contains('=1{')) continue;
+          expect(value, contains('=0{'), reason: '${file.path}: $key');
+        }
+      }
+    }
+  });
+
   test('os apps do sistema têm os idiomas do sistema', () {
     for (final app in Directory('../apps').listSync().whereType<Directory>()) {
       final dir = Directory('${app.path}/lib/l10n');
