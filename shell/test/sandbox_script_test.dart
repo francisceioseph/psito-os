@@ -72,7 +72,6 @@ void main() {
   test('cada permissão abre só o que é dela', () async {
     final network = await _dryRun('network');
     expect(network.bwrap, contains('--share-net'));
-    expect(network.proxy, contains('--talk=org.freedesktop.NetworkManager'));
     expect(network.proxy, isNot(contains(_update)));
 
     final settings = await _dryRun('settings');
@@ -88,6 +87,27 @@ void main() {
 
     final home = await _dryRun('files:home');
     expect(home.bwrap.join(' '), contains('--bind /home/psito /home/psito'));
+  });
+
+  test('o NetworkManager: só leitura, a menos que mude o sistema', () async {
+    // As conexões guardadas têm as senhas de Wi-Fi, que ele entrega à conta
+    const talk = '--talk=org.freedesktop.NetworkManager';
+    final network = await _dryRun('network');
+    expect(network.proxy, isNot(contains(talk)));
+    final calls = network.proxy.where(
+      (arg) => arg.startsWith('--call=org.freedesktop.NetworkManager='),
+    );
+    expect(calls, hasLength(3));
+    for (final call in calls) {
+      expect(call, matches(r'\.(GetManagedObjects|Get|GetAll)@'));
+    }
+    expect((await _dryRun('settings;network')).proxy, contains(talk));
+    expect(
+      (await _dryRun('settings')).proxy.where(
+        (arg) => arg.contains('NetworkManager'),
+      ),
+      isEmpty,
+    );
   });
 
   test('o org.psito.Shell não passa para ninguém', () async {

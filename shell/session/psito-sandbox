@@ -7,7 +7,8 @@
 #   psito-sandbox --app <app-id> [--permissions "a;b"] [--file <fora> <dentro>]...
 #                 [--dry-run] -- <comando...>
 #
-# Permissões: network (a rede e o NetworkManager), settings (o Update do
+# Permissões: network (a rede e ler o estado do NetworkManager; mudar, só junto
+# com settings), settings (o Update do
 # org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade)
 # e notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
@@ -101,7 +102,18 @@ for service in hostname1 timedate1; do
 done
 has settings || proxy+=("--call=org.freedesktop.timedate1=org.freedesktop.timedate1.ListTimezones@/org/freedesktop/timedate1")
 has settings && proxy+=(--talk=org.freedesktop.Accounts)
-has network && proxy+=(--talk=org.freedesktop.NetworkManager)
+# As conexões guardadas têm as senhas de Wi-Fi, e o NetworkManager entrega ao dono
+# da conta. Por isso, só quem muda o sistema fala com ele; o resto só lê o estado.
+if has network; then
+    if has settings; then
+        proxy+=(--talk=org.freedesktop.NetworkManager)
+    else
+        proxy+=("--call=org.freedesktop.NetworkManager=org.freedesktop.DBus.ObjectManager.GetManagedObjects@/org/freedesktop"
+            "--call=org.freedesktop.NetworkManager=org.freedesktop.DBus.Properties.Get@/org/freedesktop/*"
+            "--call=org.freedesktop.NetworkManager=org.freedesktop.DBus.Properties.GetAll@/org/freedesktop/*"
+            "--broadcast=org.freedesktop.NetworkManager=*@/org/freedesktop/*")
+    fi
+fi
 
 sandbox=(bwrap
     --unshare-all
