@@ -87,15 +87,19 @@ void main() {
   }
 
   test('arrastar dentro da dock muda a ordem', () async {
-    ui.startDrag(const DockApp('org.psito.files'), DockDragSource.dock, at(2));
-    // O arrastado sai da fileira; antes do primeiro, abre o espaço no 0
+    ui.startDrag(const DockApp('org.psito.files'), DockDragSource.dock, at(3));
+    // O arrastado sai da fileira; antes do primeiro, abre o espaço no 1,
+    // depois do "Apps", mesmo com o ponteiro em cima dele
     expect(ui.row.items.map((i) => i.item), const [
+      DockLauncher(),
       DockApp('foot'),
       DockApp('firefox-esr'),
       DockTrash(),
     ]);
-    ui.moveDrag(at(0) - const Offset(10, 0));
-    expect(ui.dropIndex(ui.row, ui.drag.value!), 0);
+    ui.moveDrag(at(0));
+    expect(ui.dropIndex(ui.row, ui.drag.value!), 1);
+    ui.moveDrag(at(1) - const Offset(10, 0));
+    expect(ui.dropIndex(ui.row, ui.drag.value!), 1);
     await ui.endDrag();
     expect(ids(), [
       'DockApp(org.psito.files)',
@@ -106,7 +110,7 @@ void main() {
   });
 
   test('soltar longe da dock tira o item', () async {
-    ui.startDrag(const DockApp('foot'), DockDragSource.dock, at(0));
+    ui.startDrag(const DockApp('foot'), DockDragSource.dock, at(1));
     ui.moveDrag(const Offset(720, 400));
     expect(ui.dropIndex(ui.row, ui.drag.value!), isNull);
     await ui.endDrag();
@@ -122,7 +126,7 @@ void main() {
       surfaceCalls.last,
       isMethodCall('showOverlay', arguments: 'exclusive'),
     );
-    ui.moveDrag(at(1) + const Offset(10, 0));
+    ui.moveDrag(at(2) + const Offset(10, 0));
     await ui.endDrag();
     expect(ids(), [
       'DockApp(foot)',
@@ -161,13 +165,13 @@ void main() {
         DockFile(file.path),
       ]);
       final row = ui.row;
-      expect(row.separators, {3});
-      expect(row.paths, 3);
+      expect(row.separators, {4});
+      expect(row.paths, 4);
 
       // Uma pasta arrastada só cai entre as pastas e os arquivos
-      ui.startDrag(DockFile(file.path), DockDragSource.dock, at(4));
+      ui.startDrag(DockFile(file.path), DockDragSource.dock, at(5));
       ui.moveDrag(at(0));
-      expect(ui.dropIndex(ui.row, ui.drag.value!), 3);
+      expect(ui.dropIndex(ui.row, ui.drag.value!), 4);
     },
   );
 
@@ -241,31 +245,51 @@ void main() {
     final folder = Directory('${tmp.path}/Projetos')..createSync();
     await ui.dropPaths([folder.path]);
     final row = ui.row;
-    expect(row.items.map((i) => i.item).skip(3), [
+    expect(row.items.map((i) => i.item).skip(4), [
       DockFolder(folder.path),
       const DockTrash(),
     ]);
-    expect(row.separators, {3});
+    expect(row.separators, {4});
 
     // Depois da lixeira, ainda cai antes dela
-    ui.startDrag(DockFolder(folder.path), DockDragSource.dock, at(3));
-    ui.moveDrag(at(3) + const Offset(60, 0));
-    expect(ui.dropIndex(ui.row, ui.drag.value!), 3);
+    ui.startDrag(DockFolder(folder.path), DockDragSource.dock, at(4));
+    ui.moveDrag(at(4) + const Offset(60, 0));
+    expect(ui.dropIndex(ui.row, ui.drag.value!), 4);
     ui.cancelDrag();
 
     // A lixeira não sai do lugar
-    ui.startDrag(const DockTrash(), DockDragSource.dock, at(4));
+    ui.startDrag(const DockTrash(), DockDragSource.dock, at(5));
     expect(ui.drag.value, isNull);
     await state.dock.pin(const DockTrash());
     expect(state.dock.value.length, 4);
   });
 
+  test('o "Apps" é o primeiro, fixo, e abre a lista de apps', () async {
+    expect(ui.row.items.first.item, const DockLauncher());
+    // Sem apps abertos, nenhum separador logo depois dele
+    expect(ui.row.separators, {4});
+
+    ui.tap(const DockLauncher());
+    expect(state.overlay.value, ShellOverlay.launcher);
+    ui.tap(const DockLauncher());
+    expect(state.overlay.value, isNull);
+
+    // Não sai do lugar, não vai para o dock.json e não tem menu
+    ui.startDrag(const DockLauncher(), DockDragSource.dock, at(0));
+    expect(ui.drag.value, isNull);
+    await state.dock.pin(const DockLauncher());
+    expect(state.dock.contains(const DockLauncher()), isFalse);
+    ui.openMenu(const DockLauncher(), Rect.zero);
+    expect(ui.menu.value, isNull);
+    expect(ui.dropAction(const DockLauncher(), ['/a.txt']), isNull);
+  });
+
   test('uma pasta ou um arquivo que sumiu fica escondido', () async {
     final folder = Directory('${tmp.path}/Some')..createSync();
     await ui.dropPaths([folder.path]);
-    expect(ui.row.items.length, 5);
+    expect(ui.row.items.length, 6);
     folder.deleteSync();
-    expect(ui.row.items.length, 4);
+    expect(ui.row.items.length, 5);
     expect(state.dock.contains(DockFolder(folder.path)), isTrue);
   });
 
@@ -504,7 +528,7 @@ void main() {
       );
       ui.startDrag(const DockApp('foot'), DockDragSource.dock, Offset.zero);
       ui.moveDrag(Offset(40, centers.last + 20));
-      expect(ui.dropIndex(ui.row, ui.drag.value!), 2);
+      expect(ui.dropIndex(ui.row, ui.drag.value!), 3);
       // Longe da borda esquerda, tira
       ui.moveDrag(Offset(400, centers.first));
       expect(ui.dropIndex(ui.row, ui.drag.value!), isNull);

@@ -475,7 +475,8 @@ class _DockStrip extends StatelessWidget {
 
 /// Um app ou a lixeira recebe os arquivos soltos em cima dele (abre ou leva
 /// para a lixeira) e cresce com a borda de destaque enquanto aceita. Nas
-/// pastas e nos arquivos o alvo é a dock toda, que fixa o que vem.
+/// pastas, nos arquivos e no "Apps" o alvo é a dock toda, que fixa o que
+/// vem.
 class _TileDropTarget extends StatelessWidget {
   final DockController ui;
   final DockItem item;
@@ -495,7 +496,7 @@ class _TileDropTarget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (item is DockPath) return child;
+    if (item is DockPath || item is DockLauncher) return child;
     final accent = Theme.of(context).colorScheme.primary;
     return PsitoDropTarget(
       onWillAccept: (paths) {

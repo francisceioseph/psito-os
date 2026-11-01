@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Icon, Icons;
 import 'package:flutter/painting.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -78,14 +79,16 @@ class DockRowItem {
   const DockRowItem(this.item, [this.slot]);
 }
 
-/// A fileira como a dock desenha: os apps fixados, os abertos e as pastas e
-/// os arquivos com a lixeira no fim, com um separador antes de cada seção
-/// que não seja a primeira. O ícone arrastado da dock fica de fora.
+/// A fileira como a dock desenha: o "Apps", os apps fixados, os abertos e
+/// as pastas e os arquivos com a lixeira no fim, com um separador antes de
+/// cada seção que não seja a primeira. O ícone arrastado da dock fica de
+/// fora.
 class DockRow {
   final List<DockRowItem> items;
   final Set<int> separators;
 
-  /// Quantos apps fixados (o começo da fileira).
+  /// Onde terminam os apps fixados, que começam depois do "Apps" (o
+  /// primeiro da fileira).
   final int pinned;
 
   /// Onde começam as pastas e os arquivos (a lixeira é o último).
@@ -289,6 +292,16 @@ class DockController {
   AppEntry visual(DockItem item) => switch (item) {
     DockApp(:final id) => state.appFor(id),
     DockPath() => pathEntry(keyOf(item), item.name, iconsFor(item), pathColor),
+    DockLauncher() => AppEntry(
+      id: keyOf(item),
+      name: 'Apps',
+      color: state.settings.value.accent,
+      icon: (size) => Icon(
+        Icons.apps_rounded,
+        size: size,
+        color: state.settings.value.accent,
+      ),
+    ),
     DockTrash() => pathEntry(keyOf(item), 'Lixeira', [
       if (trashFull.value) 'user-trash-full' else 'user-trash',
     ], pathColor),
@@ -302,6 +315,7 @@ class DockController {
     DockFolder(:final path) => 'folder:$path',
     DockFile(:final path) => 'file:$path',
     DockTrash() => 'trash',
+    DockLauncher() => 'launcher',
   };
 
   /// Onde o canto da superfície da dock fica na tela.
@@ -334,14 +348,18 @@ class DockController {
       for (final path in sections.paths)
         if (path != dragged) DockRowItem(path),
     ];
-    final apps = pinned.length + running.length;
+    // O "Apps" abre a fileira e conta como o primeiro dos fixados
+    final apps = 1 + pinned.length + running.length;
     return DockRow(
-      [...pinned, ...running, ...paths, const DockRowItem(DockTrash())],
-      {
-        if (running.isNotEmpty && pinned.isNotEmpty) pinned.length,
-        if (apps > 0) apps,
-      },
-      pinned.length,
+      [
+        const DockRowItem(DockLauncher()),
+        ...pinned,
+        ...running,
+        ...paths,
+        const DockRowItem(DockTrash()),
+      ],
+      {if (running.isNotEmpty) 1 + pinned.length, apps},
+      1 + pinned.length,
       apps,
     );
   }
@@ -365,7 +383,7 @@ class DockController {
     final last = (centers.lastOrNull ?? rowCenter) + reach;
     if (along < first || along > last) return null;
     final (start, end) = drag.item is DockApp
-        ? (0, row.pinned)
+        ? (1, row.pinned)
         : (row.paths, row.items.length - 1);
     var index = start;
     while (index < end && centers[index] < along) {
@@ -375,7 +393,7 @@ class DockController {
   }
 
   void startDrag(DockItem item, DockDragSource source, Offset position) {
-    if (item is DockTrash) return;
+    if (item is DockTrash || item is DockLauncher) return;
     menu.value = null;
     stack.value = null;
     drag.value = DockDrag(item, source, position);
@@ -423,6 +441,8 @@ class DockController {
         _open([path]);
       case DockTrash():
         unawaited(openTrash());
+      case DockLauncher():
+        state.toggle(ShellOverlay.launcher);
     }
   }
 
@@ -553,7 +573,7 @@ class DockController {
           }
         }
         await refreshTrash();
-      case DockPath():
+      case DockPath() || DockLauncher():
         return false;
     }
     return true;
@@ -571,8 +591,11 @@ class DockController {
     return paths.isNotEmpty;
   }
 
-  void openMenu(DockItem item, Rect rect) =>
-      menu.value = DockMenuRequest(item, rect.shift(origin));
+  /// O "Apps" não tem menu.
+  void openMenu(DockItem item, Rect rect) {
+    if (item is DockLauncher) return;
+    menu.value = DockMenuRequest(item, rect.shift(origin));
+  }
 
   void closeMenu() => menu.value = null;
 
@@ -591,6 +614,7 @@ class DockController {
           id,
     DockPath() => item.name,
     DockTrash() => 'Lixeira',
+    DockLauncher() => 'Apps',
   };
 
   /// O menu de um app, em grupos: as janelas (a mais recente primeiro),
@@ -689,6 +713,8 @@ class DockController {
           DockMenuItem('Mostrar no Files', () => _open([parent])),
           keep,
         ];
+      case DockLauncher():
+        return const [];
       case DockTrash():
         return [
           DockMenuItem('Abrir', () => unawaited(openTrash())),

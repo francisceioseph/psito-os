@@ -59,10 +59,10 @@ class DockStore extends ValueNotifier<List<DockItem>> {
   bool contains(DockItem item) => value.contains(item);
 
   /// Fixa [item] antes de [before] (no fim, se for null ou não estiver na
-  /// dock). Um item que já está fixado só muda de lugar. A lixeira não é
-  /// fixada: ela está sempre lá.
+  /// dock). Um item que já está fixado só muda de lugar. O "Apps" e a
+  /// lixeira não são fixados: estão sempre lá.
   Future<void> pin(DockItem item, {DockItem? before}) async {
-    if (item is DockTrash) return;
+    if (item is DockTrash || item is DockLauncher) return;
     final items = [...value]..remove(item);
     final at = before == null ? -1 : items.indexOf(before);
     items.insert(at < 0 ? items.length : at, item);

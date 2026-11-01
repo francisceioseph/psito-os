@@ -95,3 +95,21 @@ final class DockTrash extends DockItem {
   @override
   String toString() => 'DockTrash()';
 }
+
+/// O ícone "Apps", que abre a lista de apps: sempre o primeiro da dock,
+/// fora do dock.json, e não sai do lugar.
+final class DockLauncher extends DockItem {
+  const DockLauncher();
+
+  @override
+  Map<String, Object?> toJson() => const {'launcher': true};
+
+  @override
+  bool operator ==(Object other) => other is DockLauncher;
+
+  @override
+  int get hashCode => (DockLauncher).hashCode;
+
+  @override
+  String toString() => 'DockLauncher()';
+}
