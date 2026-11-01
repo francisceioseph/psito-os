@@ -18,6 +18,7 @@ import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/top_bar.dart';
+import 'package:system_shell/widgets/transfer_indicator.dart';
 
 import 'desktop_entries.dart';
 import 'shell_state.dart';
@@ -48,6 +49,26 @@ class DeskItem {
 
   static const homeKey = '/home';
   static const trashKey = '/trash';
+}
+
+/// Um copiar ou mover da mesa em andamento.
+class _DeskJob {
+  final FileJob job;
+  final String label;
+  JobProgress progress = const JobProgress();
+
+  /// Passou de [DeskController.jobDelay]: o que é rápido não pisca na top bar.
+  bool visible = false;
+
+  _DeskJob(this.job, this.label);
+}
+
+/// Uma ação que o Ctrl+Z desfaz, com as células de antes dela.
+class _DeskUndo {
+  final FsUndo undo;
+  final Map<String, DeskCell> cells;
+
+  const _DeskUndo(this.undo, this.cells);
 }
 
 /// Um menu da mesa aberto.
@@ -88,6 +109,9 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   /// Abre um atalho. Os testes trocam.
   final Future<void> Function(DesktopEntry app) launchEntry;
 
+  /// Quanto um trabalho anda antes de aparecer na top bar.
+  final Duration jobDelay;
+
   DeskController(
     this.state, {
     required this.dir,
@@ -98,6 +122,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     this.env = const {},
     PsitoClipboard? clipboard,
     Future<void> Function(DesktopEntry app)? launchEntry,
+    this.jobDelay = const Duration(milliseconds: 500),
   }) : clipboard = clipboard ?? PsitoClipboard.instance,
        launchEntry =
            launchEntry ?? ((app) => app.launch(sandbox: state.sandbox)) {
@@ -127,6 +152,9 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   final _arriving = <String, DeskCell>{};
   String? _deviceKey;
   bool _deviceSame = false;
+  bool _disposed = false;
+  final _jobs = <_DeskJob>[];
+  final _undo = <_DeskUndo>[];
 
   List<DeskItem> get items => _items;
   Map<String, DeskCell> get cells => _cells;
@@ -392,6 +420,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       unawaited(paste());
       return true;
     }
+    if (ctrl && !shift && key == LogicalKeyboardKey.keyZ) {
+      unawaited(undo());
+      return true;
+    }
     if (ctrl || alt) return false;
     switch (key) {
       case LogicalKeyboardKey.arrowUp:
@@ -470,7 +502,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       return;
     }
     try {
-      await renameEntry(entry.path, name);
+      final (_, undo) = await renameEntry(entry.path, name);
+      _pushUndo(undo, _cellsOf([key]));
     } on Exception catch (e) {
       _warn('Sem como renomear', _message(e));
       return;
@@ -484,8 +517,12 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   Future<void> _renameShortcut(String path, String name) async {
     try {
       final file = File(path);
-      await file.writeAsString(
-        renamedDeskShortcut(await file.readAsString(), name),
+      final text = await file.readAsString();
+      await file.writeAsString(renamedDeskShortcut(text, name));
+      _pushUndo(
+        FsUndo('Renomear', () async {
+          await file.writeAsString(text);
+        }),
       );
     } on FileSystemException catch (e) {
       _warn('Sem como renomear', e.message);
@@ -500,7 +537,9 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (dir == null) return;
     final String path;
     try {
-      (path, _) = await createFolder(dir, trash: state.dockUi.trash);
+      final FsUndo undo;
+      (path, undo) = await createFolder(dir, trash: state.dockUi.trash);
+      _pushUndo(undo);
     } on Exception catch (e) {
       _warn('Sem como criar a pasta', _message(e));
       return;
@@ -511,20 +550,68 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   /// Joga a seleção na lixeira. O home e a lixeira ficam.
-  Future<void> trashSelected() async {
+  Future<void> trashSelected() => _trashPaths([
+    for (final item in _items)
+      if (selected.contains(item.key) && item.entry != null) item.entry!.path,
+  ]);
+
+  Future<void> _trashPaths(List<String> paths) async {
     final trash = state.dockUi.trash;
-    final paths = [
-      for (final item in _items)
-        if (selected.contains(item.key) && item.entry != null) item.entry!.path,
-    ];
     if (trash == null || paths.isEmpty) return;
+    final cells = _cellsOf(_namesHere(paths));
     try {
-      await trashEntries(trash, paths);
+      final (_, undo) = await trashEntries(trash, paths);
+      _pushUndo(undo, cells);
     } on Exception catch (e) {
       _warn('Sem como mover para a lixeira', _message(e));
     }
     await reload();
   }
+
+  // Desfazer
+
+  bool get canUndo => _undo.isNotEmpty;
+  String? get undoLabel => _undo.lastOrNull?.undo.label;
+
+  void _pushUndo(FsUndo undo, [Map<String, DeskCell> cells = const {}]) {
+    _undo.add(_DeskUndo(undo, cells));
+    if (_undo.length > 50) _undo.removeAt(0);
+  }
+
+  /// O Ctrl+Z: desfaz a última ação, e quem volta para a mesa volta para a
+  /// célula de antes. Até o arquivo voltar, a célula fica em [_arriving], porque
+  /// o [store] esquece quem não está na pasta.
+  Future<void> undo() async {
+    if (_undo.isEmpty) return;
+    final last = _undo.removeLast();
+    _arriving.addAll(last.cells);
+    try {
+      await last.undo.run();
+    } on Exception catch (e) {
+      _warn('Sem como desfazer', _message(e));
+    }
+    await store.put(last.cells);
+    _arriving.removeWhere((name, _) => last.cells.containsKey(name));
+    await reload();
+  }
+
+  /// As células de agora de [keys].
+  Map<String, DeskCell> _cellsOf(Iterable<String> keys) => {
+    for (final key in keys) key: ?_cells[key],
+  };
+
+  /// Os nomes dos que estão na pasta da mesa, entre [paths].
+  List<String> _namesHere(List<String> paths) => [
+    for (final path in paths)
+      if (dirName(path) == dir) baseName(path),
+  ];
+
+  /// O desfazer de algo novo que apareceu em [path]: vai para a lixeira.
+  FsUndo _undoCreate(String label, String path) => FsUndo(label, () async {
+    if (FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound) {
+      await state.dockUi.trash?.trash(path);
+    }
+  });
 
   /// Guarda a célula de [at] (a mais perto, se tiver alguém nela) para [name],
   /// antes do reload: ele não pode cair na primeira célula livre.
@@ -603,25 +690,75 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     List<String> sources,
     String folder, {
     required String failure,
+    Set<String> arriving = const {},
   }) async {
-    final result = await FileJob.start(
-      kind,
-      sources,
-      destination: folder,
-    ).result;
+    final left = kind == JobKind.move
+        ? _cellsOf(_namesHere(sources))
+        : const <String, DeskCell>{};
+    final result = await _track(
+      FileJob.start(kind, sources, destination: folder),
+      kind == JobKind.move ? 'Movendo' : 'Copiando',
+    );
+    // O dispose cancela os trabalhos, e este volta depois dele
+    if (_disposed) return;
     if (result.errors.isNotEmpty) _warn(failure, result.errors.join('\n'));
+    final trash = state.dockUi.trash;
+    if (result.done.isNotEmpty && trash != null) {
+      _pushUndo(FileJob.undoFor(kind, result, trash), left);
+    }
     final names = {for (final (_, to) in result.done) baseName(to)};
     if (folder == dir) {
-      await store.put({
-        for (final name in names)
-          name: ?_arriving[name],
-      });
-      _arriving.clear();
+      await store.put({for (final name in names) name: ?_arriving[name]});
     }
+    _arriving.removeWhere((name, _) => arriving.contains(name));
     await reload();
     if (folder == dir) {
       _selection.press(null, _cells);
       selectRect(names);
+    }
+  }
+
+  /// Acompanha [job] na top bar até terminar.
+  Future<JobResult> _track(FileJob job, String label) async {
+    final running = _DeskJob(job, label);
+    _jobs.add(running);
+    final delay = Timer(jobDelay, () {
+      running.visible = true;
+      _publishJobs();
+    });
+    final progress = job.progress.listen((value) {
+      running.progress = value;
+      _publishJobs();
+    });
+    final result = await job.result;
+    delay.cancel();
+    await progress.cancel();
+    _jobs.remove(running);
+    _publishJobs();
+    return result;
+  }
+
+  /// O primeiro trabalho visível, com a conta dos outros.
+  void _publishJobs() {
+    final visible = _jobs.where((running) => running.visible).toList();
+    final first = visible.firstOrNull;
+    if (first == null) {
+      state.deskTransfer.value = null;
+      return;
+    }
+    final p = first.progress;
+    final what = p.current == null ? '' : ' "${p.current}"';
+    final more = visible.length > 1 ? ' (e mais ${visible.length - 1})' : '';
+    state.deskTransfer.value = TransferStatus(
+      '${first.label}$what$more',
+      p.totalItems == 0 ? null : p.fraction,
+    );
+  }
+
+  /// O X da top bar.
+  void cancelJobs() {
+    for (final running in _jobs) {
+      running.job.cancel();
     }
   }
 
@@ -648,10 +785,11 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   /// Soltou [keys] na mesa, com [grabbed] no ponto [at]. Organizando sozinha,
-  /// a mesa é quem decide as células.
+  /// deixa de organizar: quem soltou escolheu o lugar, e as células de agora
+  /// ficam guardadas para o resto não mudar.
   void moveKeys(String grabbed, Set<String> keys, Offset at) {
     final grid = _grid;
-    if (grid == null || _settings.desktopAutoArrange) return;
+    if (grid == null) return;
     final moved = moveDeskCells(
       _cells,
       deskOrder(_cells).where(keys.contains).toList(),
@@ -660,7 +798,24 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       grid,
     );
     if (moved.isEmpty) return;
-    unawaited(store.put(moved));
+    final auto = _settings.desktopAutoArrange;
+    _pushUndo(
+      FsUndo('Mover', () async {
+        if (!auto) return;
+        await state.settings.update(
+          state.settings.value.copyWith(desktopAutoArrange: true),
+        );
+      }),
+      _cellsOf(moved.keys),
+    );
+    unawaited(store.put({if (auto) ..._cells, ...moved}));
+    if (auto) {
+      unawaited(
+        state.settings.update(
+          state.settings.value.copyWith(desktopAutoArrange: false),
+        ),
+      );
+    }
     _rebuild();
   }
 
@@ -729,8 +884,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }) async {
     if (dropAction(key, paths) == null) return false;
     if (key == DeskItem.trashKey) {
-      await state.dockUi.dropOn(const DockTrash(), paths);
-      await reload();
+      await _trashPaths(paths);
+      await state.dockUi.refreshTrash();
       return true;
     }
     if (_dropApp(key) case final app?) {
@@ -742,6 +897,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       for (final path in paths)
         if (dirName(path) != folder) path,
     ];
+    var arriving = const <String, DeskCell>{};
     if (key == null && at != null && !_settings.desktopAutoArrange) {
       final here = [
         for (final path in paths)
@@ -751,11 +907,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         await store.put(_cellsNear(here, at));
         _rebuild();
       }
-      _arriving.addAll(
-        _cellsNear([
-          for (final path in sources) uniqueName(folder, baseName(path)),
-        ], at),
-      );
+      arriving = _cellsNear([
+        for (final path in sources) uniqueName(folder, baseName(path)),
+      ], at);
+      _arriving.addAll(arriving);
     }
     if (sources.isNotEmpty) {
       unawaited(
@@ -764,6 +919,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
           sources,
           folder,
           failure: 'Sem como trazer para a mesa',
+          arriving: arriving.keys.toSet(),
         ),
       );
     }
@@ -806,6 +962,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       _warn('Sem como criar o atalho', '$e');
       return;
     }
+    _pushUndo(_undoCreate('Criar atalho', path));
     await _placeAt(name, at);
     await reload();
     _selection.only(name);
@@ -840,6 +997,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       _warn('Sem como criar o documento', e.message);
       return;
     }
+    _pushUndo(_undoCreate('Novo documento', path));
     await _placeAt(name, at);
     await reload();
     startRename(name);
@@ -849,6 +1007,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   /// vêm primeiro. Por nome, vale o que a mesa mostra: o `Name=` de um atalho, e
   /// não o nome do arquivo.
   void arrangeBy(FsSortKey key) {
+    _pushUndo(FsUndo('Organizar', () async {}), {..._cells});
     final fixed = [
       for (final item in _items)
         if (item.entry == null) item.key,
@@ -875,7 +1034,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   /// "Limpar": tira os buracos, na ordem em que estão.
-  void cleanUp() => _pack(deskOrder(_cells));
+  void cleanUp() {
+    _pushUndo(FsUndo('Limpar', () async {}), {..._cells});
+    _pack(deskOrder(_cells));
+  }
 
   void _pack(List<String> keys) {
     final grid = _grid;
@@ -1020,6 +1182,11 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         count > 1 ? 'Colar $count itens' : 'Colar',
         () => unawaited(paste()),
         enabled: count > 0,
+      ),
+      DockMenuItem(
+        canUndo ? 'Desfazer $undoLabel' : 'Desfazer',
+        () => unawaited(undo()),
+        enabled: canUndo,
       ),
       DockMenuItem(
         'Organizar por…',
@@ -1194,6 +1361,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     clipboard.current.removeListener(notifyListeners);
     unawaited(_watch?.cancel());
     _typedTimer?.cancel();
+    cancelJobs();
+    _disposed = true;
     super.dispose();
   }
 }

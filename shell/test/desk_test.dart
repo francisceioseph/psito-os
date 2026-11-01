@@ -790,13 +790,22 @@ void main() {
       expect(desk.store.cells['b.txt'], const DeskCell(1, 1));
     });
 
-    test('organizando sozinha, a célula não muda', () async {
+    test('organizando sozinha, mover desliga e o resto fica', () async {
       File(path('a.txt')).writeAsStringSync('');
+      File(path('b.txt')).writeAsStringSync('');
       await desk.reload();
       state.settings.update(
         state.settings.value.copyWith(desktopAutoArrange: true),
       );
+      final before = desk.cells['b.txt'];
       desk.moveKeys('a.txt', {'a.txt'}, at);
+      expect(state.settings.value.desktopAutoArrange, isFalse);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+      expect(desk.cells['b.txt'], before);
+      expect(desk.store.cells['b.txt'], before);
+      // O Ctrl+Z volta a organizar
+      await desk.undo();
+      expect(state.settings.value.desktopAutoArrange, isTrue);
       expect(desk.cells['a.txt'], const DeskCell(0, 0));
     });
 
@@ -875,6 +884,122 @@ void main() {
       desk.dropOn('p', {'a.txt'});
       await until(() => File(path('p/a.txt')).existsSync());
       expect(File(path('a.txt')).existsSync(), isFalse);
+    });
+
+    test('o Ctrl+Z desfaz o mover na mesa', () async {
+      File(path('a.txt')).writeAsStringSync('');
+      await desk.reload();
+      desk.moveKeys('a.txt', {'a.txt'}, at);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+      expect(desk.undoLabel, 'Mover');
+      desk.key(LogicalKeyboardKey.keyZ, ctrl: true);
+      await until(() => desk.cells['a.txt'] == const DeskCell(0, 0));
+      expect(desk.store.cells['a.txt'], const DeskCell(0, 0));
+      expect(desk.canUndo, isFalse);
+    });
+
+    test('desfazer o que veio de fora tira da mesa', () async {
+      final copied = await arquivoFora('c.txt');
+      await desk.drop(null, [copied], DropAction.copy, at: at);
+      await until(() => desk.canUndo);
+      await desk.undo();
+      expect(File(path('c.txt')).existsSync(), isFalse);
+      expect(File(copied).existsSync(), isTrue);
+      expect(desk.items.any((i) => i.key == 'c.txt'), isFalse);
+
+      final moved = await arquivoFora('d.txt');
+      await desk.drop(null, [moved], DropAction.move, at: at);
+      await until(() => desk.canUndo);
+      await desk.undo();
+      expect(File(path('d.txt')).existsSync(), isFalse);
+      expect(File(moved).existsSync(), isTrue);
+    });
+
+    test('desfazer traz da pasta para a mesma célula', () async {
+      Directory(path('p')).createSync();
+      File(path('a.txt')).writeAsStringSync('a');
+      await desk.reload();
+      desk.moveKeys('a.txt', {'a.txt'}, at);
+      desk.dropOn('p', {'a.txt'});
+      await until(() => File(path('p/a.txt')).existsSync() && desk.canUndo);
+      await until(() => desk.undoLabel != 'Mover' || desk.items.length == 1);
+      await desk.undo();
+      expect(File(path('a.txt')).existsSync(), isTrue);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+    });
+
+    test('desfazer tira da lixeira, na mesma célula', () async {
+      File(path('a.txt')).writeAsStringSync('a');
+      await desk.reload();
+      desk.moveKeys('a.txt', {'a.txt'}, at);
+      await desk.drop(DeskItem.trashKey, [path('a.txt')], DropAction.move);
+      expect(File(path('a.txt')).existsSync(), isFalse);
+      await desk.undo();
+      expect(File(path('a.txt')).existsSync(), isTrue);
+      expect(desk.cells['a.txt'], const DeskCell(1, 0));
+    });
+
+    test('renomear, a pasta nova e o Limpar também desfazem', () async {
+      File(path('a.txt')).writeAsStringSync('a');
+      File(path('b.txt')).writeAsStringSync('b');
+      await desk.reload();
+      await desk.rename('a.txt', 'z.txt');
+      await desk.undo();
+      expect(File(path('a.txt')).existsSync(), isTrue);
+      expect(File(path('z.txt')).existsSync(), isFalse);
+
+      await desk.newFolder();
+      desk.stopRename();
+      expect(Directory(path('Nova pasta')).existsSync(), isTrue);
+      await desk.undo();
+      expect(Directory(path('Nova pasta')).existsSync(), isFalse);
+
+      desk.moveKeys('b.txt', {'b.txt'}, at);
+      final before = desk.cells['b.txt'];
+      desk.cleanUp();
+      expect(desk.cells['b.txt'], isNot(before));
+      await desk.undo();
+      expect(desk.cells['b.txt'], before);
+    });
+
+    test('o menu da mesa mostra o que desfaz', () async {
+      File(path('a.txt')).writeAsStringSync('');
+      await desk.reload();
+      await desk.openMenu(null, at);
+      DockMenuItem option() => state.deskMenu.value!.items.firstWhere(
+        (i) => i.label.startsWith('Desfazer'),
+      );
+      expect(option().enabled, isFalse);
+      desk.moveKeys('a.txt', {'a.txt'}, at);
+      await desk.openMenu(null, at);
+      expect(option().label, 'Desfazer Mover');
+      expect(option().enabled, isTrue);
+    });
+
+    test('a cópia aparece na top bar, e a rápida não', () async {
+      final seen = <String?>[];
+      void listener() => seen.add(state.deskTransfer.value?.text);
+      state.deskTransfer.addListener(listener);
+      addTearDown(() => state.deskTransfer.removeListener(listener));
+      await desk.drop(null, [await arquivoFora('c.txt')], DropAction.copy);
+      await until(() => desk.selected.contains('c.txt'));
+      expect(seen, isEmpty);
+
+      final slow = DeskController(
+        state,
+        dir: dir.path,
+        home: '/home/x',
+        mime: MimeDatabase.load(const []),
+        store: DeskStore.memory(),
+        clipboard: clipboard,
+        jobDelay: Duration.zero,
+      )..setGrid(const DeskGrid(4, 3));
+      addTearDown(slow.dispose);
+      await slow.drop(null, [await arquivoFora('d.txt')], DropAction.copy);
+      await until(() => slow.selected.contains('d.txt'));
+      expect(seen.first, startsWith('Copiando'));
+      expect(seen.last, isNull);
+      expect(state.deskTransfer.value, isNull);
     });
 
     test('soltar na lixeira joga fora', () async {

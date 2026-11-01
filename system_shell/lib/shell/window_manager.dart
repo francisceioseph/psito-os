@@ -435,4 +435,11 @@ class _WindowContext implements PsitoAppContext {
 
   @override
   Future<void> setDefaultApp(String mimeType, String appId) async {}
+
+  // No laboratório não há sandbox nem o arrastar entre processos
+  @override
+  Future<bool> acceptsDrop(List<String> paths) async => false;
+
+  @override
+  Future<bool> openDropped(List<String> paths) async => false;
 }

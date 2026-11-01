@@ -157,5 +157,13 @@ void main() {
       'view': 7,
       'uris': ['file:///home/u/a%20b.txt'],
     });
+    // Quem arrasta oferece ao shell
+    final offered = <List<String>>[];
+    PsitoDnd.instance.onOffer = offered.add;
+    addTearDown(() => PsitoDnd.instance.onOffer = null);
+    await PsitoDnd.instance.startDrag(7, ['/home/u/b.txt']);
+    expect(offered, [
+      ['/home/u/b.txt'],
+    ]);
   });
 }

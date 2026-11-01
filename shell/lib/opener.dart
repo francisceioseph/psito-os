@@ -131,6 +131,11 @@ class Opener {
     ];
   }
 
+  /// Se o app abre todos os [paths] (o `MimeType=` do `.desktop`).
+  bool accepts(String appId, List<String> paths) => paths.every(
+    (path) => appsFor(mime.typeOf(path)).any((app) => app.id == appId),
+  );
+
   /// Um app para cada arquivo: [withApp] ou o padrão do tipo. Lança
   /// [NoAppException] para o primeiro que nenhum app abre.
   List<OpenPlan> plan(List<String> paths, {String? withApp}) {

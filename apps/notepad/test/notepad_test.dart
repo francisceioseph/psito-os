@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_notepad/notepad_app.dart';
 
 void main() {
@@ -50,6 +52,63 @@ void main() {
     }
     expect(file.readAsStringSync(), 'oi, mundo');
     expect(find.text('Salvo em ~/nota.txt'), findsOneWidget);
+  });
+
+  group('soltar na janela', () {
+    const channel = MethodChannel('psito/dnd');
+
+    Future<Object?> send(WidgetTester tester, String method) async {
+      Object? reply;
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        channel.name,
+        channel.codec.encodeMethodCall(
+          MethodCall(method, {
+            'view': tester.view.viewId,
+            'x': 10,
+            'y': 10,
+            'action': 'copy',
+            'uris': ['file:///home/u/a.txt'],
+          }),
+        ),
+        (data) => reply = channel.codec.decodeEnvelope(data!),
+      );
+      await tester.pump();
+      return reply;
+    }
+
+    testWidgets('quem abre é o shell, se aceitar', (tester) async {
+      PsitoDnd.instance;
+      var accepted = false;
+      final opened = <List<String>>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NotepadDropZone(
+              accepts: (_) async => accepted,
+              open: (paths) async {
+                opened.add(paths);
+                return true;
+              },
+              child: const NotepadView(),
+            ),
+          ),
+        ),
+      );
+      // A primeira resposta vale para o movimento seguinte
+      expect(await send(tester, 'over'), isNull);
+      expect(await send(tester, 'over'), isNull);
+      expect(await send(tester, 'drop'), false);
+      expect(opened, isEmpty);
+
+      accepted = true;
+      await send(tester, 'over');
+      expect(await send(tester, 'over'), 'copy');
+      expect(await send(tester, 'drop'), true);
+      expect(opened, [
+        ['/home/u/a.txt'],
+      ]);
+      expect(find.text('Nota só nesta sessão'), findsOneWidget);
+    });
   });
 
   testWidgets('sem arquivo, a nota fica na memória', (tester) async {

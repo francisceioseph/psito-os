@@ -94,6 +94,14 @@ abstract class PsitoAppContext {
   /// Muda o app padrão do tipo. Só para apps que veem os arquivos do
   /// usuário (`files:home`).
   Future<void> setDefaultApp(String mimeType, String appId);
+
+  /// Se o shell abre neste app os arquivos que estão soltando na janela dele.
+  /// Um app no sandbox não vê esses arquivos, então o shell abre: só o que quem
+  /// arrasta ofereceu, e de um tipo que o app abre.
+  Future<bool> acceptsDrop(List<String> paths);
+
+  /// Abre os arquivos soltos na janela numa janela nova do app, que vê só eles.
+  Future<bool> openDropped(List<String> paths);
 }
 
 /// Um app que abre um tipo de arquivo, para o "Abrir com".

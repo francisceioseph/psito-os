@@ -112,7 +112,15 @@ void main() {
     String call(String method) =>
         '--call=org.psito.Launcher=org.psito.Launcher.$method@/org/psito/Launcher';
     final none = await _dryRun('');
-    for (final method in ['Open', 'OpenWith', 'AppsFor', 'NextOpen']) {
+    for (final method in [
+      'Open',
+      'OpenWith',
+      'AppsFor',
+      'NextOpen',
+      'OfferDrag',
+      'AcceptsDrop',
+      'OpenDropped',
+    ]) {
       expect(none.proxy, contains(call(method)));
     }
     expect(none.proxy, isNot(contains(call('SetDefault'))));

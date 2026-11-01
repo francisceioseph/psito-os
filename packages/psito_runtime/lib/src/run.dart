@@ -16,6 +16,7 @@ import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/time_service.dart';
 
 import 'app_context.dart';
+import 'dnd.dart';
 import 'notifier.dart';
 import 'window.dart';
 
@@ -52,6 +53,7 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
     desktopEntry: await window.applicationId() ?? 'org.psito.${app.id}',
   );
   final launcher = LauncherClient(session);
+  PsitoDnd.instance.onOffer = (paths) => unawaited(launcher.offerDrag(paths));
   final context = ProcessAppContext(
     app: app,
     settings: settings,

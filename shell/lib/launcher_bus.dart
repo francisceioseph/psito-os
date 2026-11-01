@@ -7,7 +7,11 @@
 //   tipo, todos os apps que recebem arquivos);
 // - SetDefault(s mime, s app): o padrão do usuário (mimeapps.list);
 // - NextOpen() → as: um app de instância única (o Files) espera aqui pelos
-//   arquivos que o shell entregaria a ele, em vez de abrir outro processo.
+//   arquivos que o shell entregaria a ele, em vez de abrir outro processo;
+// - OfferDrag(as paths): quem começa um arrastar diz o que está levando;
+// - AcceptsDrop(as paths) → b e OpenDropped(as paths) → b: um app no sandbox
+//   não vê o que soltam na janela dele, então pede ao shell. Só vale para o que
+//   a origem ofereceu, e abre numa janela nova do próprio app, com o `--file`.
 // O cliente é o LauncherClient do psito_services.
 import 'dart:async';
 
@@ -40,6 +44,14 @@ class LauncherBusObject extends DBusObject {
   /// chegar a uma chamada que já desistiu.
   final Duration waitLimit;
 
+  /// Até quando vale o que a origem ofereceu, se ninguém soltar antes.
+  final Duration offerLimit;
+
+  /// O que está sendo arrastado: o caminho como vai no `text/uri-list` e o de
+  /// verdade (a origem também pode estar num sandbox).
+  Map<String, String> _offer = const {};
+  final _offerAge = Stopwatch();
+
   /// Os `NextOpen` esperando, por app, com quem chamou.
   final _waiters = <String, List<(String, Completer<List<String>>)>>{};
 
@@ -50,6 +62,7 @@ class LauncherBusObject extends DBusObject {
     required this.setDefault,
     this.isConnected = _always,
     this.waitLimit = const Duration(seconds: 20),
+    this.offerLimit = const Duration(minutes: 2),
   }) : super(launcherPath);
 
   static Future<bool> _always(String sender) async => true;
@@ -70,6 +83,30 @@ class LauncherBusObject extends DBusObject {
         await launch(plan);
       }
     }
+  }
+
+  /// Um arrastar que começou no próprio shell (a mesa).
+  void offerDrag(List<String> paths) =>
+      _setOffer({for (final path in paths) path: path});
+
+  void _setOffer(Map<String, String> offer) {
+    _offer = offer;
+    _offerAge
+      ..reset()
+      ..start();
+  }
+
+  /// Os caminhos de verdade de [paths] soltos em [caller], ou null se ele não
+  /// pode receber: fora do que a origem ofereceu, ou um tipo que ele não abre.
+  List<String>? _dropped(String? caller, List<String> paths) {
+    if (caller == null || paths.isEmpty || _offerAge.elapsed > offerLimit) {
+      return null;
+    }
+    final real = [for (final path in paths) ?_offer[path]];
+    if (real.length != paths.length || !opener.accepts(caller, real)) {
+      return null;
+    }
+    return real;
   }
 
   /// Abre [path] no Quick Look do Files: o caminho vai com a marca
@@ -154,6 +191,24 @@ class LauncherBusObject extends DBusObject {
           }
           await setDefault(values[0].asString(), appId);
           return DBusMethodSuccessResponse();
+        case 'OfferDrag' when methodCall.signature == DBusSignature('as'):
+          final seen = values[0].asStringArray().toList();
+          final real = _fromCaller(caller, seen);
+          if (real == null) return _denied();
+          _setOffer(Map.fromIterables(seen, real));
+          return DBusMethodSuccessResponse();
+        case 'AcceptsDrop' when methodCall.signature == DBusSignature('as'):
+          final real = _dropped(caller, values[0].asStringArray().toList());
+          return DBusMethodSuccessResponse([DBusBoolean(real != null)]);
+        case 'OpenDropped' when methodCall.signature == DBusSignature('as'):
+          final real = _dropped(caller, values[0].asStringArray().toList());
+          if (real == null) {
+            return DBusMethodSuccessResponse([const DBusBoolean(false)]);
+          }
+          // Vale uma vez: quem soltou escolheu este app, e só este soltar
+          _offer = const {};
+          await openPaths(real, withApp: caller);
+          return DBusMethodSuccessResponse([const DBusBoolean(true)]);
         case 'NextOpen' when methodCall.signature == DBusSignature(''):
           // Fora de um app ninguém entrega nada
           final paths = caller == null || sender == null
@@ -230,6 +285,15 @@ class LauncherBusObject extends DBusObject {
           DBusIntrospectMethod(
             'SetDefault',
             args: [arg('s', 'mime'), arg('s', 'app')],
+          ),
+          DBusIntrospectMethod('OfferDrag', args: [arg('as', 'paths')]),
+          DBusIntrospectMethod(
+            'AcceptsDrop',
+            args: [arg('as', 'paths'), arg('b', 'accepted', out: true)],
+          ),
+          DBusIntrospectMethod(
+            'OpenDropped',
+            args: [arg('as', 'paths'), arg('b', 'opened', out: true)],
           ),
           DBusIntrospectMethod(
             'NextOpen',

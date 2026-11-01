@@ -83,6 +83,38 @@ class LauncherClient {
     ], replySignature: DBusSignature(''));
   }
 
+  /// Diz ao shell o que este app começou a arrastar: é o que deixa um app no
+  /// sandbox receber esses arquivos.
+  Future<void> offerDrag(List<String> paths) async {
+    try {
+      await _shell.callMethod(launcherInterface, 'OfferDrag', [
+        DBusArray.string(paths),
+      ], replySignature: DBusSignature(''));
+    } on Exception catch (e) {
+      debugPrint('🦜 launcher: sem oferecer o arrastar ($e)');
+    }
+  }
+
+  /// Se o shell abre neste app o que estão soltando na janela dele.
+  Future<bool> acceptsDrop(List<String> paths) =>
+      _dropCall('AcceptsDrop', paths);
+
+  /// Abre o que foi solto na janela deste app, numa janela nova.
+  Future<bool> openDropped(List<String> paths) =>
+      _dropCall('OpenDropped', paths);
+
+  Future<bool> _dropCall(String method, List<String> paths) async {
+    try {
+      final reply = await _shell.callMethod(launcherInterface, method, [
+        DBusArray.string(paths),
+      ], replySignature: DBusSignature('b'));
+      return reply.values.single.asBoolean();
+    } on Exception catch (e) {
+      debugPrint('🦜 launcher: $method falhou ($e)');
+      return false;
+    }
+  }
+
   /// Os arquivos que o shell manda para este app, um pedido por vez. O
   /// shell segura cada chamada até ter algo (ou devolve vazio depois de um
   /// tempo, e a chamada se repete). Só para apps de instância única.

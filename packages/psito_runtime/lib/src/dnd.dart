@@ -33,6 +33,10 @@ class PsitoDnd {
   final _ended = StreamController<int>.broadcast();
   Stream<int> get dragEnded => _ended.stream;
 
+  /// Avisa o shell do que vai ser arrastado: um app no sandbox que receber
+  /// esses arquivos só consegue abrir com a oferta (o org.psito.Launcher).
+  void Function(List<String> paths)? onOffer;
+
   /// Leva [paths] para fora da view [viewId]. Só funciona com o botão ainda
   /// apertado: o arrastar do Wayland começa pelo clique. [icon] é um PNG que
   /// o compositor desenha embaixo do ponteiro, pego em [hotspot] (sem ele, o
@@ -43,6 +47,7 @@ class PsitoDnd {
     Uint8List? icon,
     Offset hotspot = Offset.zero,
   }) async {
+    onOffer?.call(paths);
     try {
       await _channel.invokeMethod('startDrag', {
         'view': viewId,

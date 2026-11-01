@@ -7,6 +7,7 @@ import 'package:psito_services/battery_service.dart';
 import 'battery_indicator.dart';
 import 'clipboard_panel.dart';
 import 'network_indicator.dart';
+import 'transfer_indicator.dart';
 import 'volume_indicator.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -48,6 +49,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// não tem o histórico).
   final VoidCallback? onClipboardTap;
 
+  /// O que a mesa está copiando ou movendo. Null: nada.
+  final TransferStatus? transfer;
+  final VoidCallback? onCancelTransfer;
+
   /// Botão de energia: abre e fecha o menu de energia.
   final VoidCallback? onPowerTap;
 
@@ -72,6 +77,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.onBatteryTap,
     this.clipboardCount = 0,
     this.onClipboardTap,
+    this.transfer,
+    this.onCancelTransfer,
     this.onPowerTap,
     this.now = DateTime.now,
   });
@@ -132,6 +139,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (transfer case final status?) ...[
+                TransferIndicator(status: status, onCancel: onCancelTransfer),
+                const SizedBox(width: 8),
+              ],
               if (onClipboardTap != null) ...[
                 ClipboardIndicator(
                   count: clipboardCount,

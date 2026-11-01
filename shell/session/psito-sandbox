@@ -76,6 +76,9 @@ proxy=(xdg-dbus-proxy
     "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.OpenWith@${LAUNCHER[2]}"
     "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.AppsFor@${LAUNCHER[2]}"
     "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.NextOpen@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.OfferDrag@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.AcceptsDrop@${LAUNCHER[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.OpenDropped@${LAUNCHER[2]}"
     "--call=${SETTINGS[0]}=${SETTINGS[1]}.Get@${SETTINGS[2]}"
     "--broadcast=${SETTINGS[0]}=${SETTINGS[1]}.Changed@${SETTINGS[2]}"
 )

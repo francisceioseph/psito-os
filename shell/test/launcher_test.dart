@@ -262,6 +262,92 @@ void main() {
       expect(defaults, hasLength(1));
     });
 
+    group('o que solta na janela', () {
+      late String nota;
+
+      setUp(() => nota = '${dir.path}/nota.txt');
+
+      test('só abre o que a origem ofereceu', () async {
+        final client = LauncherClient(appBus);
+        caller = 'org.psito.notepad';
+        expect(await client.acceptsDrop([nota]), isFalse);
+        expect(await client.openDropped([nota]), isFalse);
+        expect(launched, isEmpty);
+
+        caller = 'org.psito.files';
+        await client.offerDrag([nota]);
+        caller = 'org.psito.notepad';
+        expect(await client.acceptsDrop([nota]), isTrue);
+        expect(await client.acceptsDrop([nota, '/tmp/x']), isFalse);
+        expect(await client.openDropped([nota]), isTrue);
+        final plan = launched.single;
+        expect(plan.app.id, 'org.psito.notepad');
+        // O app não vê o arquivo: vai pelo --file
+        expect(plan.files.single.$1, nota);
+      });
+
+      test('vale uma vez', () async {
+        final client = LauncherClient(appBus);
+        launcher.offerDrag([nota]);
+        caller = 'org.psito.notepad';
+        expect(await client.openDropped([nota]), isTrue);
+        expect(await client.openDropped([nota]), isFalse);
+        expect(launched, hasLength(1));
+      });
+
+      test('só um tipo que o app abre', () async {
+        final client = LauncherClient(appBus);
+        File('${dir.path}/x.bin').writeAsBytesSync([0, 1]);
+        launcher.offerDrag(['${dir.path}/x.bin']);
+        caller = 'org.psito.notepad';
+        expect(await client.acceptsDrop(['${dir.path}/x.bin']), isFalse);
+      });
+
+      test('a origem não oferece o que ela não vê', () async {
+        final client = LauncherClient(appBus);
+        caller = 'org.psito.files';
+        await client.offerDrag(['/etc/../tmp/x']);
+        caller = 'org.psito.notepad';
+        expect(await client.acceptsDrop(['/etc/../tmp/x']), isFalse);
+      });
+
+      test('o caminho da origem no sandbox vira o de verdade', () async {
+        final client = LauncherClient(appBus);
+        final real =
+            '${dir.path}/.local/share/psito/apps/org.psito.notepad/nota.txt';
+        File(real)
+          ..createSync(recursive: true)
+          ..writeAsStringSync('oi');
+        caller = 'org.psito.notepad';
+        await client.offerDrag([nota]);
+        expect(await client.openDropped([nota]), isTrue);
+        expect(launched.single.files.single.$1, real);
+      });
+
+      test('a oferta vence', () async {
+        final old = LauncherBusObject(
+          opener: launcher.opener,
+          callerOf: (_) async => 'org.psito.notepad',
+          launch: (plan) async => launched.add(plan),
+          setDefault: (_, _) async {},
+          offerLimit: Duration.zero,
+        );
+        old.offerDrag([nota]);
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        final reply = await old.handleMethodCall(
+          DBusMethodCall(
+            sender: ':1.1',
+            interface: launcherInterface,
+            name: 'AcceptsDrop',
+            values: [
+              DBusArray.string([nota]),
+            ],
+          ),
+        );
+        expect(reply.returnValues.single, const DBusBoolean(false));
+      });
+    });
+
     test('a instância que espera recebe os arquivos', () async {
       caller = 'org.psito.files';
       final requests = <List<String>>[];

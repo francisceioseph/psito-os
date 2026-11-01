@@ -11,6 +11,7 @@ import 'package:flutter/widgets.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 
@@ -82,9 +83,7 @@ Future<void> main() async {
     apps: () => state.apps.value,
   );
   // Um app aceita o que ele abre: o tipo de cada arquivo está entre os dele
-  state.dockUi.appAccepts = (appId, paths) => paths.every(
-    (path) => opener.appsFor(mime.typeOf(path)).any((app) => app.id == appId),
-  );
+  state.dockUi.appAccepts = opener.accepts;
   state.appsForType = opener.appsFor;
   state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now);
   unawaited(state.dockUi.watchTrash());
@@ -133,6 +132,7 @@ Future<void> main() async {
     );
     state.openPaths = launcher.openPaths;
     state.previewPath = launcher.preview;
+    PsitoDnd.instance.onOffer = launcher.offerDrag;
     await publishLauncher(launcherBus, launcher);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');

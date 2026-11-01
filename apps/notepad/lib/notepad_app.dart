@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 /// O arquivo da nota: `~/nota.txt`, que no sandbox é o `$HOME` privado do
@@ -165,6 +166,71 @@ class _NotepadViewState extends State<NotepadView> {
   }
 }
 
+/// Soltar um arquivo na janela abre ele numa janela nova, e a nota daqui fica
+/// como está. Quem abre é o shell, porque o sandbox não vê o arquivo.
+class NotepadDropZone extends StatefulWidget {
+  final Future<bool> Function(List<String> paths) accepts;
+  final Future<bool> Function(List<String> paths) open;
+  final Widget child;
+
+  const NotepadDropZone({
+    super.key,
+    required this.accepts,
+    required this.open,
+    required this.child,
+  });
+
+  @override
+  State<NotepadDropZone> createState() => _NotepadDropZoneState();
+}
+
+class _NotepadDropZoneState extends State<NotepadDropZone> {
+  String? _asked;
+  bool _accepted = false;
+  bool _asking = false;
+
+  /// O soltar pergunta sem esperar, e a resposta vale para o próximo movimento
+  /// do ponteiro: até lá, recusa.
+  DropAction? _willAccept(List<String> paths) {
+    final key = paths.join('\n');
+    if (key != _asked) _accepted = false;
+    if (key != _asked || !_asking) {
+      _asked = key;
+      _asking = true;
+      unawaited(
+        widget.accepts(paths).then((accepted) {
+          if (key != _asked) return;
+          _accepted = accepted;
+          _asking = false;
+        }),
+      );
+    }
+    return _accepted ? DropAction.copy : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PsitoDropTarget(
+      onWillAccept: _willAccept,
+      onAccept: (paths, _, _) => widget.open(paths),
+      builder: (context, hovering) => Stack(
+        fit: StackFit.expand,
+        children: [
+          widget.child,
+          if (hovering)
+            IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF4CAF50), width: 2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class NotepadApp extends PsitoApp {
   const NotepadApp();
 
@@ -184,11 +250,16 @@ class NotepadApp extends PsitoApp {
   @override
   Widget build(PsitoAppContext context) {
     final opened = context.openedPaths;
-    if (opened.isEmpty) {
-      return NotepadView(file: noteFile(Platform.environment));
-    }
-    final name = opened.first.substring(opened.first.lastIndexOf('/') + 1);
-    return NotepadView(file: File(opened.first), label: name);
+    final name = opened.isEmpty
+        ? null
+        : opened.first.substring(opened.first.lastIndexOf('/') + 1);
+    return NotepadDropZone(
+      accepts: context.acceptsDrop,
+      open: context.openDropped,
+      child: name == null
+          ? NotepadView(file: noteFile(Platform.environment))
+          : NotepadView(file: File(opened.first), label: name),
+    );
   }
 
   @override

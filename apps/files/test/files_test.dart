@@ -64,6 +64,12 @@ class FakeContext implements PsitoAppContext {
   ];
   @override
   Future<void> setDefaultApp(String mimeType, String appId) async {}
+
+  @override
+  Future<bool> acceptsDrop(List<String> paths) async => false;
+
+  @override
+  Future<bool> openDropped(List<String> paths) async => false;
 }
 
 late Directory home;

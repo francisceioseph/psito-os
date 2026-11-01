@@ -14,6 +14,7 @@ import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/clipboard_history.dart';
 import 'package:system_shell/shell/notification_center.dart';
 import 'package:system_shell/shell/settings_store.dart';
+import 'package:system_shell/widgets/transfer_indicator.dart';
 import 'package:system_shell/shell/shortcuts.dart';
 import 'package:system_shell/shell/window_switcher.dart';
 
@@ -115,6 +116,9 @@ class ShellState {
   /// A mesa. Null até o main carregar os tipos MIME, depois do primeiro
   /// quadro.
   final desk = ValueNotifier<DeskController?>(null);
+
+  /// O que a mesa está copiando ou movendo, que a top bar desenha.
+  final deskTransfer = ValueNotifier<TransferStatus?>(null);
 
   /// O menu da mesa, que a sobreposição desenha.
   final deskMenu = ValueNotifier<DeskMenuRequest?>(null);

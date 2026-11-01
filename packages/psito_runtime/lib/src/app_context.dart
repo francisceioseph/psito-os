@@ -131,4 +131,12 @@ class ProcessAppContext implements PsitoAppContext {
   @override
   Future<void> setDefaultApp(String mimeType, String appId) async =>
       launcher?.setDefault(mimeType, appId);
+
+  @override
+  Future<bool> acceptsDrop(List<String> paths) async =>
+      await launcher?.acceptsDrop(paths) ?? false;
+
+  @override
+  Future<bool> openDropped(List<String> paths) async =>
+      await launcher?.openDropped(paths) ?? false;
 }

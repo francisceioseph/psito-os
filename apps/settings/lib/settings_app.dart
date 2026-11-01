@@ -258,7 +258,10 @@ class _SettingsViewState extends State<SettingsView> {
       ),
       SwitchListTile(
         title: const Text('Organizar automaticamente'),
-        subtitle: const Text('Os ícones ficam em ordem de nome, sem buracos.'),
+        subtitle: const Text(
+          'Os ícones ficam em ordem de nome, sem buracos. Mover um ícone '
+          'desliga, para ele ficar onde foi solto.',
+        ),
         value: s.desktopAutoArrange,
         onChanged: (v) => _update(s.copyWith(desktopAutoArrange: v)),
       ),
