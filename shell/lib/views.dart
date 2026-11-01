@@ -91,14 +91,20 @@ class _ShellViewsState extends State<ShellViews> with WidgetsBindingObserver {
                 Surface.topbar => _TopBarView(state),
                 Surface.dock => _DockView(state),
                 Surface.overlay => _OverlayView(state),
-                Surface.toasts => _ToastsView(state),
-                Surface.osd => _OsdView(state),
+                Surface.toasts => ToastsView(state),
+                Surface.osd => OsdView(state),
               },
             ),
       ],
     );
   }
 }
+
+final _shellDelegates = psitoLocalizationsDelegates(const [
+  ShellLocalizations.delegate,
+  SystemLocalizations.delegate,
+  FilesUiLocalizations.delegate,
+]);
 
 /// Tema do Psito acompanhando a cor de destaque das Configurações.
 class _Themed extends StatelessWidget {
@@ -114,11 +120,7 @@ class _Themed extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: psitoTheme(settings.accent),
       locale: resolvePsitoLocale(settings.language),
-      localizationsDelegates: psitoLocalizationsDelegates(const [
-        ShellLocalizations.delegate,
-        SystemLocalizations.delegate,
-        FilesUiLocalizations.delegate,
-      ]),
+      localizationsDelegates: _shellDelegates,
       supportedLocales: psitoLocales,
       color: Colors.transparent,
       home: Builder(builder: builder),
@@ -386,8 +388,10 @@ class _Sized extends StatelessWidget {
     valueListenable: state.settings,
     builder: (context, settings, _) => Theme(
       data: psitoTheme(settings.accent),
-      child: Directionality(
-        textDirection: TextDirection.ltr,
+      // Sem o MaterialApp, os textos também precisam vir daqui
+      child: Localizations(
+        locale: state.locale,
+        delegates: _shellDelegates,
         child: TooltipVisibility(
           visible: false,
           child: Material(
@@ -400,6 +404,9 @@ class _Sized extends StatelessWidget {
               maxHeight: double.infinity,
               child: SizeReporter(
                 onSize: (size) {
+                  // Um erro de build vira um ErrorWidget do tamanho que couber,
+                  // aqui infinito, e isso não pode derrubar o shell
+                  if (!size.isFinite) return;
                   onSize?.call(size);
                   state.surfaces.resize(
                     surface,
@@ -960,9 +967,9 @@ class _OverlayView extends StatelessWidget {
 
 /// Os toasts, no canto de cima à direita; a superfície só existe com algum
 /// na tela.
-class _ToastsView extends StatelessWidget {
+class ToastsView extends StatelessWidget {
   final ShellState state;
-  const _ToastsView(this.state);
+  const ToastsView(this.state, {super.key});
 
   @override
   Widget build(BuildContext context) => _Sized(
@@ -979,9 +986,9 @@ class _ToastsView extends StatelessWidget {
 }
 
 /// O aviso de volume, acima da dock; não recebe cliques.
-class _OsdView extends StatelessWidget {
+class OsdView extends StatelessWidget {
   final ShellState state;
-  const _OsdView(this.state);
+  const OsdView(this.state, {super.key});
 
   @override
   Widget build(BuildContext context) => _Sized(
