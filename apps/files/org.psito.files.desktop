@@ -7,4 +7,4 @@ StartupWMClass=org.psito.files
 MimeType=inode/directory;
 X-Psito-App=files
 X-Psito-Color=#FFC107
-X-Psito-Permissions=files:home;
+X-Psito-Permissions=files:home;files:removable;

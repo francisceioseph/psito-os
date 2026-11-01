@@ -87,7 +87,13 @@ void main() {
   });
 
   test('as permissões são conhecidas, e settings só com canChangeSettings', () {
-    const known = {'network', 'settings', 'files:home', 'notifications'};
+    const known = {
+      'network',
+      'settings',
+      'files:home',
+      'files:removable',
+      'notifications',
+    };
     final line = RegExp(r'^X-Psito-Permissions=(.*)$', multiLine: true);
     for (final app in registeredApps) {
       final text = File('../apps/${app.id}/org.psito.${app.id}.desktop')

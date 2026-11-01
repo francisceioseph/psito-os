@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/disks_service.dart';
 import 'package:psito_services/file_chooser_client.dart';
 import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_connections.dart';
@@ -17,6 +18,7 @@ import 'package:psito_services/settings_client.dart';
 import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/time_service.dart';
+import 'package:psito_services/volumes_client.dart';
 
 import 'app_context.dart';
 import 'dnd.dart';
@@ -25,7 +27,11 @@ import 'window.dart';
 
 /// Os serviços reais pelo barramento de sistema, ou os falsos com
 /// PSITO_SERVICES=fake (como no shell).
-AppServices startServices(Map<String, String> env, {LauncherClient? launcher}) {
+AppServices startServices(
+  Map<String, String> env, {
+  LauncherClient? launcher,
+  DBusClient? session,
+}) {
   if (env['PSITO_SERVICES'] == 'fake') {
     return AppServices(
       systemInfo: FakeSystemInfoService(),
@@ -33,6 +39,7 @@ AppServices startServices(Map<String, String> env, {LauncherClient? launcher}) {
       time: FakeTimeService(),
       accounts: FakeAccountsService.new,
       networkConnections: FakeNetworkConnections.new,
+      volumes: FakeDisksService.new,
     );
   }
   final bus = DBusClient.system();
@@ -43,6 +50,7 @@ AppServices startServices(Map<String, String> env, {LauncherClient? launcher}) {
     accounts: () => AccountsdService(bus),
     networkConnections: () =>
         NetworkManagerConnections(bus, importer: launcher?.importVpn),
+    volumes: () => VolumesClient(session ?? DBusClient.session()),
   );
 }
 
@@ -65,7 +73,11 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
   final context = ProcessAppContext(
     app: app,
     settings: settings,
-    services: startServices(Platform.environment, launcher: launcher),
+    services: startServices(
+      Platform.environment,
+      launcher: launcher,
+      session: session,
+    ),
     onUpdateSettings: (s) => unawaited(settings.update(s)),
     onNotify: (n) => unawaited(notifier.notify(n)),
     window: window,

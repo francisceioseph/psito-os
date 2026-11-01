@@ -388,4 +388,31 @@ class FilesLocalizationsEn extends FilesLocalizations {
 
   @override
   String get collapseFolder => 'Collapse folder';
+
+  @override
+  String get volumes => 'Disks';
+
+  @override
+  String volumeUnnamed(String size) {
+    return '$size disk';
+  }
+
+  @override
+  String get volumeEject => 'Eject';
+
+  @override
+  String get volumeLocked => 'This disk is encrypted.';
+
+  @override
+  String get volumeMountFailed => 'Could not open this disk.';
+
+  @override
+  String get volumeSafeToRemove => 'You can remove the disk now.';
+
+  @override
+  String get volumeBusy =>
+      'The disk is in use. Close what is using it and try again.';
+
+  @override
+  String get volumeEjectFailed => 'Could not eject the disk.';
 }

@@ -9,8 +9,9 @@
 #
 # Permissões: network (a rede e ler o estado do NetworkManager; mudar, só junto
 # com settings), settings (o Update do
-# org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade)
-# e notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
+# org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade),
+# files:removable (os discos externos: a /media e o org.psito.Volumes) e
+# notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
 # pasta) que ele não veria: o shell monta <fora> em <dentro>, que fica em
 # $XDG_RUNTIME_DIR/doc/ (a ideia do portal de documentos do Flatpak) e é o
@@ -93,6 +94,7 @@ has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[
 # O padrão de cada tipo é do usuário: só quem vê os arquivos dele
 has files:home && proxy+=("--call=${LAUNCHER[0]}=${LAUNCHER[1]}.SetDefault@${LAUNCHER[2]}")
 has notifications && proxy+=(--talk=org.freedesktop.Notifications)
+has files:removable && proxy+=(--talk=org.psito.Volumes)
 
 # O sistema: ler o nome e a hora é de todos (o systemInfo e o time do
 # contexto); mudar o fuso, o NTP e o nome só com settings
@@ -170,6 +172,10 @@ sandbox=(bwrap
     --symlink ../run /var/run
 )
 has network && sandbox+=(--share-net)
+# A pasta inteira, que existe desde o boot: a de cada conta só nasce na primeira
+# montagem, e um disco montado depois aparece aqui dentro do mesmo jeito. O
+# UDisks2 protege a pasta de cada conta das outras
+has files:removable && sandbox+=(--bind-try /media /media)
 if [ -n "$A11Y_BUS" ]; then
     sandbox+=(--bind "$SOCKETS/a11y" "$RUN/at-spi/bus"
         --setenv AT_SPI_BUS_ADDRESS "unix:path=$RUN/at-spi/bus")

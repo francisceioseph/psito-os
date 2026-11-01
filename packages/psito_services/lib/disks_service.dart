@@ -1,6 +1,6 @@
 // packages/psito_services/lib/disks_service.dart
 //
-// Os discos externos pelo UDisks2, que monta e desmonta em /run/media/<conta>.
+// Os discos externos pelo UDisks2, que monta e desmonta em /media/<conta>.
 // Só o shell fala com ele: os apps no sandbox nem veem o barramento.
 import 'dart:async';
 import 'dart:convert';
@@ -79,22 +79,7 @@ List<PsitoVolume> volumesFrom(UDisksObjects objects) {
   });
 }
 
-abstract class DisksService {
-  /// Vazia sem o UDisks2.
-  ValueListenable<List<PsitoVolume>> get volumes;
-
-  /// Monta e devolve onde. Null se não deu.
-  Future<String?> mount(String id);
-
-  Future<PsitoDiskResult> unmount(String id);
-
-  /// Desmonta tudo que está no mesmo disco, tranca o que estava criptografado e
-  /// desliga o disco. Depois disso pode tirar.
-  Future<PsitoDiskResult> eject(String id);
-
-  /// Destranca um volume criptografado e monta o que tem dentro.
-  Future<PsitoDiskResult> unlock(String id, String password);
-
+abstract class DisksService implements PsitoVolumes {
   Future<void> dispose();
 }
 
@@ -302,11 +287,14 @@ class FakeDisksService implements DisksService {
   /// A senha que os falsos aceitam.
   static const password = 'calopsita';
 
+  /// O nome que o disco tem: não é um texto da interface.
+  static const _sampleName = 'PENDRIVE';
+
   static const sample = PsitoVolume(
     id: 'pendrive',
-    label: 'PENDRIVE',
+    label: _sampleName,
     device: '/dev/sdb1',
-    mountPoint: '/run/media/ana/PENDRIVE',
+    mountPoint: '/media/ana/PENDRIVE',
     size: 16000000000,
     fileSystem: 'vfat',
     drive: 'sdb',
@@ -329,7 +317,7 @@ class FakeDisksService implements DisksService {
   @override
   Future<String?> mount(String id) async {
     if (answer != PsitoDiskResult.ok) return null;
-    final where = '/run/media/ana/$id';
+    final where = '/media/ana/$id';
     _replace(id, (v) => v.copyWith(mountPoint: () => where));
     return where;
   }
@@ -363,7 +351,7 @@ class FakeDisksService implements DisksService {
       (v) => v.copyWith(
         locked: false,
         unlocked: true,
-        mountPoint: () => '/run/media/ana/$id',
+        mountPoint: () => '/media/ana/$id',
       ),
     );
     return PsitoDiskResult.ok;

@@ -388,4 +388,31 @@ class FilesLocalizationsPt extends FilesLocalizations {
 
   @override
   String get collapseFolder => 'Recolher a pasta';
+
+  @override
+  String get volumes => 'Discos';
+
+  @override
+  String volumeUnnamed(String size) {
+    return 'Disco de $size';
+  }
+
+  @override
+  String get volumeEject => 'Ejetar';
+
+  @override
+  String get volumeLocked => 'Este disco é criptografado.';
+
+  @override
+  String get volumeMountFailed => 'Não foi possível abrir este disco.';
+
+  @override
+  String get volumeSafeToRemove => 'Já pode tirar o disco.';
+
+  @override
+  String get volumeBusy =>
+      'O disco está em uso. Feche o que está usando e tente de novo.';
+
+  @override
+  String get volumeEjectFailed => 'Não foi possível ejetar o disco.';
 }

@@ -102,5 +102,13 @@
   "actions": "Ações",
   "search": "Buscar",
   "expandFolder": "Expandir a pasta",
-  "collapseFolder": "Recolher a pasta"
+  "collapseFolder": "Recolher a pasta",
+  "volumes": "Discos",
+  "volumeUnnamed": "Disco de {size}",
+  "volumeEject": "Ejetar",
+  "volumeLocked": "Este disco é criptografado.",
+  "volumeMountFailed": "Não foi possível abrir este disco.",
+  "volumeSafeToRemove": "Já pode tirar o disco.",
+  "volumeBusy": "O disco está em uso. Feche o que está usando e tente de novo.",
+  "volumeEjectFailed": "Não foi possível ejetar o disco."
 }

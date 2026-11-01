@@ -715,6 +715,54 @@ abstract class FilesLocalizations {
   /// In en, this message translates to:
   /// **'Collapse folder'**
   String get collapseFolder;
+
+  /// No description provided for @volumes.
+  ///
+  /// In en, this message translates to:
+  /// **'Disks'**
+  String get volumes;
+
+  /// No description provided for @volumeUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} disk'**
+  String volumeUnnamed(String size);
+
+  /// No description provided for @volumeEject.
+  ///
+  /// In en, this message translates to:
+  /// **'Eject'**
+  String get volumeEject;
+
+  /// No description provided for @volumeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This disk is encrypted.'**
+  String get volumeLocked;
+
+  /// No description provided for @volumeMountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open this disk.'**
+  String get volumeMountFailed;
+
+  /// No description provided for @volumeSafeToRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'You can remove the disk now.'**
+  String get volumeSafeToRemove;
+
+  /// No description provided for @volumeBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is in use. Close what is using it and try again.'**
+  String get volumeBusy;
+
+  /// No description provided for @volumeEjectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not eject the disk.'**
+  String get volumeEjectFailed;
 }
 
 class _FilesLocalizationsDelegate

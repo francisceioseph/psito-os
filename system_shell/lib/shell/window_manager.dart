@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'package:psito_services/accounts_service.dart';
+import 'package:psito_services/disks_service.dart';
 import 'package:psito_services/network_connections.dart';
 import 'package:psito_services/time_service.dart';
 
@@ -95,6 +96,9 @@ class WindowManager extends ChangeNotifier {
 
   /// Idem para as conexões de rede.
   final PsitoNetworkConnections networkConnections;
+
+  /// Os discos do laboratório: um pendrive, nunca os de verdade do host.
+  final PsitoVolumes volumes = FakeDisksService([FakeDisksService.sample]);
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -408,6 +412,9 @@ class _WindowContext implements PsitoAppContext {
         ? _manager.accounts
         : const PsitoNoAccounts();
   }
+
+  @override
+  PsitoVolumes get volumes => _manager.volumes;
 
   @override
   PsitoNetworkConnections get networkConnections {

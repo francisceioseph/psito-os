@@ -68,14 +68,14 @@ void main() {
         _path('block_devices/sdb1'): _block(
           '/dev/sdb1',
           label: 'PENDRIVE',
-          mount: '/run/media/ana/PENDRIVE',
+          mount: '/media/ana/PENDRIVE',
         ),
       });
       final volume = volumes.single;
       expect(volume.id, '$_base/block_devices/sdb1');
       expect(volume.label, 'PENDRIVE');
       expect(volume.device, '/dev/sdb1');
-      expect(volume.mountPoint, '/run/media/ana/PENDRIVE');
+      expect(volume.mountPoint, '/media/ana/PENDRIVE');
       expect(volume.drive, '$_base/drives/usb');
       expect(volume.canEject, isTrue);
       expect(volume.fileSystem, 'vfat');
@@ -174,7 +174,7 @@ void main() {
       final root = DBusObject(DBusObjectPath(_base), isObjectManager: true);
       sdb1 = FakeDBusObject(
         _path('block_devices/sdb1'),
-        _block('/dev/sdb1', label: 'UM', mount: '/run/media/ana/UM'),
+        _block('/dev/sdb1', label: 'UM', mount: '/media/ana/UM'),
       );
       sdb2 = FakeDBusObject(
         _path('block_devices/sdb2'),
@@ -199,11 +199,11 @@ void main() {
       expect(service.volumes.value.map((v) => v.label), ['DOIS', 'UM']);
       await sdb2.change('$_udisks.Filesystem', {
         'MountPoints': DBusArray(DBusSignature('ay'), [
-          _text('/run/media/ana/DOIS'),
+          _text('/media/ana/DOIS'),
         ]),
       });
       await until(() => service.volumes.value.first.mountPoint != null);
-      expect(service.volumes.value.first.mountPoint, '/run/media/ana/DOIS');
+      expect(service.volumes.value.first.mountPoint, '/media/ana/DOIS');
     });
 
     test('um disco ligado depois aparece', () async {
@@ -218,8 +218,8 @@ void main() {
     });
 
     test('montar devolve o lugar', () async {
-      sdb2.replies['Mount'] = [const DBusString('/run/media/ana/DOIS')];
-      expect(await service.mount(sdb2.path.value), '/run/media/ana/DOIS');
+      sdb2.replies['Mount'] = [const DBusString('/media/ana/DOIS')];
+      expect(await service.mount(sdb2.path.value), '/media/ana/DOIS');
       expect(sdb2.calls.single.name, 'Mount');
     });
 
@@ -250,7 +250,7 @@ void main() {
       bus = await DBusTestBus.start();
       sdb1 = _Failing(
         _path('block_devices/sdb1'),
-        _block('/dev/sdb1', label: 'UM', mount: '/run/media/ana/UM'),
+        _block('/dev/sdb1', label: 'UM', mount: '/media/ana/UM'),
       );
       final driveObject = FakeDBusObject(_path('drives/usb'), _drive());
       await bus.service.registerObject(

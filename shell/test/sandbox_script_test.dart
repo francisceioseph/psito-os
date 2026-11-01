@@ -45,6 +45,15 @@ const _update =
     '--call=org.psito.Settings=org.psito.Settings.Update@/org/psito/Settings';
 
 void main() {
+  test('files:removable dá a /media e o org.psito.Volumes', () async {
+    final without = await _dryRun('files:home');
+    expect(without.bwrap, isNot(contains('/media')));
+    expect(without.proxy, isNot(contains('--talk=org.psito.Volumes')));
+    final plan = await _dryRun('files:removable');
+    expect(_after(plan.bwrap, '--bind-try', 2), ['/media', '/media']);
+    expect(plan.proxy, contains('--talk=org.psito.Volumes'));
+  });
+
   group('acessibilidade', () {
     const bus = 'unix:path=/run/user/1000/at-spi/bus_0';
     const on = {'PSITO_A11Y_BUS': bus};

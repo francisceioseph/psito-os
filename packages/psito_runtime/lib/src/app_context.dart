@@ -5,6 +5,7 @@
 // notificações pelo servidor do shell.
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/disks_service.dart';
 import 'package:psito_services/file_chooser_client.dart';
 import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_service.dart';
@@ -24,14 +25,19 @@ class AppServices {
   final PsitoAccounts Function() accounts;
   final PsitoNetworkConnections Function() networkConnections;
 
+  /// Só nasce para quem pede. Sem a permissão, o proxy do sandbox recusa.
+  final PsitoVolumes Function() volumes;
+
   const AppServices({
     required this.systemInfo,
     required this.network,
     required this.time,
     this.accounts = _noAccounts,
     this.networkConnections = _noConnections,
+    this.volumes = _noVolumes,
   });
 
+  static PsitoVolumes _noVolumes() => FakeDisksService();
   static PsitoAccounts _noAccounts() => const PsitoNoAccounts();
   static PsitoNetworkConnections _noConnections() =>
       const PsitoNoNetworkConnections();
@@ -119,6 +125,9 @@ class ProcessAppContext implements PsitoAppContext {
   late final PsitoAccounts accounts = app.canChangeSettings
       ? services.accounts()
       : const PsitoNoAccounts();
+
+  @override
+  late final PsitoVolumes volumes = services.volumes();
 
   @override
   late final PsitoNetworkConnections networkConnections = app.canChangeSettings

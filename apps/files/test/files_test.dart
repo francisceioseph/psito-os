@@ -12,8 +12,38 @@ import 'package:psito_files/src/tab.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+/// Os discos sem o shell: guarda o que o Files pediu.
+class FakeVolumes implements PsitoVolumes {
+  @override
+  final volumes = ValueNotifier<List<PsitoVolume>>(const []);
+  final asked = <String>[];
+  String? mounted;
+  PsitoDiskResult answer = PsitoDiskResult.ok;
+
+  @override
+  Future<String?> mount(String id) async {
+    asked.add('mount $id');
+    return mounted;
+  }
+
+  @override
+  Future<PsitoDiskResult> unmount(String id) async => answer;
+
+  @override
+  Future<PsitoDiskResult> eject(String id) async {
+    asked.add('eject $id');
+    return answer;
+  }
+
+  @override
+  Future<PsitoDiskResult> unlock(String id, String password) async => answer;
+}
+
 /// O contexto de um app sem o shell: guarda o que o Files pediu.
 class FakeContext implements PsitoAppContext {
+  @override
+  final FakeVolumes volumes = FakeVolumes();
+
   final opened = <List<String>>[];
   final requests = StreamController<List<String>>.broadcast();
   String title = '';
@@ -159,6 +189,70 @@ void main() {
     test('a pasta da lixeira, mandada pela dock, abre a Lixeira', () {
       files.openPaths([p('.local/share/Trash/files/')]);
       expect(files.tab.location, const TrashLocation());
+    });
+
+    group('os discos', () {
+      const volume = PsitoVolume(
+        id: 'v',
+        label: 'PENDRIVE',
+        device: '/dev/sdb',
+      );
+      late List<String> messages;
+      late String mount;
+
+      setUp(() {
+        messages = [];
+        files.onError = messages.add;
+        mount = p('Documentos');
+      });
+
+      test('abre onde já está montado, sem montar de novo', () async {
+        await files.openVolume(volume.copyWith(mountPoint: () => mount));
+        expect(files.tab.folder, mount);
+        expect(ctx.volumes.asked, isEmpty);
+      });
+
+      test('monta e abre', () async {
+        ctx.volumes.mounted = mount;
+        await files.openVolume(volume);
+        expect(ctx.volumes.asked, ['mount v']);
+        expect(files.tab.folder, mount);
+      });
+
+      test('sem conseguir montar, avisa e fica onde estava', () async {
+        final before = files.tab.folder;
+        await files.openVolume(volume);
+        expect(messages, ['Não foi possível abrir este disco.']);
+        expect(files.tab.folder, before);
+      });
+
+      test('um trancado não tenta montar', () async {
+        await files.openVolume(volume.copyWith(locked: true));
+        expect(ctx.volumes.asked, isEmpty);
+        expect(messages, ['Este disco é criptografado.']);
+      });
+
+      test('ejetar tira as abas do disco antes de pedir', () async {
+        final inside = volume.copyWith(mountPoint: () => mount);
+        await files.openVolume(inside);
+        await files.ejectVolume(inside);
+        expect(files.tab.folder, files.env.home);
+        expect(ctx.volumes.asked, ['eject v']);
+        expect(messages, ['Já pode tirar o disco.']);
+      });
+
+      test('uma pasta de nome parecido não sai do lugar', () async {
+        final other = p('Documentos2');
+        files.tab.go(FolderLocation(other));
+        await files.ejectVolume(volume.copyWith(mountPoint: () => mount));
+        expect(files.tab.folder, other);
+      });
+
+      test('disco em uso avisa', () async {
+        ctx.volumes.answer = PsitoDiskResult.busy;
+        await files.ejectVolume(volume);
+        expect(messages.single, contains('em uso'));
+      });
     });
 
     test('lista o home sem os ocultos, na ordem natural', () async {

@@ -19,6 +19,7 @@ import 'autostart.dart';
 import 'bridge/bridge.dart';
 import 'desk.dart';
 import 'launcher_bus.dart';
+import 'volumes_bus.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
 import 'polkit_agent.dart';
@@ -138,6 +139,14 @@ Future<void> main() async {
     await publishLauncher(launcherBus, launcher);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');
+  }
+  try {
+    await publishVolumes(
+      DBusClient.session(),
+      VolumesBusObject(state.services.disks),
+    );
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Volumes ($e)');
   }
   unawaited(_publishPolkit(state, settings));
   final server = NotificationsServer(

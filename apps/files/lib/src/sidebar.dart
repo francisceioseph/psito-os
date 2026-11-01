@@ -1,9 +1,10 @@
 // apps/files/lib/src/sidebar.dart
 //
 // A barra lateral do Finder: os Favoritos (o home, as pastas do usuário e as
-// que o usuário arrastar para ali, na ordem que ele quiser), os Locais (o
-// computador) e a Lixeira. Soltar uma pasta no título dos Favoritos põe ela
+// que o usuário arrastar para ali, na ordem que ele quiser), os Discos externos,
+// os Locais (o computador) e a Lixeira. Soltar uma pasta no título dos Favoritos põe ela
 // ali; soltar arquivos num favorito move para ele.
+import 'dart:async';
 import 'dart:io';
 
 import 'package:psito_sdk/psito_sdk.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 
+import 'format.dart';
 import 'items.dart';
 import 'tab.dart';
 
@@ -84,6 +86,18 @@ class Sidebar extends StatelessWidget {
                 );
               },
             ),
+            SliverToBoxAdapter(
+              child: ValueListenableBuilder(
+                valueListenable: controller.volumes.volumes,
+                builder: (context, volumes, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (volumes.isNotEmpty) _Section(context.l10n.volumes),
+                    for (final volume in volumes) _volume(context, volume),
+                  ],
+                ),
+              ),
+            ),
             SliverToBoxAdapter(child: _Section(context.l10n.places)),
             SliverToBoxAdapter(
               child: FolderDropTarget(
@@ -124,6 +138,35 @@ class Sidebar extends StatelessWidget {
     );
   }
 
+  Widget _volume(BuildContext context, PsitoVolume volume) {
+    final controller = FilesScope.of(context).controller;
+    final mount = volume.mountPoint;
+    final current = controller.tab.location;
+    final item = _Item(
+      key: ValueKey('volume-${volume.id}'),
+      icon: const ['drive-removable-media', 'drive-harddisk'],
+      fallback: Icons.usb_rounded,
+      label: volume.label.isNotEmpty
+          ? volume.label
+          : context.l10n.volumeUnnamed(formatSize(context.l10n, volume.size)),
+      selected: current is FolderLocation && current.path == mount,
+      onTap: () => unawaited(controller.openVolume(volume)),
+      trailing: volume.canEject && !volume.locked
+          ? IconButton(
+              key: ValueKey('eject-${volume.id}'),
+              tooltip: context.l10n.volumeEject,
+              icon: const Icon(Icons.eject_rounded, size: 14),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+              padding: EdgeInsets.zero,
+              color: context.palette.textSecondary,
+              onPressed: () => unawaited(controller.ejectVolume(volume)),
+            )
+          : null,
+    );
+    return mount == null ? item : FolderDropTarget(path: mount, child: item);
+  }
+
   static bool _isFolder(String path) => FileSystemEntity.isDirectorySync(path);
 }
 
@@ -159,7 +202,11 @@ class _Item extends StatelessWidget {
   final VoidCallback onTap;
   final List<PopupMenuEntry<void>> menu;
 
+  /// Junto da linha, à direita.
+  final Widget? trailing;
+
   const _Item({
+    super.key,
     required this.icon,
     required this.fallback,
     required this.label,
@@ -167,6 +214,7 @@ class _Item extends StatelessWidget {
     required this.onTap,
     this.highlight = false,
     this.menu = const [],
+    this.trailing,
   });
 
   @override
@@ -222,6 +270,7 @@ class _Item extends StatelessWidget {
                       ),
                     ),
                   ),
+                  ?trailing,
                 ],
               ),
             ),

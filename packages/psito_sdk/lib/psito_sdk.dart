@@ -105,6 +105,9 @@ abstract class PsitoAppContext {
   /// vazia e nenhuma ação vale.
   PsitoNetworkConnections get networkConnections;
 
+  /// Os discos externos. Sem a permissão `files:removable`, a lista fica vazia.
+  PsitoVolumes get volumes;
+
   /// Os arquivos com que o app foi aberto (o "Abrir" do Files ou de outro
   /// app). No sandbox, o que o app não veria chega montado em
   /// `$XDG_RUNTIME_DIR/doc/`.
@@ -968,6 +971,23 @@ class PsitoVolume {
     drive,
     canEject,
   );
+}
+
+/// Os discos externos: quem liga e tira. Só o shell fala com o sistema.
+abstract class PsitoVolumes {
+  /// Vazia enquanto carrega, ou sem a permissão.
+  ValueListenable<List<PsitoVolume>> get volumes;
+
+  /// Monta e devolve onde. Null se não deu.
+  Future<String?> mount(String id);
+
+  Future<PsitoDiskResult> unmount(String id);
+
+  /// Desmonta tudo que está no mesmo disco e desliga. Depois disso pode tirar.
+  Future<PsitoDiskResult> eject(String id);
+
+  /// Destranca um volume criptografado e monta o que tem dentro.
+  Future<PsitoDiskResult> unlock(String id, String password);
 }
 
 enum PsitoDiskResult {

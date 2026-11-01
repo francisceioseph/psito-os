@@ -51,6 +51,42 @@ class FilesController extends ChangeNotifier {
   /// Pergunta o que fazer quando o nome já existe (o diálogo).
   ConflictHandler? onConflict;
 
+  /// Os discos externos, na barra lateral.
+  PsitoVolumes get volumes => ctx.volumes;
+
+  /// Abre um disco, montando antes se precisar.
+  Future<void> openVolume(PsitoVolume volume) async {
+    if (volume.locked) {
+      onError?.call(l10n.volumeLocked);
+      return;
+    }
+    final where = volume.mountPoint ?? await volumes.mount(volume.id);
+    if (where == null) {
+      onError?.call(l10n.volumeMountFailed);
+      return;
+    }
+    tab.go(FolderLocation(where));
+  }
+
+  /// Sai das abas que estão no disco antes de pedir para tirar: a própria
+  /// janela não pode ser o motivo de ele estar ocupado.
+  Future<void> ejectVolume(PsitoVolume volume) async {
+    if (volume.mountPoint case final mount?) {
+      for (final tab in tabs) {
+        final folder = tab.folder;
+        if (folder == mount || (folder?.startsWith('$mount/') ?? false)) {
+          tab.go(FolderLocation(env.home));
+        }
+      }
+    }
+    final result = await volumes.eject(volume.id);
+    onError?.call(switch (result) {
+      PsitoDiskResult.ok => l10n.volumeSafeToRemove,
+      PsitoDiskResult.busy => l10n.volumeBusy,
+      _ => l10n.volumeEjectFailed,
+    });
+  }
+
   /// Mostra um erro (a barra embaixo).
   void Function(String message)? onError;
 
