@@ -102,7 +102,13 @@ class FilesController extends ChangeNotifier {
     for (final lost in _mounts.difference(now)) {
       _leave(lost);
     }
+    final changed = now.length != _mounts.length || !now.containsAll(_mounts);
     _mounts = now;
+    if (!changed) return;
+    // A Lixeira mostra o que há em cada disco
+    for (final tab in tabs) {
+      if (tab.location is TrashLocation) unawaited(tab.refresh());
+    }
   }
 
   void _leave(String mount) {
@@ -157,6 +163,7 @@ class FilesController extends ChangeNotifier {
     }
     _requests = ctx.openRequests.listen(openPaths);
     volumes.volumes.addListener(_leaveLostVolumes);
+    env.trash.mounts = () => _mounts;
     _leaveLostVolumes();
     _updateTitle();
   }

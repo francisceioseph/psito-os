@@ -88,7 +88,11 @@ Future<void> main() async {
   // Um app aceita o que ele abre: o tipo de cada arquivo está entre os dele
   state.dockUi.appAccepts = opener.accepts;
   state.appsForType = opener.appsFor;
-  state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now);
+  state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now)
+    ..mounts = () => [
+      for (final volume in state.services.disks.volumes.value)
+        ?volume.mountPoint,
+    ];
   unawaited(state.dockUi.watchTrash());
   final desk = DeskController(
     state,
@@ -169,10 +173,8 @@ Future<void> main() async {
 /// O agente do polkit. Sem ele as ações que pedem senha só são recusadas, e o
 /// resto do shell não muda.
 Future<void> _publishPolkit(ShellState state, SettingsStore settings) async {
-  String locale() => polkitLocale(
-    settings.value.language,
-    Platform.environment['LANG'] ?? '',
-  );
+  String locale() =>
+      polkitLocale(settings.value.language, Platform.environment['LANG'] ?? '');
   try {
     final registration = await PolkitRegistration.publish(
       DBusClient.system(),

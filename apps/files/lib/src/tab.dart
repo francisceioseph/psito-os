@@ -241,9 +241,10 @@ class FilesTab extends ChangeNotifier {
           if (generation != _generation) return;
           trashItems = {for (final item in list) item.path: item};
           _all = [for (final item in list) ?FsEntry.stat(item.path, env.mime)];
-          final infoDir = env.trash.infoDir;
-          _watch = watchDirectory(infoDir)
-              .listen((_) => unawaited(refresh()), onError: (Object _) {});
+          _watch = env.trash.watch().listen(
+            (_) => unawaited(refresh()),
+            onError: (Object _) {},
+          );
         case SearchLocation(:final root, :final query):
           _all = [];
           trashItems = const {};

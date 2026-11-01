@@ -531,8 +531,18 @@ class DockController {
     } on FileSystemException {
       return;
     }
-    await refreshTrash();
-    dir.watch().listen((_) => unawaited(refreshTrash()));
+    state.services.disks.volumes.addListener(_watchTrashFolders);
+    _watchTrashFolders();
+  }
+
+  StreamSubscription<void>? _trashWatch;
+
+  void _watchTrashFolders() {
+    final trash = this.trash;
+    if (trash == null) return;
+    unawaited(_trashWatch?.cancel());
+    _trashWatch = trash.watch().listen((_) => unawaited(refreshTrash()));
+    unawaited(refreshTrash());
   }
 
   Future<void> refreshTrash() async {
