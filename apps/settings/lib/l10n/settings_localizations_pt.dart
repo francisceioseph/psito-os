@@ -293,4 +293,90 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
   @override
   String get userLoginInvalid =>
       'Use letras minúsculas, números, - e _, começando com uma letra.';
+
+  @override
+  String get savedNetworks => 'Redes salvas';
+
+  @override
+  String get connectionAuto => 'Conecta sozinha';
+
+  @override
+  String get connectionManual => 'Só quando você pedir';
+
+  @override
+  String get connectionAutoconnect => 'Conectar sozinha';
+
+  @override
+  String get connectionPriority => 'Prioridade';
+
+  @override
+  String get connectionPriorityHint =>
+      'Com duas redes ao alcance, entra na de número maior.';
+
+  @override
+  String get connectionMetered => 'Rede limitada';
+
+  @override
+  String get connectionMeteredAuto => 'Automático';
+
+  @override
+  String get connectionMeteredYes => 'Sim, cobra por dados';
+
+  @override
+  String get connectionMeteredNo => 'Não';
+
+  @override
+  String get connectionIpv4 => 'IPv4';
+
+  @override
+  String get connectionIpv4Auto => 'Automático (DHCP)';
+
+  @override
+  String get connectionIpv4Manual => 'Manual';
+
+  @override
+  String get connectionAddress => 'Endereço e rede';
+
+  @override
+  String get connectionDnsHint =>
+      'Separados por vírgula. Vazio usa o DNS da rede.';
+
+  @override
+  String get connectionSave => 'Salvar';
+
+  @override
+  String get connectionForget => 'Esquecer';
+
+  @override
+  String get connectionBadPriority => 'A prioridade é um número inteiro.';
+
+  @override
+  String get connectionBadAddress => 'Use um endereço como 192.168.0.10/24.';
+
+  @override
+  String get connectionBadGateway =>
+      'O gateway é um endereço como 192.168.0.1.';
+
+  @override
+  String get connectionBadDns => 'O DNS é uma lista de endereços como 1.1.1.1.';
+
+  @override
+  String get detailIpv4 => 'IPv4';
+
+  @override
+  String get detailIpv6 => 'IPv6';
+
+  @override
+  String get detailGateway => 'Gateway';
+
+  @override
+  String get detailDns => 'DNS';
+
+  @override
+  String get detailMac => 'Endereço MAC';
+
+  @override
+  String connectionForgetConfirm(String name) {
+    return 'Esquecer $name?';
+  }
 }

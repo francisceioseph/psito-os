@@ -10,6 +10,7 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/launcher_client.dart';
+import 'package:psito_services/network_connections.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/settings_client.dart';
 import 'package:psito_services/accounts_service.dart';
@@ -30,6 +31,7 @@ AppServices startServices(Map<String, String> env) {
       network: FakeNetworkService(),
       time: FakeTimeService(),
       accounts: FakeAccountsService.new,
+      networkConnections: FakeNetworkConnections.new,
     );
   }
   final bus = DBusClient.system();
@@ -38,6 +40,7 @@ AppServices startServices(Map<String, String> env) {
     network: NetworkManagerService(bus),
     time: TimedatedTimeService(bus),
     accounts: () => AccountsdService(bus),
+    networkConnections: () => NetworkManagerConnections(bus),
   );
 }
 

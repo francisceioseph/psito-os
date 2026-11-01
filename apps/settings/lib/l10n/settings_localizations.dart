@@ -628,6 +628,168 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Use lowercase letters, digits, - and _, starting with a letter.'**
   String get userLoginInvalid;
+
+  /// No description provided for @savedNetworks.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved networks'**
+  String get savedNetworks;
+
+  /// No description provided for @connectionAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Connects automatically'**
+  String get connectionAuto;
+
+  /// No description provided for @connectionManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Only when you ask'**
+  String get connectionManual;
+
+  /// No description provided for @connectionAutoconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect automatically'**
+  String get connectionAutoconnect;
+
+  /// No description provided for @connectionPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority'**
+  String get connectionPriority;
+
+  /// No description provided for @connectionPriorityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'With two networks in range, joins the one with the higher number.'**
+  String get connectionPriorityHint;
+
+  /// No description provided for @connectionMetered.
+  ///
+  /// In en, this message translates to:
+  /// **'Metered network'**
+  String get connectionMetered;
+
+  /// No description provided for @connectionMeteredAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get connectionMeteredAuto;
+
+  /// No description provided for @connectionMeteredYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, charges for data'**
+  String get connectionMeteredYes;
+
+  /// No description provided for @connectionMeteredNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get connectionMeteredNo;
+
+  /// No description provided for @connectionIpv4.
+  ///
+  /// In en, this message translates to:
+  /// **'IPv4'**
+  String get connectionIpv4;
+
+  /// No description provided for @connectionIpv4Auto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic (DHCP)'**
+  String get connectionIpv4Auto;
+
+  /// No description provided for @connectionIpv4Manual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get connectionIpv4Manual;
+
+  /// No description provided for @connectionAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address and network'**
+  String get connectionAddress;
+
+  /// No description provided for @connectionDnsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Separated by commas. Empty uses the network\'s DNS.'**
+  String get connectionDnsHint;
+
+  /// No description provided for @connectionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get connectionSave;
+
+  /// No description provided for @connectionForget.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget'**
+  String get connectionForget;
+
+  /// No description provided for @connectionBadPriority.
+  ///
+  /// In en, this message translates to:
+  /// **'The priority is a whole number.'**
+  String get connectionBadPriority;
+
+  /// No description provided for @connectionBadAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Use an address like 192.168.0.10/24.'**
+  String get connectionBadAddress;
+
+  /// No description provided for @connectionBadGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'The gateway is an address like 192.168.0.1.'**
+  String get connectionBadGateway;
+
+  /// No description provided for @connectionBadDns.
+  ///
+  /// In en, this message translates to:
+  /// **'The DNS is a list of addresses like 1.1.1.1.'**
+  String get connectionBadDns;
+
+  /// No description provided for @detailIpv4.
+  ///
+  /// In en, this message translates to:
+  /// **'IPv4'**
+  String get detailIpv4;
+
+  /// No description provided for @detailIpv6.
+  ///
+  /// In en, this message translates to:
+  /// **'IPv6'**
+  String get detailIpv6;
+
+  /// No description provided for @detailGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'Gateway'**
+  String get detailGateway;
+
+  /// No description provided for @detailDns.
+  ///
+  /// In en, this message translates to:
+  /// **'DNS'**
+  String get detailDns;
+
+  /// No description provided for @detailMac.
+  ///
+  /// In en, this message translates to:
+  /// **'MAC address'**
+  String get detailMac;
+
+  /// No description provided for @connectionForgetConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget {name}?'**
+  String connectionForgetConfirm(String name);
 }
 
 class _SettingsLocalizationsDelegate

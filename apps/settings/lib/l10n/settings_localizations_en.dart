@@ -292,4 +292,90 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
   @override
   String get userLoginInvalid =>
       'Use lowercase letters, digits, - and _, starting with a letter.';
+
+  @override
+  String get savedNetworks => 'Saved networks';
+
+  @override
+  String get connectionAuto => 'Connects automatically';
+
+  @override
+  String get connectionManual => 'Only when you ask';
+
+  @override
+  String get connectionAutoconnect => 'Connect automatically';
+
+  @override
+  String get connectionPriority => 'Priority';
+
+  @override
+  String get connectionPriorityHint =>
+      'With two networks in range, joins the one with the higher number.';
+
+  @override
+  String get connectionMetered => 'Metered network';
+
+  @override
+  String get connectionMeteredAuto => 'Automatic';
+
+  @override
+  String get connectionMeteredYes => 'Yes, charges for data';
+
+  @override
+  String get connectionMeteredNo => 'No';
+
+  @override
+  String get connectionIpv4 => 'IPv4';
+
+  @override
+  String get connectionIpv4Auto => 'Automatic (DHCP)';
+
+  @override
+  String get connectionIpv4Manual => 'Manual';
+
+  @override
+  String get connectionAddress => 'Address and network';
+
+  @override
+  String get connectionDnsHint =>
+      'Separated by commas. Empty uses the network\'s DNS.';
+
+  @override
+  String get connectionSave => 'Save';
+
+  @override
+  String get connectionForget => 'Forget';
+
+  @override
+  String get connectionBadPriority => 'The priority is a whole number.';
+
+  @override
+  String get connectionBadAddress => 'Use an address like 192.168.0.10/24.';
+
+  @override
+  String get connectionBadGateway =>
+      'The gateway is an address like 192.168.0.1.';
+
+  @override
+  String get connectionBadDns => 'The DNS is a list of addresses like 1.1.1.1.';
+
+  @override
+  String get detailIpv4 => 'IPv4';
+
+  @override
+  String get detailIpv6 => 'IPv6';
+
+  @override
+  String get detailGateway => 'Gateway';
+
+  @override
+  String get detailDns => 'DNS';
+
+  @override
+  String get detailMac => 'MAC address';
+
+  @override
+  String connectionForgetConfirm(String name) {
+    return 'Forget $name?';
+  }
 }

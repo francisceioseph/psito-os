@@ -10,6 +10,7 @@ import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'package:psito_services/accounts_service.dart';
+import 'package:psito_services/network_connections.dart';
 import 'package:psito_services/time_service.dart';
 
 enum SnapMode { left, right, maximized }
@@ -89,6 +90,9 @@ class WindowManager extends ChangeNotifier {
 
   /// As contas do laboratório: nunca as de verdade do host.
   final PsitoAccounts accounts = FakeAccountsService();
+
+  /// Idem para as conexões de rede.
+  final PsitoNetworkConnections networkConnections = FakeNetworkConnections();
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -401,6 +405,14 @@ class _WindowContext implements PsitoAppContext {
     return window != null && window.app.canChangeSettings
         ? _manager.accounts
         : const PsitoNoAccounts();
+  }
+
+  @override
+  PsitoNetworkConnections get networkConnections {
+    final window = _manager._byId(windowId);
+    return window != null && window.app.canChangeSettings
+        ? _manager.networkConnections
+        : const PsitoNoNetworkConnections();
   }
 
   @override

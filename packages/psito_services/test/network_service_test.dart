@@ -181,11 +181,6 @@ void main() {
     late FakeDBusObject device;
     late FakeDBusObject active;
     late FakeDBusObject newConnection;
-    final savedByKey = <String, FakeDBusObject>{};
-
-    List<String> savedCalls(String id) => [
-      for (final c in savedByKey[id]!.calls) c.name,
-    ];
 
     FakeDBusObject accessPoint(
       int n,
@@ -261,7 +256,6 @@ void main() {
                   }),
                 }),
               ];
-        savedByKey[id] = object;
         savedObjects.add(object);
       });
       settings =
@@ -453,13 +447,6 @@ void main() {
       );
       expect(call.values[0], _path('/Settings/1'));
       expect(newConnection.calls, isEmpty);
-    });
-
-    test('esquecer apaga as conexões guardadas daquele nome', () async {
-      await startWifi(saved: {'Casa': '1', 'Fraca': '2'});
-      await service.forgetWifi('Casa');
-      expect(savedCalls('1'), ['GetSettings', 'Delete']);
-      expect(savedCalls('2'), ['GetSettings']);
     });
   });
 

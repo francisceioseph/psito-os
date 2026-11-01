@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'l10n/l10n.dart';
+import 'network_section.dart';
 import 'users_section.dart';
 
 enum _Section {
@@ -420,8 +421,9 @@ class _SettingsViewState extends State<SettingsView> {
         if (network.devices.isEmpty) {
           return _Note(context.l10n.noNetworkDevice);
         }
-        return Column(
-          children: [for (final device in network.devices) _DeviceTile(device)],
+        return NetworkSection(
+          network: network,
+          connections: widget.appContext.networkConnections,
         );
       },
     ),
@@ -671,43 +673,6 @@ class _Cell extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _DeviceTile extends StatelessWidget {
-  final PsitoNetworkDevice device;
-
-  const _DeviceTile(this.device);
-
-  static String stateLabel(PsitoDeviceState state, SettingsLocalizations l) =>
-      switch (state) {
-        PsitoDeviceState.connected => l.deviceConnected,
-        PsitoDeviceState.connecting => l.deviceConnecting,
-        PsitoDeviceState.disconnected => l.deviceDisconnected,
-        PsitoDeviceState.unavailable => l.deviceUnavailable,
-        PsitoDeviceState.other => l.deviceUnmanaged,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final details = [
-      stateLabel(device.state, context.l10n),
-      ?device.connection,
-      ?device.ipv4,
-    ].join(' · ');
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(switch (device.kind) {
-        PsitoNetworkKind.ethernet => Icons.lan,
-        PsitoNetworkKind.wifi => Icons.wifi,
-        PsitoNetworkKind.other => Icons.settings_ethernet,
-      }),
-      title: Text(device.interface),
-      subtitle: Text(
-        details,
-        style: TextStyle(fontSize: 12, color: context.palette.textTertiary),
-      ),
-    );
-  }
 }
 
 class _InfoRow extends StatelessWidget {

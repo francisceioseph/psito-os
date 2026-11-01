@@ -37,9 +37,6 @@ abstract class NetworkService {
 
   Future<void> disconnectWifi();
 
-  /// Apaga as conexões guardadas de [ssid], com a senha.
-  Future<void> forgetWifi(String ssid);
-
   Future<void> dispose();
 }
 
@@ -207,6 +204,9 @@ class NetworkManagerService implements NetworkService {
       if (device.ip4Config case final ip?) {
         _objects.add(ip.propertiesChanged.listen(changed));
       }
+      if (device.ip6Config case final ip?) {
+        _objects.add(ip.propertiesChanged.listen(changed));
+      }
       if (device.wireless case final wireless?) {
         // A lista de pontos de acesso muda aqui: os novos precisam de assinatura
         _objects.add(
@@ -252,6 +252,15 @@ class NetworkManagerService implements NetworkService {
     connection: connection ?? device.activeConnection?.id,
     ipv4: _address(ip ?? device.ip4Config),
     wifiStrength: _strength(device),
+    ipv6: _ipv6Address(device.ip6Config),
+    gateway: _nonEmpty((ip ?? device.ip4Config)?.gateway),
+    dns: [
+      for (final server
+          in (ip ?? device.ip4Config)?.nameserverData ??
+              const <Map<String, dynamic>>[])
+        '${server['address']}',
+    ],
+    mac: _nonEmpty(device.hwAddress),
   );
 
   void _publish() {
@@ -259,7 +268,7 @@ class NetworkManagerService implements NetworkService {
     final primaryDevice = primary?.devices.firstOrNull;
     final devices = [
       for (final device in _nm.devices)
-        if (device.interface != 'lo') _describeDevice(device),
+        if (_listed(device)) _describeDevice(device),
     ];
     _state.value = PsitoNetworkState(
       available: true,
@@ -288,6 +297,13 @@ class NetworkManagerService implements NetworkService {
       wifi: _wifiState(),
     );
   }
+
+  // Fora ficam o lo e o que ninguém usa: os que o NetworkManager não gerencia e
+  // a metade P2P de cada rádio
+  static bool _listed(NetworkManagerDevice device) =>
+      device.interface != 'lo' &&
+      device.state != NetworkManagerDeviceState.unmanaged &&
+      device.deviceType != NetworkManagerDeviceType.wifiP2p;
 
   /// O primeiro rádio que o NetworkManager gerencia.
   NetworkManagerDevice? get _wifiDevice {
@@ -413,6 +429,18 @@ class NetworkManagerService implements NetworkService {
     if (first == null) return null;
     return '${first['address']}/${first['prefix']}';
   }
+
+  // O endereço de enlace (fe80::) só serve dentro da própria rede
+  static String? _ipv6Address(NetworkManagerIP6Config? config) {
+    final addresses = config?.addressData ?? const <Map<String, dynamic>>[];
+    final first = addresses
+        .where((a) => !'${a['address']}'.toLowerCase().startsWith('fe80:'))
+        .firstOrNull;
+    return first == null ? null : '${first['address']}/${first['prefix']}';
+  }
+
+  static String? _nonEmpty(String? value) =>
+      value == null || value.isEmpty ? null : value;
 
   static int? _strength(NetworkManagerDevice device) =>
       device.wireless?.activeAccessPoint?.strength;
@@ -673,13 +701,6 @@ class NetworkManagerService implements NetworkService {
   }
 
   @override
-  Future<void> forgetWifi(String ssid) async {
-    for (final connection in _saved[ssid] ?? const <DBusObjectPath>[]) {
-      await _deleteConnection(connection);
-    }
-  }
-
-  @override
   Future<void> dispose() async {
     for (final sub in [..._structure, ..._objects]) {
       await sub.cancel();
@@ -858,11 +879,6 @@ class FakeNetworkService implements NetworkService {
   @override
   Future<void> disconnectWifi() async =>
       _setNetworks((n) => _copy(n, active: false, saved: n.saved));
-
-  @override
-  Future<void> forgetWifi(String ssid) async => _setNetworks(
-    (n) => n.ssid == ssid ? _copy(n, active: n.active, saved: false) : n,
-  );
 
   @override
   Future<void> dispose() async => _state.dispose();

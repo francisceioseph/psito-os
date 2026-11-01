@@ -99,6 +99,10 @@ abstract class PsitoAppContext {
   /// nenhuma ação vale.
   PsitoAccounts get accounts;
 
+  /// As conexões de rede guardadas. Sem [PsitoApp.canChangeSettings], é a lista
+  /// vazia e nenhuma ação vale.
+  PsitoNetworkConnections get networkConnections;
+
   /// Os arquivos com que o app foi aberto (o "Abrir" do Files ou de outro
   /// app). No sandbox, o que o app não veria chega montado em
   /// `$XDG_RUNTIME_DIR/doc/`.
@@ -603,6 +607,11 @@ class PsitoNetworkDevice {
   /// 0–100, só em Wi-Fi.
   final int? wifiStrength;
 
+  final String? ipv6;
+  final String? gateway;
+  final List<String> dns;
+  final String? mac;
+
   const PsitoNetworkDevice({
     required this.interface,
     required this.kind,
@@ -610,6 +619,10 @@ class PsitoNetworkDevice {
     this.connection,
     this.ipv4,
     this.wifiStrength,
+    this.ipv6,
+    this.gateway,
+    this.dns = const [],
+    this.mac,
   });
 
   @override
@@ -620,11 +633,25 @@ class PsitoNetworkDevice {
       other.state == state &&
       other.connection == connection &&
       other.ipv4 == ipv4 &&
-      other.wifiStrength == wifiStrength;
+      other.wifiStrength == wifiStrength &&
+      other.ipv6 == ipv6 &&
+      other.gateway == gateway &&
+      listEquals(other.dns, dns) &&
+      other.mac == mac;
 
   @override
-  int get hashCode =>
-      Object.hash(interface, kind, state, connection, ipv4, wifiStrength);
+  int get hashCode => Object.hash(
+    interface,
+    kind,
+    state,
+    connection,
+    ipv4,
+    wifiStrength,
+    ipv6,
+    gateway,
+    Object.hashAll(dns),
+    mac,
+  );
 }
 
 /// O que a rede está fazendo (NetworkManager no Linux).
@@ -827,6 +854,134 @@ class PsitoNoAccounts implements PsitoAccounts {
 
   @override
   Future<bool> delete(int uid) async => false;
+}
+
+/// De onde vem o IPv4 de uma conexão guardada.
+enum PsitoIpMethod {
+  auto,
+  manual,
+
+  /// Outro modo (ex.: compartilhar a conexão), que as Configurações não mudam.
+  other,
+}
+
+/// Se a rede cobra por dados. Em [auto], o sistema decide.
+enum PsitoMetered { auto, yes, no }
+
+/// Uma conexão guardada, com o que dá para mudar nela.
+@immutable
+class PsitoSavedConnection {
+  final String uuid;
+  final String name;
+  final PsitoNetworkKind kind;
+
+  /// Entra sozinha quando a rede aparece.
+  final bool autoconnect;
+
+  /// Entre duas redes ao alcance, a de número maior.
+  final int priority;
+  final PsitoMetered metered;
+  final PsitoIpMethod ipv4Method;
+
+  /// Só em [PsitoIpMethod.manual]. Ex.: 192.168.0.10/24.
+  final String address;
+  final String gateway;
+
+  /// Vazia, usa o DNS que a rede oferece.
+  final List<String> dns;
+
+  const PsitoSavedConnection({
+    required this.uuid,
+    required this.name,
+    required this.kind,
+    this.autoconnect = true,
+    this.priority = 0,
+    this.metered = PsitoMetered.auto,
+    this.ipv4Method = PsitoIpMethod.auto,
+    this.address = '',
+    this.gateway = '',
+    this.dns = const [],
+  });
+
+  PsitoSavedConnection copyWith({
+    bool? autoconnect,
+    int? priority,
+    PsitoMetered? metered,
+    PsitoIpMethod? ipv4Method,
+    String? address,
+    String? gateway,
+    List<String>? dns,
+  }) => PsitoSavedConnection(
+    uuid: uuid,
+    name: name,
+    kind: kind,
+    autoconnect: autoconnect ?? this.autoconnect,
+    priority: priority ?? this.priority,
+    metered: metered ?? this.metered,
+    ipv4Method: ipv4Method ?? this.ipv4Method,
+    address: address ?? this.address,
+    gateway: gateway ?? this.gateway,
+    dns: dns ?? this.dns,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoSavedConnection &&
+      other.uuid == uuid &&
+      other.name == name &&
+      other.kind == kind &&
+      other.autoconnect == autoconnect &&
+      other.priority == priority &&
+      other.metered == metered &&
+      other.ipv4Method == ipv4Method &&
+      other.address == address &&
+      other.gateway == gateway &&
+      listEquals(other.dns, dns);
+
+  @override
+  int get hashCode => Object.hash(
+    uuid,
+    name,
+    kind,
+    autoconnect,
+    priority,
+    metered,
+    ipv4Method,
+    address,
+    gateway,
+    Object.hashAll(dns),
+  );
+}
+
+/// As conexões guardadas. Cada ação devolve se deu certo: recusada, ou com o
+/// diálogo de senha cancelado, é false. As da conta não pedem senha, e as do
+/// sistema (o cabo) pedem a de administrador a quem não está no grupo `sudo` ou
+/// `netdev`, que o Debian libera.
+abstract class PsitoNetworkConnections {
+  /// Vazia enquanto carrega, ou sem o serviço.
+  ValueListenable<List<PsitoSavedConnection>> get connections;
+
+  /// Grava, e vale na hora se a conexão estiver ativa.
+  Future<bool> update(PsitoSavedConnection connection);
+
+  /// Apaga a conexão, com a senha dela.
+  Future<bool> forget(String uuid);
+}
+
+/// O [PsitoAppContext.networkConnections] de quem não pode mexer no sistema.
+class PsitoNoNetworkConnections implements PsitoNetworkConnections {
+  static final _empty = ValueNotifier<List<PsitoSavedConnection>>(const []);
+
+  const PsitoNoNetworkConnections();
+
+  @override
+  ValueListenable<List<PsitoSavedConnection>> get connections => _empty;
+
+  @override
+  Future<bool> update(PsitoSavedConnection connection) async => false;
+
+  @override
+  Future<bool> forget(String uuid) async => false;
 }
 
 class PsitoTimeState {

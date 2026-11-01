@@ -56,6 +56,10 @@ class FakeContext implements PsitoAppContext {
   PsitoAccounts get accounts => const PsitoNoAccounts();
 
   @override
+  PsitoNetworkConnections get networkConnections =>
+      const PsitoNoNetworkConnections();
+
+  @override
   void setNtp(bool enabled) {}
   @override
   Stream<List<String>> get openRequests => requests.stream;
