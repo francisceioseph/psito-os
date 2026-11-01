@@ -118,5 +118,19 @@
   "vpnImport": "Importar VPN…",
   "vpnImportTitle": "Importar VPN (WireGuard ou OpenVPN)",
   "vpnImported": "VPN guardada. Ela liga pelo ícone de rede na barra superior.",
-  "vpnImportFailed": "Não foi possível importar este arquivo."
+  "vpnImportFailed": "Não foi possível importar este arquivo.",
+  "hotspotTitle": "Compartilhar a conexão",
+  "hotspotHint": "Outros aparelhos entram nesta rede e usam a internet deste computador. Enquanto isso, o Wi-Fi sai da rede em que está.",
+  "hotspotName": "Nome da rede",
+  "hotspotPassword": "Senha",
+  "hotspotNewPassword": "Gerar outra senha",
+  "hotspotBadName": "O nome precisa ter de 1 a 32 bytes.",
+  "hotspotBadPassword": "A senha precisa ter de 8 a 63 caracteres, sem acentos.",
+  "hotspotStart": "Começar a compartilhar",
+  "hotspotStop": "Parar de compartilhar",
+  "hotspotStarting": "Começando…",
+  "hotspotActive": "Compartilhando. Outros aparelhos já podem entrar.",
+  "hotspotNoUplink": "Não há outra conexão: quem entrar ficará sem internet.",
+  "hotspotWifiOff": "Ligue o Wi-Fi para compartilhar.",
+  "hotspotFailed": "Não foi possível compartilhar."
 }

@@ -392,4 +392,50 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
 
   @override
   String get vpnImportFailed => 'Não foi possível importar este arquivo.';
+
+  @override
+  String get hotspotTitle => 'Compartilhar a conexão';
+
+  @override
+  String get hotspotHint =>
+      'Outros aparelhos entram nesta rede e usam a internet deste computador. Enquanto isso, o Wi-Fi sai da rede em que está.';
+
+  @override
+  String get hotspotName => 'Nome da rede';
+
+  @override
+  String get hotspotPassword => 'Senha';
+
+  @override
+  String get hotspotNewPassword => 'Gerar outra senha';
+
+  @override
+  String get hotspotBadName => 'O nome precisa ter de 1 a 32 bytes.';
+
+  @override
+  String get hotspotBadPassword =>
+      'A senha precisa ter de 8 a 63 caracteres, sem acentos.';
+
+  @override
+  String get hotspotStart => 'Começar a compartilhar';
+
+  @override
+  String get hotspotStop => 'Parar de compartilhar';
+
+  @override
+  String get hotspotStarting => 'Começando…';
+
+  @override
+  String get hotspotActive =>
+      'Compartilhando. Outros aparelhos já podem entrar.';
+
+  @override
+  String get hotspotNoUplink =>
+      'Não há outra conexão: quem entrar ficará sem internet.';
+
+  @override
+  String get hotspotWifiOff => 'Ligue o Wi-Fi para compartilhar.';
+
+  @override
+  String get hotspotFailed => 'Não foi possível compartilhar.';
 }

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/network_connections.dart';
+import 'package:psito_services/network_service.dart';
 
 import 'package:psito_services/system_services.dart';
 
@@ -69,6 +71,12 @@ class _DesktopScreenState extends State<DesktopScreen> {
     onUpdateSettings: _settings.update,
     systemInfo: _services.systemInfo.info,
     network: _services.network.state,
+    networkConnections: FakeNetworkConnections(
+      null,
+      _services.network is FakeNetworkService
+          ? _services.network as FakeNetworkService
+          : null,
+    ),
     time: _services.time,
   );
 

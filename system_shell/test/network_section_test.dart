@@ -213,4 +213,126 @@ void main() {
       expect(connections.connections.value.last.autoconnect, isTrue);
     });
   });
+
+  group('compartilhar', () {
+    final name = find.byKey(_key('hotspot-name'));
+    final password = find.byKey(_key('hotspot-password'));
+    final start = find.byKey(_key('hotspot-start'));
+
+    const canShare = PsitoWifiState(canShare: true);
+    const wifiOnly = PsitoNetworkState(available: true, wifi: canShare);
+    final withCable = PsitoNetworkState(
+      available: true,
+      devices: const [FakeNetworkService.ethernet],
+      wifi: canShare,
+    );
+
+    testWidgets('some se o adaptador não sabe', (tester) async {
+      await pump(
+        tester,
+        network: const PsitoNetworkState(
+          available: true,
+          wifi: PsitoWifiState(),
+        ),
+      );
+      expect(name, findsNothing);
+    });
+
+    testWidgets('já vem com uma senha que serve', (tester) async {
+      await pump(tester, network: withCable);
+      final text = tester.widget<TextField>(password).controller!.text;
+      expect(PsitoHotspotConfig.validPassword(text), isTrue);
+    });
+
+    testWidgets('gerar troca a senha', (tester) async {
+      await pump(tester, network: withCable);
+      final field = tester.widget<TextField>(password).controller!;
+      final before = field.text;
+      await tester.tap(find.byKey(_key('hotspot-new-password')));
+      await tester.pump();
+      expect(field.text, isNot(before));
+    });
+
+    testWidgets('usa o nome e a senha guardados', (tester) async {
+      connections.hotspot = const PsitoHotspotConfig(
+        name: 'Calopsita',
+        password: 'abcd1234',
+      );
+      await pump(tester, network: withCable);
+      await tester.pump();
+      expect(tester.widget<TextField>(name).controller!.text, 'Calopsita');
+      expect(tester.widget<TextField>(password).controller!.text, 'abcd1234');
+    });
+
+    testWidgets('recusa senha curta sem chamar o sistema', (tester) async {
+      await pump(tester, network: withCable);
+      await tester.enterText(name, 'Calopsita');
+      await tester.enterText(password, 'curta');
+      await tester.tap(start);
+      await tester.pump();
+      expect(find.textContaining('8 a 63'), findsOneWidget);
+      expect(connections.hotspot, isNull);
+    });
+
+    testWidgets('começar grava o nome e a senha', (tester) async {
+      await pump(tester, network: withCable);
+      await tester.enterText(name, 'Calopsita');
+      await tester.enterText(password, 'abcd1234');
+      await tester.tap(start);
+      await tester.pump();
+      expect(
+        connections.hotspot,
+        const PsitoHotspotConfig(name: 'Calopsita', password: 'abcd1234'),
+      );
+    });
+
+    testWidgets('a falha avisa', (tester) async {
+      connections.answer = false;
+      await pump(tester, network: withCable);
+      await tester.enterText(name, 'Calopsita');
+      await tester.tap(start);
+      await tester.pump();
+      expect(find.text('Não foi possível compartilhar.'), findsOneWidget);
+    });
+
+    testWidgets('avisa quando não há outra conexão', (tester) async {
+      await pump(tester, network: wifiOnly);
+      expect(find.byKey(_key('hotspot-no-uplink')), findsOneWidget);
+      await pump(tester, network: withCable);
+      expect(find.byKey(_key('hotspot-no-uplink')), findsNothing);
+    });
+
+    testWidgets('com o Wi-Fi desligado, não dá para começar', (tester) async {
+      await pump(
+        tester,
+        network: const PsitoNetworkState(
+          available: true,
+          wifi: PsitoWifiState(enabled: false, canShare: true),
+        ),
+      );
+      expect(tester.widget<FilledButton>(start).onPressed, isNull);
+      expect(find.text('Ligue o Wi-Fi para compartilhar.'), findsOneWidget);
+    });
+
+    testWidgets('compartilhando, trava os campos e oferece parar', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        network: PsitoNetworkState(
+          available: true,
+          devices: const [FakeNetworkService.ethernet],
+          wifi: const PsitoWifiState(
+            canShare: true,
+            hotspot: PsitoHotspot(uuid: 'h', name: 'Calopsita'),
+          ),
+        ),
+      );
+      expect(tester.widget<TextField>(name).readOnly, isTrue);
+      expect(start, findsNothing);
+      await tester.tap(find.byKey(_key('hotspot-stop')));
+      await tester.pump();
+      expect(find.textContaining('Compartilhando'), findsOneWidget);
+    });
+  });
 }

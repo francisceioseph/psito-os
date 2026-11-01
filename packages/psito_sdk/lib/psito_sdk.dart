@@ -3,6 +3,8 @@
 // Os apps só conhecem o que está aqui: nada de screens/, widgets/ ou shell/.
 // Na fase 4 este contrato vira o protocolo entre processos, então tudo que um
 // app pede ao shell precisa passar pelo PsitoAppContext.
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'
     show Brightness, ColorScheme, Theme, ThemeData, ThemeExtension;
@@ -737,6 +739,32 @@ class PsitoVpn {
   int get hashCode => Object.hash(uuid, name, active, busy);
 }
 
+/// O Wi-Fi servindo de ponto de acesso: a rede que os outros aparelhos veem.
+@immutable
+class PsitoHotspot {
+  final String uuid;
+  final String name;
+
+  /// Ainda subindo. Quem entrar agora não consegue.
+  final bool busy;
+
+  const PsitoHotspot({
+    required this.uuid,
+    required this.name,
+    this.busy = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoHotspot &&
+      other.uuid == uuid &&
+      other.name == name &&
+      other.busy == busy;
+
+  @override
+  int get hashCode => Object.hash(uuid, name, busy);
+}
+
 /// O rádio de Wi-Fi, quando há um.
 @immutable
 class PsitoWifiState {
@@ -745,16 +773,31 @@ class PsitoWifiState {
   /// A ativa primeiro, depois por sinal.
   final List<PsitoWifiNetwork> networks;
 
-  const PsitoWifiState({this.enabled = true, this.networks = const []});
+  /// O adaptador sabe ser ponto de acesso.
+  final bool canShare;
+
+  /// Null quando não está compartilhando. Enquanto compartilha, o rádio não
+  /// procura redes, e [networks] fica vazia.
+  final PsitoHotspot? hotspot;
+
+  const PsitoWifiState({
+    this.enabled = true,
+    this.networks = const [],
+    this.canShare = false,
+    this.hotspot,
+  });
 
   @override
   bool operator ==(Object other) =>
       other is PsitoWifiState &&
       other.enabled == enabled &&
-      listEquals(other.networks, networks);
+      listEquals(other.networks, networks) &&
+      other.canShare == canShare &&
+      other.hotspot == hotspot;
 
   @override
-  int get hashCode => Object.hash(enabled, Object.hashAll(networks));
+  int get hashCode =>
+      Object.hash(enabled, Object.hashAll(networks), canShare, hotspot);
 }
 
 enum PsitoWifiResult {
@@ -1020,6 +1063,43 @@ abstract class PsitoNetworkConnections {
   /// Guarda a VPN de um arquivo do WireGuard (`.conf`) ou do OpenVPN (`.ovpn`),
   /// sem ligar, e devolve se deu certo.
   Future<bool> importVpn(String path);
+
+  /// O nome e a senha da última vez que compartilhou, ou null se nunca.
+  Future<PsitoHotspotConfig?> hotspotConfig();
+
+  /// Grava e liga o ponto de acesso, e espera ele subir. O Wi-Fi sai da rede em
+  /// que está.
+  Future<bool> startHotspot(PsitoHotspotConfig config);
+
+  Future<bool> stopHotspot();
+}
+
+/// O nome e a senha do ponto de acesso (WPA2).
+@immutable
+class PsitoHotspotConfig {
+  final String name;
+  final String password;
+
+  const PsitoHotspotConfig({required this.name, required this.password});
+
+  /// O nome tem de 1 a 32 bytes, como todo SSID.
+  static bool validName(String name) {
+    final bytes = utf8.encode(name).length;
+    return bytes >= 1 && bytes <= 32;
+  }
+
+  /// O WPA2 aceita de 8 a 63 caracteres ASCII.
+  static bool validPassword(String password) =>
+      RegExp(r'^[\x20-\x7e]{8,63}$').hasMatch(password);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoHotspotConfig &&
+      other.name == name &&
+      other.password == password;
+
+  @override
+  int get hashCode => Object.hash(name, password);
 }
 
 /// O [PsitoAppContext.networkConnections] de quem não pode mexer no sistema.
@@ -1036,6 +1116,15 @@ class PsitoNoNetworkConnections implements PsitoNetworkConnections {
 
   @override
   Future<bool> forget(String uuid) async => false;
+
+  @override
+  Future<PsitoHotspotConfig?> hotspotConfig() async => null;
+
+  @override
+  Future<bool> startHotspot(PsitoHotspotConfig config) async => false;
+
+  @override
+  Future<bool> stopHotspot() async => false;
 
   @override
   Future<bool> importVpn(String path) async => false;

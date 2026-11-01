@@ -40,6 +40,10 @@ abstract class NetworkService {
   /// Liga ou desliga uma VPN guardada e devolve se deu certo.
   Future<bool> setVpnActive(String uuid, bool active);
 
+  /// Para de compartilhar. Quem liga são as Configurações, que têm o nome e a
+  /// senha.
+  Future<void> stopHotspot();
+
   Future<void> dispose();
 }
 
@@ -97,6 +101,9 @@ class NetworkManagerService implements NetworkService {
   /// As VPNs guardadas, por uuid.
   Map<String, ({String name, DBusObjectPath path})> _savedVpns = const {};
 
+  /// Os pontos de acesso guardados: nome da rede, por uuid.
+  Map<String, String> _savedHotspots = const {};
+
   /// Completa depois da primeira leitura, com ou sem sucesso.
   late final Future<void> ready;
 
@@ -152,6 +159,7 @@ class NetworkManagerService implements NetworkService {
   Future<void> _loadSaved() async {
     final saved = <String, List<DBusObjectPath>>{};
     final vpns = <String, ({String name, DBusObjectPath path})>{};
+    final hotspots = <String, String>{};
     try {
       final list =
           await DBusRemoteObject(
@@ -175,9 +183,15 @@ class NetworkManagerService implements NetworkService {
           );
           continue;
         }
-        final ssid = settings['802-11-wireless']?['ssid'];
+        final wireless = settings['802-11-wireless'];
+        final ssid = wireless?['ssid'];
         if (ssid == null) continue;
         final name = _ssidName(ssid.asByteArray().toList());
+        // Um ponto de acesso não é uma rede em que se entra
+        if (wireless!['mode']?.asString() == 'ap') {
+          hotspots[connection!['uuid']!.asString()] = name;
+          continue;
+        }
         (saved[name] ??= []).add(path);
       }
     } catch (e) {
@@ -186,6 +200,7 @@ class NetworkManagerService implements NetworkService {
     }
     _saved = saved;
     _savedVpns = vpns;
+    _savedHotspots = hotspots;
     if (_connected) _publish();
   }
 
@@ -309,6 +324,10 @@ class NetworkManagerService implements NetworkService {
       for (final device in _nm.devices)
         if (_listed(device)) _describeDevice(device),
     ];
+    final wifi = _wifiDevice;
+    final sharing = _savedHotspots.containsKey(wifi?.activeConnection?.uuid)
+        ? wifi?.interface
+        : null;
     _state.value = PsitoNetworkState(
       available: true,
       enabled: _nm.networkingEnabled,
@@ -324,7 +343,9 @@ class NetworkManagerService implements NetworkService {
                   (d) =>
                       d.state == PsitoDeviceState.connected &&
                       d.connection != null &&
-                      d.kind != PsitoNetworkKind.other,
+                      d.kind != PsitoNetworkKind.other &&
+                      // Quem compartilha não está numa rede
+                      d.interface != sharing,
                 )
                 .firstOrNull
           : _describeDevice(
@@ -374,8 +395,25 @@ class NetworkManagerService implements NetworkService {
     final device = _wifiDevice;
     final wireless = device?.wireless;
     if (wireless == null) return null;
+    final canShare = wireless.wirelessCapabilities.contains(
+      NetworkManagerDeviceWifiCapability.ap,
+    );
+    final activeConnection = device!.activeConnection;
+    if (_savedHotspots[activeConnection?.uuid] case final name?) {
+      return PsitoWifiState(
+        enabled: _nm.wirelessEnabled,
+        canShare: canShare,
+        hotspot: PsitoHotspot(
+          uuid: activeConnection!.uuid,
+          name: name,
+          busy:
+              activeConnection.state !=
+              NetworkManagerActiveConnectionState.activated,
+        ),
+      );
+    }
     // O ponto de acesso já é o ativo durante o aperto de mão
-    final connected = device!.state == NetworkManagerDeviceState.activated;
+    final connected = device.state == NetworkManagerDeviceState.activated;
     final active = wireless.activeAccessPoint?.ssid;
     final activeName = active == null ? null : _ssidName(active);
     final best = <String, NetworkManagerAccessPoint>{};
@@ -387,6 +425,7 @@ class NetworkManagerService implements NetworkService {
     }
     return PsitoWifiState(
       enabled: _nm.wirelessEnabled,
+      canShare: canShare,
       networks: sortWifiNetworks([
         for (final MapEntry(key: ssid, value: ap) in best.entries)
           PsitoWifiNetwork(
@@ -770,26 +809,42 @@ class NetworkManagerService implements NetworkService {
         ], replySignature: DBusSignature('o'));
         return await _waitForActivation(reply.returnValues[0].asObjectPath());
       }
-      final list = await manager.getProperty(
-        busName,
-        'ActiveConnections',
-        signature: DBusSignature('ao'),
-      );
-      for (final path in list.asObjectPathArray()) {
-        final id = await DBusRemoteObject(
-          _bus,
-          name: busName,
-          path: path,
-        ).getProperty(_activeInterface, 'Uuid', signature: DBusSignature('s'));
-        if (id.asString() != uuid) continue;
-        await manager.callMethod(busName, 'DeactivateConnection', [
-          path,
-        ], replySignature: DBusSignature(''));
-      }
+      await _deactivate(uuid);
       return true;
     } catch (e) {
       debugPrint('🦜 Erro ao ${active ? 'ligar' : 'desligar'} a VPN: $e');
       return false;
+    }
+  }
+
+  Future<void> _deactivate(String uuid) async {
+    final manager = DBusRemoteObject(_bus, name: busName, path: managerPath);
+    final list = await manager.getProperty(
+      busName,
+      'ActiveConnections',
+      signature: DBusSignature('ao'),
+    );
+    for (final path in list.asObjectPathArray()) {
+      final id = await DBusRemoteObject(
+        _bus,
+        name: busName,
+        path: path,
+      ).getProperty(_activeInterface, 'Uuid', signature: DBusSignature('s'));
+      if (id.asString() != uuid) continue;
+      await manager.callMethod(busName, 'DeactivateConnection', [
+        path,
+      ], replySignature: DBusSignature(''));
+    }
+  }
+
+  @override
+  Future<void> stopHotspot() async {
+    final uuid = _wifiDevice?.activeConnection?.uuid;
+    if (!_savedHotspots.containsKey(uuid)) return;
+    try {
+      await _deactivate(uuid!);
+    } catch (e) {
+      debugPrint('🦜 Erro ao parar de compartilhar: $e');
     }
   }
 
@@ -828,6 +883,7 @@ class FakeNetworkService implements NetworkService {
     devices: [ethernet],
     vpns: [PsitoVpn(uuid: 'trabalho', name: 'Trabalho')],
     wifi: PsitoWifiState(
+      canShare: true,
       networks: [
         PsitoWifiNetwork(
           ssid: 'Casa',
@@ -1000,6 +1056,36 @@ class FakeNetworkService implements NetworkService {
     );
     return true;
   }
+
+  /// As redes de antes de compartilhar, para voltar a elas.
+  List<PsitoWifiNetwork> _beforeHotspot = const [];
+
+  /// O que o `startHotspot` das Configurações faz no NetworkManager de verdade.
+  void setHotspot(PsitoHotspot? hotspot) {
+    final s = _state.value;
+    final wifi = s.wifi;
+    if (wifi == null) return;
+    if (wifi.hotspot == null) _beforeHotspot = wifi.networks;
+    _state.value = PsitoNetworkState(
+      available: s.available,
+      enabled: s.enabled,
+      connectivity: s.connectivity,
+      connecting: s.connecting,
+      primary: s.primary,
+      devices: s.devices,
+      wifi: PsitoWifiState(
+        enabled: wifi.enabled,
+        canShare: wifi.canShare,
+        hotspot: hotspot,
+        networks: hotspot == null ? _beforeHotspot : const [],
+      ),
+      checkUrl: s.checkUrl,
+      vpns: s.vpns,
+    );
+  }
+
+  @override
+  Future<void> stopHotspot() async => setHotspot(null);
 
   @override
   Future<void> dispose() async => _state.dispose();

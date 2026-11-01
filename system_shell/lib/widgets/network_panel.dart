@@ -313,7 +313,10 @@ class _NetworkPanelState extends State<NetworkPanel> {
                 value: wifi.enabled,
                 onChanged: widget.service.setWifiEnabled,
               ),
-              if (wifi.enabled) ..._wifiList(context, wifi),
+              if (wifi.hotspot case final hotspot?)
+                _hotspotRow(context, hotspot)
+              else if (wifi.enabled)
+                ..._wifiList(context, wifi),
             ],
             if (s.enabled)
               for (final vpn in s.vpns) _vpnRow(context, vpn),
@@ -370,6 +373,33 @@ class _NetworkPanelState extends State<NetworkPanel> {
     value: vpn.active || vpn.busy,
     onChanged: (value) => unawaited(_setVpn(vpn, value)),
   );
+
+  Widget _hotspotRow(BuildContext context, PsitoHotspot hotspot) {
+    final l = context.l10n;
+    final palette = context.palette;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_tethering, size: 16, color: palette.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hotspot.busy
+                  ? l.hotspotStarting
+                  : l.hotspotSharing(hotspot.name),
+              style: TextStyle(fontSize: 13, color: palette.text),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('network-hotspot-stop'),
+            onPressed: () => unawaited(widget.service.stopHotspot()),
+            child: Text(l.hotspotStop),
+          ),
+        ],
+      ),
+    );
+  }
 
   List<Widget> _wifiList(BuildContext context, PsitoWifiState wifi) {
     final l = context.l10n;

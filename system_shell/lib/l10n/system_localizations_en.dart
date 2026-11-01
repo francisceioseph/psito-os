@@ -314,4 +314,15 @@ class SystemLocalizationsEn extends SystemLocalizations {
   String vpnFailed(String name) {
     return 'Could not turn on $name.';
   }
+
+  @override
+  String hotspotSharing(String name) {
+    return 'Sharing as $name';
+  }
+
+  @override
+  String get hotspotStarting => 'Starting to share…';
+
+  @override
+  String get hotspotStop => 'Stop';
 }

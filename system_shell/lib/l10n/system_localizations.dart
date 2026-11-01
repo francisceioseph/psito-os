@@ -625,6 +625,24 @@ abstract class SystemLocalizations {
   /// In en, this message translates to:
   /// **'Could not turn on {name}.'**
   String vpnFailed(String name);
+
+  /// No description provided for @hotspotSharing.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing as {name}'**
+  String hotspotSharing(String name);
+
+  /// No description provided for @hotspotStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting to share…'**
+  String get hotspotStarting;
+
+  /// No description provided for @hotspotStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get hotspotStop;
 }
 
 class _SystemLocalizationsDelegate

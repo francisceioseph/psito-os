@@ -6,6 +6,7 @@
 #
 #   sudo vm/wifi-lab.sh up      sobe as redes
 #   sudo vm/wifi-lab.sh down    derruba tudo e tira os rádios
+#   sudo vm/wifi-lab.sh client <nome> <senha>   entra no ponto de acesso do wlan0
 #
 # "Psito Portal" é uma rede aberta com portal de login, em que a verificação de
 # internet do NetworkManager aponta para ela enquanto a bancada está de pé. Sem
@@ -29,6 +30,7 @@ NETWORKS=(
     "wlan5|Psito Portal|open||0"
 )
 PORTAL_IFACE=wlan5
+CLIENT=wlan6
 PORTAL_IP=10.77.5.1
 NM_CONF=/etc/NetworkManager/conf.d/90-psito-wifi-lab.conf
 
@@ -36,7 +38,9 @@ up() {
     export PATH="$PATH:/usr/sbin:/sbin"
     command -v hostapd >/dev/null || apt-get install -y --no-install-recommends hostapd iw
     systemctl mask --now hostapd.service >/dev/null 2>&1 || true
-    modprobe mac80211_hwsim radios=$((${#NETWORKS[@]} + 1))
+    # O último rádio fica livre, no namespace: é o aparelho que entra no ponto de
+    # acesso do wlan0, quando o Psito compartilha a conexão (o `client`)
+    modprobe mac80211_hwsim radios=$((${#NETWORKS[@]} + 2))
     mkdir -p "$RUN"
     ip netns add "$NS"
     # O udev e o NetworkManager precisam ver os rádios antes de eles saírem
@@ -78,8 +82,28 @@ up() {
             --dhcp-range="10.77.$n.10,10.77.$n.50,1h" "${gateway[@]}" --dhcp-option=6 \
             --dhcp-leasefile="$RUN/$iface.leases" --pid-file="$RUN/$iface.dnsmasq.pid"
     done
+    iw phy "$(cat "/sys/class/net/$CLIENT/phy80211/name")" set netns name "$NS"
     portal
     echo "Redes no ar: wlan0 é o adaptador do NetworkManager."
+}
+
+# Um aparelho que entra no ponto de acesso do wlan0: associa, pede o IP por DHCP
+# e deixa a rota padrão por ele. Para conferir o NAT: `ip netns exec psito-wifi-lab ping 10.0.2.2`.
+client() {
+    export PATH="$PATH:/usr/sbin:/sbin"
+    wpa_passphrase "$1" "$2" >"$RUN/client.conf"
+    ip netns exec "$NS" wpa_supplicant -B -i "$CLIENT" -c "$RUN/client.conf" \
+        -P "$RUN/client.pid" -f "$RUN/client.log"
+    # Em /tmp porque o /run não deixa executar
+    cat >/tmp/psito-udhcpc.sh <<'SH'
+#!/bin/sh
+[ "$1" = bound ] || exit 0
+ip addr add "$ip/$mask" dev "$interface"
+ip route replace default via "$router"
+echo "IP $ip, gateway $router, DNS $dns"
+SH
+    chmod +x /tmp/psito-udhcpc.sh
+    ip netns exec "$NS" busybox udhcpc -i "$CLIENT" -q -f -n -t 15 -s /tmp/psito-udhcpc.sh
 }
 
 # O servidor do portal: desvia tudo para o login, até o botão ser apertado.
@@ -143,5 +167,6 @@ down() {
 case "${1:-}" in
     up) up ;;
     down) down ;;
-    *) echo "Uso: $0 up|down" >&2; exit 2 ;;
+    client) client "$2" "$3" ;;
+    *) echo "Uso: $0 up|down|client <nome> <senha>" >&2; exit 2 ;;
 esac

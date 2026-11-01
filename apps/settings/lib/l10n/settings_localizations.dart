@@ -814,6 +814,90 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Could not import this file.'**
   String get vpnImportFailed;
+
+  /// No description provided for @hotspotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this connection'**
+  String get hotspotTitle;
+
+  /// No description provided for @hotspotHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices join this network and use this computer\'s internet. While sharing, Wi-Fi leaves the network it is on.'**
+  String get hotspotHint;
+
+  /// No description provided for @hotspotName.
+  ///
+  /// In en, this message translates to:
+  /// **'Network name'**
+  String get hotspotName;
+
+  /// No description provided for @hotspotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get hotspotPassword;
+
+  /// No description provided for @hotspotNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate another password'**
+  String get hotspotNewPassword;
+
+  /// No description provided for @hotspotBadName.
+  ///
+  /// In en, this message translates to:
+  /// **'The name needs 1 to 32 bytes.'**
+  String get hotspotBadName;
+
+  /// No description provided for @hotspotBadPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'The password needs 8 to 63 characters, with no accents.'**
+  String get hotspotBadPassword;
+
+  /// No description provided for @hotspotStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start sharing'**
+  String get hotspotStart;
+
+  /// No description provided for @hotspotStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sharing'**
+  String get hotspotStop;
+
+  /// No description provided for @hotspotStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting…'**
+  String get hotspotStarting;
+
+  /// No description provided for @hotspotActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing. Other devices can join now.'**
+  String get hotspotActive;
+
+  /// No description provided for @hotspotNoUplink.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no other connection: whoever joins will not have internet.'**
+  String get hotspotNoUplink;
+
+  /// No description provided for @hotspotWifiOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Wi-Fi to share.'**
+  String get hotspotWifiOff;
+
+  /// No description provided for @hotspotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start sharing.'**
+  String get hotspotFailed;
 }
 
 class _SettingsLocalizationsDelegate

@@ -191,6 +191,24 @@ void wifiPanelTests() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('compartilhando, o painel troca a lista pelo aviso', (
+    tester,
+  ) async {
+    final network = await open(tester);
+    final badge = find.byKey(const ValueKey('network-hotspot'));
+    expect(badge, findsNothing);
+    network.setHotspot(const PsitoHotspot(uuid: 'h', name: 'Calopsita'));
+    await tester.pump();
+    expect(badge, findsOneWidget);
+    expect(find.text('Compartilhando como Calopsita'), findsOneWidget);
+    expect(find.byKey(const ValueKey('wifi-other')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('network-hotspot-stop')));
+    await tester.pump();
+    expect(network.state.value.wifi!.hotspot, isNull);
+    expect(badge, findsNothing);
+    expect(find.byKey(const ValueKey('wifi-other')), findsOneWidget);
+  });
+
   testWidgets('a VPN liga pelo painel, e o ícone mostra', (tester) async {
     final network = await open(tester);
     final vpn = find.byKey(const ValueKey('vpn-trabalho'));

@@ -64,8 +64,10 @@ class WindowManager extends ChangeNotifier {
     this.onUpdateSettings,
     ValueListenable<PsitoSystemInfo>? systemInfo,
     ValueListenable<PsitoNetworkState>? network,
+    PsitoNetworkConnections? networkConnections,
     TimeService? time,
-  }) : time = time ?? FakeTimeService(initial: PsitoTimeState.unavailable),
+  }) : networkConnections = networkConnections ?? FakeNetworkConnections(),
+       time = time ?? FakeTimeService(initial: PsitoTimeState.unavailable),
        settings = settings ?? ValueNotifier(PsitoSettings.defaults),
        systemInfo = systemInfo ?? ValueNotifier(PsitoSystemInfo.unavailable),
        network = network ?? ValueNotifier(PsitoNetworkState.unavailable);
@@ -92,7 +94,7 @@ class WindowManager extends ChangeNotifier {
   final PsitoAccounts accounts = FakeAccountsService();
 
   /// Idem para as conexões de rede.
-  final PsitoNetworkConnections networkConnections = FakeNetworkConnections();
+  final PsitoNetworkConnections networkConnections;
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;

@@ -87,5 +87,8 @@
   "logout": "Sair",
   "networkPortalLogin": "Abrir a página de login",
   "kindVpn": "VPN",
-  "vpnFailed": "Não foi possível ligar {name}."
+  "vpnFailed": "Não foi possível ligar {name}.",
+  "hotspotSharing": "Compartilhando como {name}",
+  "hotspotStarting": "Começando a compartilhar…",
+  "hotspotStop": "Parar"
 }

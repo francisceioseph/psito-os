@@ -276,6 +276,7 @@ void main() {
       });
       active = FakeDBusObject.single(_path('/ActiveConnection/9'), _active, {
         'Id': const DBusString('nova'),
+        'Uuid': const DBusString('nova'),
         'Type': const DBusString('802-11-wireless'),
         'State': const DBusUint32(2),
         'Devices': DBusArray.objectPath([device.path]),
@@ -350,6 +351,93 @@ void main() {
       final dict = call.values[0].asDict();
       return dict[DBusString(name)]!.asStringVariantDict();
     }
+
+    /// O Wi-Fi com o ponto de acesso guardado e ativo.
+    Future<void> startSharing({int state = 2}) async {
+      await startWifi();
+      final hotspot =
+          FakeDBusObject.single(
+              _path('/Settings/20'),
+              '$_nm.Settings.Connection',
+              {},
+            )
+            ..replies['GetSettings'] = [
+              DBusDict(DBusSignature('s'), DBusSignature('a{sv}'), {
+                const DBusString('connection'): DBusDict.stringVariant({
+                  'uuid': const DBusString('h1'),
+                }),
+                const DBusString('802-11-wireless'): DBusDict.stringVariant({
+                  'ssid': DBusArray.byte('Calopsita'.codeUnits),
+                  'mode': const DBusString('ap'),
+                }),
+              }),
+            ];
+      await bus.service.registerObject(hotspot);
+      settings.replies['ListConnections'] = [
+        DBusArray.objectPath([hotspot.path]),
+      ];
+      await active.change(_active, {
+        'Uuid': const DBusString('h1'),
+        'State': DBusUint32(state),
+      });
+      await device.change(_device, {
+        'ActiveConnection': active.path,
+        'State': const DBusUint32(100),
+      });
+      await manager.change(_nm, {
+        'ActiveConnections': DBusArray.objectPath([active.path]),
+      });
+      await service.dispose();
+      service = NetworkManagerService(bus.shell);
+      await service.ready;
+    }
+
+    test('sabe se o adaptador é ponto de acesso', () async {
+      await startWifi();
+      expect(service.state.value.wifi!.canShare, isFalse);
+      await service.dispose();
+      await device.change(_wireless, {
+        'WirelessCapabilities': const DBusUint32(0x40),
+      });
+      service = NetworkManagerService(bus.shell);
+      await service.ready;
+      expect(service.state.value.wifi!.canShare, isTrue);
+    });
+
+    test('compartilhando, mostra a rede e nenhuma lista', () async {
+      await startSharing();
+      final wifi = service.state.value.wifi!;
+      expect(
+        wifi.hotspot,
+        const PsitoHotspot(uuid: 'h1', name: 'Calopsita'),
+      );
+      expect(wifi.networks, isEmpty);
+      // Quem compartilha não está numa rede
+      expect(service.state.value.primary, isNull);
+    });
+
+    test('subindo, avisa que ainda não dá para entrar', () async {
+      await startSharing(state: 1);
+      expect(service.state.value.wifi!.hotspot!.busy, isTrue);
+    });
+
+    test('parar desativa o ponto de acesso', () async {
+      await startSharing();
+      await service.stopHotspot();
+      expect(
+        manager.calls.where((c) => c.name == 'DeactivateConnection'),
+        hasLength(1),
+      );
+    });
+
+    test('sem compartilhar, parar não mexe na rede', () async {
+      await startWifi();
+      await service.stopHotspot();
+      expect(
+        manager.calls.where((c) => c.name == 'DeactivateConnection'),
+        isEmpty,
+      );
+    });
 
     test('lista cada nome uma vez, pelo sinal, sem as ocultas', () async {
       await startWifi(saved: {'Fraca': '1'});

@@ -4,6 +4,7 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/network_connections.dart';
+import 'package:psito_services/network_service.dart';
 
 import 'dbus_test_bus.dart';
 
@@ -233,6 +234,49 @@ void main() {
     });
   });
 
+  group('ponto de acesso', () {
+    const config = PsitoHotspotConfig(name: 'Calopsita', password: 'abcd1234');
+
+    test('é WPA2 com AES, compartilhado, e não entra sozinho', () {
+      final s = hotspotSettings(config, user: 'ana');
+      expect(s['802-11-wireless']!['mode'], const DBusString('ap'));
+      expect(
+        s['802-11-wireless']!['ssid']!.asByteArray().toList(),
+        'Calopsita'.codeUnits,
+      );
+      expect(
+        s['802-11-wireless-security']!['key-mgmt'],
+        const DBusString('wpa-psk'),
+      );
+      expect(s['802-11-wireless-security']!['proto']!.asStringArray(), ['rsn']);
+      expect(s['802-11-wireless-security']!['psk'], const DBusString('abcd1234'));
+      expect(s['ipv4']!['method'], const DBusString('shared'));
+      expect(s['connection']!['autoconnect'], const DBusBoolean(false));
+      expect(s['connection']!['permissions']!.asStringArray(), ['user:ana']);
+      expect(s['connection']!.containsKey('uuid'), isFalse);
+    });
+
+    test('não aparece entre as redes salvas', () {
+      expect(isHotspot(hotspotSettings(config)), isTrue);
+      expect(
+        savedConnectionFrom(hotspotSettings(config, uuid: 'h1')),
+        isNull,
+      );
+      expect(isHotspot(_wifi('u1', 'Casa')), isFalse);
+    });
+
+    test('o nome conta bytes, e a senha só aceita ASCII', () {
+      expect(PsitoHotspotConfig.validName(''), isFalse);
+      expect(PsitoHotspotConfig.validName('a' * 32), isTrue);
+      expect(PsitoHotspotConfig.validName('a' * 33), isFalse);
+      expect(PsitoHotspotConfig.validName('ç' * 17), isFalse);
+      expect(PsitoHotspotConfig.validPassword('1234567'), isFalse);
+      expect(PsitoHotspotConfig.validPassword('12345678'), isTrue);
+      expect(PsitoHotspotConfig.validPassword('a' * 64), isFalse);
+      expect(PsitoHotspotConfig.validPassword('coração1'), isFalse);
+    });
+  });
+
   group('no barramento', () {
     late DBusTestBus bus;
     late FakeDBusObject saved;
@@ -261,6 +305,7 @@ void main() {
         '$_nm.Connection.Active',
         {
           'Uuid': const DBusString('u1'),
+          'State': const DBusUint32(2),
           'Devices': DBusArray.objectPath([device.path]),
         },
       );
@@ -283,6 +328,97 @@ void main() {
     tearDown(() async {
       await service.dispose();
       await bus.close();
+    });
+
+    const hotspotConfig = PsitoHotspotConfig(
+      name: 'Calopsita',
+      password: 'abcd1234',
+    );
+
+    /// As conexões com um ponto de acesso já guardado.
+    Future<FakeDBusObject> withSavedHotspot() async {
+      final hotspot =
+          FakeDBusObject.single(
+              _path('/Settings/2'),
+              '$_nm.Settings.Connection',
+              const {},
+            )
+            ..replies['GetSettings'] = [
+              _dict(hotspotSettings(hotspotConfig, uuid: 'u1')),
+            ]
+            ..replies['GetSecrets'] = [
+              _dict({
+                '802-11-wireless-security': {
+                  'psk': const DBusString('abcd1234'),
+                },
+              }),
+            ];
+      await bus.service.registerObject(hotspot);
+      settings.replies['ListConnections'] = [
+        DBusArray.objectPath([saved.path, hotspot.path]),
+      ];
+      await service.dispose();
+      service = NetworkManagerConnections(bus.shell, user: 'ana');
+      await service.ready;
+      return hotspot;
+    }
+
+    test('sem ponto de acesso, cria e liga', () async {
+      expect(await service.hotspotConfig(), isNull);
+      settings.replies['AddConnection'] = [_path('/Settings/2')];
+      manager.replies['ActivateConnection'] = [active.path];
+      expect(await service.startHotspot(hotspotConfig), isTrue);
+      final add = settings.calls.singleWhere((c) => c.name == 'AddConnection');
+      final group = add.values[0].asDict()[const DBusString('802-11-wireless')];
+      expect(group!.asStringVariantDict()['mode'], const DBusString('ap'));
+      final activate = manager.calls.singleWhere(
+        (c) => c.name == 'ActivateConnection',
+      );
+      expect(activate.values[0], _path('/Settings/2'));
+    });
+
+    test('guardado, lê o nome e a senha, e reaproveita', () async {
+      final hotspot = await withSavedHotspot();
+      expect(service.connections.value.map((c) => c.name), ['Casa']);
+      expect(await service.hotspotConfig(), hotspotConfig);
+      manager.replies['ActivateConnection'] = [active.path];
+      expect(
+        await service.startHotspot(
+          const PsitoHotspotConfig(name: 'Outra', password: '12345678'),
+        ),
+        isTrue,
+      );
+      expect(settings.calls.where((c) => c.name == 'AddConnection'), isEmpty);
+      final update = hotspot.calls.singleWhere((c) => c.name == 'Update');
+      final group = update.values[0].asDict()[const DBusString('connection')];
+      expect(group!.asStringVariantDict()['uuid'], const DBusString('u1'));
+      expect(group.asStringVariantDict()['id'], const DBusString('Outra'));
+    });
+
+    test('que não sobe devolve falso', () async {
+      await withSavedHotspot();
+      manager.replies['ActivateConnection'] = [active.path];
+      await active.change('$_nm.Connection.Active', {
+        'State': const DBusUint32(4),
+      });
+      expect(await service.startHotspot(hotspotConfig), isFalse);
+    });
+
+    test('recusado pelo NetworkManager devolve falso', () async {
+      await withSavedHotspot();
+      expect(await service.startHotspot(hotspotConfig), isFalse);
+    });
+
+    test('parar desativa só o ponto de acesso', () async {
+      await withSavedHotspot();
+      expect(await service.stopHotspot(), isTrue);
+      expect(
+        manager.calls
+            .where((c) => c.name == 'DeactivateConnection')
+            .single
+            .values[0],
+        active.path,
+      );
     });
 
     test('lista as conexões', () {
@@ -404,5 +540,19 @@ void main() {
     fake.answer = true;
     expect(await fake.forget(casa.uuid), isTrue);
     expect(fake.connections.value.map((c) => c.uuid), ['cabo']);
+  });
+
+  test('o falso mostra o ponto de acesso no serviço', () async {
+    final network = FakeNetworkService();
+    final fake = FakeNetworkConnections(null, network);
+    const config = PsitoHotspotConfig(name: 'Casa', password: '12345678');
+    expect(await fake.startHotspot(config), isTrue);
+    expect(await fake.hotspotConfig(), config);
+    expect(network.state.value.wifi!.hotspot!.name, 'Casa');
+    expect(network.state.value.wifi!.networks, isEmpty);
+    await network.stopHotspot();
+    expect(network.state.value.wifi!.hotspot, isNull);
+    expect(network.state.value.wifi!.networks, isNotEmpty);
+    await network.dispose();
   });
 }

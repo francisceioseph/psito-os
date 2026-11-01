@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -21,6 +22,19 @@ bool isValidIpv4(String text) =>
 /// Os servidores de DNS de um texto, separados por vírgula ou espaço.
 List<String> splitDns(String text) =>
     text.split(RegExp(r'[,\s]+')).where((s) => s.isNotEmpty).toList();
+
+/// Uma senha para o ponto de acesso, fácil de ditar: sem as letras que se
+/// confundem com números.
+String generateHotspotPassword([Random? random]) {
+  const letters = 'abcdefghjkmnpqrstuvwxyz23456789';
+  final source = random ?? Random.secure();
+  return String.fromCharCodes(
+    List.generate(
+      12,
+      (_) => letters.codeUnitAt(source.nextInt(letters.length)),
+    ),
+  );
+}
 
 /// A seção Rede: os dispositivos, com os detalhes, e as conexões guardadas.
 class NetworkSection extends StatefulWidget {
@@ -153,7 +167,191 @@ class _NetworkSectionState extends State<NetworkSection> {
               ),
             ),
           ),
+        if (widget.network.wifi case final wifi? when wifi.canShare)
+          _HotspotForm(
+            network: widget.network,
+            wifi: wifi,
+            connections: widget.connections,
+          ),
       ],
+    );
+  }
+}
+
+/// O ponto de acesso. O nome e a senha ficam guardados para a próxima vez.
+class _HotspotForm extends StatefulWidget {
+  final PsitoNetworkState network;
+  final PsitoWifiState wifi;
+  final PsitoNetworkConnections connections;
+
+  const _HotspotForm({
+    required this.network,
+    required this.wifi,
+    required this.connections,
+  });
+
+  @override
+  State<_HotspotForm> createState() => _HotspotFormState();
+}
+
+class _HotspotFormState extends State<_HotspotForm> {
+  final _name = TextEditingController(text: Platform.localHostname);
+  final _password = TextEditingController(text: generateHotspotPassword());
+  bool _starting = false;
+  String? _problem;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final config = await widget.connections.hotspotConfig();
+    if (config == null || !mounted) return;
+    setState(() {
+      _name.text = config.name;
+      // Sem poder ler a guardada, fica a gerada
+      if (config.password.isNotEmpty) _password.text = config.password;
+    });
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _start() async {
+    final l = context.l10n;
+    final name = _name.text;
+    final password = _password.text;
+    if (!PsitoHotspotConfig.validName(name)) {
+      return setState(() => _problem = l.hotspotBadName);
+    }
+    if (!PsitoHotspotConfig.validPassword(password)) {
+      return setState(() => _problem = l.hotspotBadPassword);
+    }
+    setState(() {
+      _starting = true;
+      _problem = null;
+    });
+    final ok = await widget.connections.startHotspot(
+      PsitoHotspotConfig(name: name, password: password),
+    );
+    if (!mounted) return;
+    setState(() {
+      _starting = false;
+      if (!ok) _problem = l.hotspotFailed;
+    });
+  }
+
+  Future<void> _stop() async {
+    final ok = await widget.connections.stopHotspot();
+    if (!mounted || ok) return;
+    setState(() => _problem = context.l10n.hotspotFailed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final palette = context.palette;
+    final hotspot = widget.wifi.hotspot;
+    final locked = _starting || hotspot != null;
+    final hasUplink = widget.network.devices.any(
+      (d) =>
+          d.state == PsitoDeviceState.connected &&
+          d.kind == PsitoNetworkKind.ethernet,
+    );
+    final note = _problem != null
+        ? null
+        : !widget.wifi.enabled
+        ? l.hotspotWifiOff
+        : _starting || (hotspot?.busy ?? false)
+        ? l.hotspotStarting
+        : hotspot != null
+        ? l.hotspotActive
+        : null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l.hotspotTitle,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l.hotspotHint,
+            style: TextStyle(fontSize: 12, color: palette.textTertiary),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('hotspot-name'),
+            controller: _name,
+            readOnly: locked,
+            decoration: InputDecoration(labelText: l.hotspotName),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            key: const ValueKey('hotspot-password'),
+            controller: _password,
+            readOnly: locked,
+            decoration: InputDecoration(
+              labelText: l.hotspotPassword,
+              suffixIcon: IconButton(
+                key: const ValueKey('hotspot-new-password'),
+                tooltip: l.hotspotNewPassword,
+                icon: const Icon(Icons.refresh),
+                onPressed: locked
+                    ? null
+                    : () => setState(
+                        () => _password.text = generateHotspotPassword(),
+                      ),
+              ),
+            ),
+          ),
+          if (!hasUplink && widget.wifi.enabled)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                l.hotspotNoUplink,
+                key: const ValueKey('hotspot-no-uplink'),
+                style: TextStyle(fontSize: 12, color: palette.warning),
+              ),
+            ),
+          const SizedBox(height: 12),
+          if (hotspot != null)
+            OutlinedButton(
+              key: const ValueKey('hotspot-stop'),
+              onPressed: () => unawaited(_stop()),
+              child: Text(l.hotspotStop),
+            )
+          else
+            FilledButton(
+              key: const ValueKey('hotspot-start'),
+              onPressed: _starting || !widget.wifi.enabled
+                  ? null
+                  : () => unawaited(_start()),
+              child: Text(l.hotspotStart),
+            ),
+          if (_problem case final problem?)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(problem, style: TextStyle(color: palette.danger)),
+            )
+          else if (note != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                note,
+                style: TextStyle(color: palette.textSecondary),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

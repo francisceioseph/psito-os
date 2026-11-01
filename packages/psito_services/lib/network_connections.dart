@@ -3,11 +3,14 @@
 // As conexões guardadas no NetworkManager, para as Configurações. Fica à parte
 // do network_service porque só quem pode mudar o sistema precisa.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+
+import 'network_service.dart';
 
 const _busName = 'org.freedesktop.NetworkManager';
 const _settingsInterface = '$_busName.Settings';
@@ -30,6 +33,8 @@ PsitoSavedConnection? savedConnectionFrom(NmSettings settings) {
     _ => null,
   };
   if (kind == null) return null;
+  // O ponto de acesso tem o lugar dele na seção, e nenhum destes campos vale
+  if (isHotspot(settings)) return null;
   final ipv4 = settings['ipv4'] ?? const {};
   final method = switch (ipv4['method']?.asString()) {
     'auto' || null => PsitoIpMethod.auto,
@@ -53,6 +58,43 @@ PsitoSavedConnection? savedConnectionFrom(NmSettings settings) {
     dns: _dnsServers(ipv4),
   );
 }
+
+/// Uma conexão em que o Wi-Fi é o ponto de acesso.
+bool isHotspot(NmSettings settings) =>
+    settings['802-11-wireless']?['mode']?.asString() == 'ap';
+
+/// A conexão do ponto de acesso. O WPA2 é só com AES, que todo aparelho entende:
+/// o `sae` deixaria de fora os mais velhos, e o `tkip` já é recusado pelos novos.
+/// A faixa de 2,4 GHz é a que não esbarra nas regras de canal de cada país.
+/// O NetworkManager dá o endereço e o DHCP (`dnsmasq`) e faz o NAT (`nft`).
+NmSettings hotspotSettings(
+  PsitoHotspotConfig config, {
+  String? uuid,
+  String? user,
+}) => {
+  'connection': {
+    'id': DBusString(config.name),
+    'type': const DBusString('802-11-wireless'),
+    'autoconnect': const DBusBoolean(false),
+    'uuid': ?(uuid == null ? null : DBusString(uuid)),
+    if (user != null && user.isNotEmpty)
+      'permissions': DBusArray.string(['user:$user']),
+  },
+  '802-11-wireless': {
+    'ssid': DBusArray.byte(utf8.encode(config.name)),
+    'mode': const DBusString('ap'),
+    'band': const DBusString('bg'),
+  },
+  '802-11-wireless-security': {
+    'key-mgmt': const DBusString('wpa-psk'),
+    'proto': DBusArray.string(['rsn']),
+    'pairwise': DBusArray.string(['ccmp']),
+    'group': DBusArray.string(['ccmp']),
+    'psk': DBusString(config.password),
+  },
+  'ipv4': {'method': const DBusString('shared')},
+  'ipv6': {'method': const DBusString('ignore')},
+};
 
 String _firstAddress(Map<String, DBusValue> ipv4) {
   final data = ipv4['address-data'];
@@ -169,6 +211,9 @@ Future<String?> importVpnFile(
 }
 
 class NetworkManagerConnections implements PsitoNetworkConnections {
+  /// Quanto esperar o ponto de acesso subir.
+  static const activationTimeout = Duration(seconds: 60);
+
   /// Passa um arquivo de VPN ao NetworkManager e devolve o uuid da conexão.
   final Future<String?> Function(String path) _import;
   final String? _user;
@@ -252,6 +297,7 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
     final generation = ++_generation;
     final paths = <String, DBusObjectPath>{};
     final found = <PsitoSavedConnection>[];
+    ({String uuid, DBusObjectPath path})? hotspot;
     try {
       final reply = await _settings.callMethod(
         _settingsInterface,
@@ -260,7 +306,15 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
         replySignature: DBusSignature('ao'),
       );
       for (final path in reply.returnValues[0].asObjectPathArray()) {
-        final connection = savedConnectionFrom(await _read(path));
+        final settings = await _read(path);
+        if (isHotspot(settings)) {
+          hotspot = (
+            uuid: settings['connection']!['uuid']!.asString(),
+            path: path,
+          );
+          continue;
+        }
+        final connection = savedConnectionFrom(settings);
         if (connection == null) continue;
         paths[connection.uuid] = path;
         found.add(connection);
@@ -275,7 +329,118 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
       return byName != 0 ? byName : a.uuid.compareTo(b.uuid);
     });
     _paths = paths;
+    _hotspot = hotspot;
     _connections.value = found;
+  }
+
+  ({String uuid, DBusObjectPath path})? _hotspot;
+
+  @override
+  Future<PsitoHotspotConfig?> hotspotConfig() async {
+    await ready;
+    final hotspot = _hotspot;
+    if (hotspot == null) return null;
+    try {
+      final settings = await _read(hotspot.path);
+      final ssid = settings['802-11-wireless']?['ssid']?.asByteArray();
+      final secrets = await _object(hotspot.path).callMethod(
+        _connectionInterface,
+        'GetSecrets',
+        [const DBusString('802-11-wireless-security')],
+        replySignature: DBusSignature('a{sa{sv}}'),
+      );
+      final security = secrets.returnValues[0].asDict()[const DBusString(
+        '802-11-wireless-security',
+      )]?.asStringVariantDict();
+      return PsitoHotspotConfig(
+        name: utf8.decode(ssid?.toList() ?? const [], allowMalformed: true),
+        password: security?['psk']?.asString() ?? '',
+      );
+    } catch (e) {
+      debugPrint('🦜 Erro lendo o ponto de acesso: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<bool> startHotspot(PsitoHotspotConfig config) async {
+    await ready;
+    try {
+      // Sem depender do sinal do NewConnection: é preciso o caminho agora
+      var hotspot = _hotspot;
+      final DBusObjectPath path;
+      if (hotspot == null) {
+        final reply = await _settings.callMethod(
+          _settingsInterface,
+          'AddConnection',
+          [_dict(hotspotSettings(config, user: _user))],
+          replySignature: DBusSignature('o'),
+        );
+        path = reply.returnValues[0].asObjectPath();
+      } else {
+        path = hotspot.path;
+        await _object(path).callMethod(_connectionInterface, 'Update', [
+          _dict(hotspotSettings(config, uuid: hotspot.uuid, user: _user)),
+        ], replySignature: DBusSignature(''));
+      }
+      final none = DBusObjectPath('/');
+      final reply = await _object(_managerPath).callMethod(
+        _busName,
+        'ActivateConnection',
+        [path, none, none],
+        replySignature: DBusSignature('o'),
+      );
+      return await _waitActive(reply.returnValues[0].asObjectPath());
+    } catch (e) {
+      debugPrint('🦜 Erro ao compartilhar a conexão: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _waitActive(DBusObjectPath active) async {
+    final deadline = DateTime.now().add(activationTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      int? state;
+      try {
+        final value = await _object(active).getProperty(
+          _activeInterface,
+          'State',
+          signature: DBusSignature('u'),
+        );
+        state = value.asUint32();
+      } on DBusMethodResponseException {
+        state = null;
+      }
+      if (state == 2) return true;
+      // 3 é desativando, e 4 desativada
+      if (state == null || state > 2) return false;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    await _object(_managerPath).callMethod(_busName, 'DeactivateConnection', [
+      active,
+    ], replySignature: DBusSignature(''));
+    return false;
+  }
+
+  @override
+  Future<bool> stopHotspot() async {
+    await ready;
+    final hotspot = _hotspot;
+    if (hotspot == null) return true;
+    try {
+      for (final active in await _activeOf(hotspot.uuid)) {
+        await _object(_managerPath).callMethod(
+          _busName,
+          'DeactivateConnection',
+          [active],
+          replySignature: DBusSignature(''),
+        );
+      }
+      return true;
+    } catch (e) {
+      debugPrint('🦜 Erro ao parar de compartilhar: $e');
+      return false;
+    }
   }
 
   @override
@@ -431,13 +596,18 @@ class FakeNetworkConnections implements PsitoNetworkConnections {
   /// Os arquivos importados.
   final imported = <String>[];
 
+  /// O serviço que mostra o ponto de acesso ligado, no laboratório.
+  final FakeNetworkService? network;
+
+  PsitoHotspotConfig? hotspot;
+
   @override
   final ValueNotifier<List<PsitoSavedConnection>> connections;
 
   /// O que as próximas ações respondem: false é o diálogo cancelado.
   bool answer = true;
 
-  FakeNetworkConnections([List<PsitoSavedConnection>? initial])
+  FakeNetworkConnections([List<PsitoSavedConnection>? initial, this.network])
     : connections = ValueNotifier(
         initial ??
             const [
@@ -487,6 +657,24 @@ class FakeNetworkConnections implements PsitoNetworkConnections {
         autoconnect: false,
       ),
     ];
+    return true;
+  }
+
+  @override
+  Future<PsitoHotspotConfig?> hotspotConfig() async => hotspot;
+
+  @override
+  Future<bool> startHotspot(PsitoHotspotConfig config) async {
+    if (!answer) return false;
+    hotspot = config;
+    network?.setHotspot(PsitoHotspot(uuid: 'hotspot', name: config.name));
+    return true;
+  }
+
+  @override
+  Future<bool> stopHotspot() async {
+    if (!answer) return false;
+    network?.setHotspot(null);
     return true;
   }
 }

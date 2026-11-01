@@ -391,4 +391,49 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get vpnImportFailed => 'Could not import this file.';
+
+  @override
+  String get hotspotTitle => 'Share this connection';
+
+  @override
+  String get hotspotHint =>
+      'Other devices join this network and use this computer\'s internet. While sharing, Wi-Fi leaves the network it is on.';
+
+  @override
+  String get hotspotName => 'Network name';
+
+  @override
+  String get hotspotPassword => 'Password';
+
+  @override
+  String get hotspotNewPassword => 'Generate another password';
+
+  @override
+  String get hotspotBadName => 'The name needs 1 to 32 bytes.';
+
+  @override
+  String get hotspotBadPassword =>
+      'The password needs 8 to 63 characters, with no accents.';
+
+  @override
+  String get hotspotStart => 'Start sharing';
+
+  @override
+  String get hotspotStop => 'Stop sharing';
+
+  @override
+  String get hotspotStarting => 'Starting…';
+
+  @override
+  String get hotspotActive => 'Sharing. Other devices can join now.';
+
+  @override
+  String get hotspotNoUplink =>
+      'There is no other connection: whoever joins will not have internet.';
+
+  @override
+  String get hotspotWifiOff => 'Turn on Wi-Fi to share.';
+
+  @override
+  String get hotspotFailed => 'Could not start sharing.';
 }

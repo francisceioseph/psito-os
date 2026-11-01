@@ -68,6 +68,16 @@ class NetworkIndicator extends StatelessWidget {
                   size: 16,
                   color: color ?? context.palette.textSecondary,
                 ),
+                if (state.wifi?.hotspot != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: Icon(
+                      Icons.wifi_tethering,
+                      key: const ValueKey('network-hotspot'),
+                      size: 14,
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
                 if (state.vpns.any((v) => v.active))
                   Padding(
                     padding: const EdgeInsets.only(left: 2),

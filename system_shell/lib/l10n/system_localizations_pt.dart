@@ -314,4 +314,15 @@ class SystemLocalizationsPt extends SystemLocalizations {
   String vpnFailed(String name) {
     return 'Não foi possível ligar $name.';
   }
+
+  @override
+  String hotspotSharing(String name) {
+    return 'Compartilhando como $name';
+  }
+
+  @override
+  String get hotspotStarting => 'Começando a compartilhar…';
+
+  @override
+  String get hotspotStop => 'Parar';
 }
