@@ -205,6 +205,14 @@ class _Sized extends StatelessWidget {
   /// O tamanho novo da superfície, depois de pedir ao runner.
   final ValueChanged<Size>? onSize;
 
+  /// A borda fora da região de input, quando não é o [padding] (a dock
+  /// muda a dela com o ponteiro).
+  final EdgeInsets Function()? input;
+
+  /// Envolve o conteúdo já com o [padding] (a dock sabe do ponteiro na
+  /// superfície toda, margem incluída).
+  final Widget Function(Widget child)? wrap;
+
   const _Sized(
     this.state,
     this.surface, {
@@ -212,7 +220,11 @@ class _Sized extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     required this.builder,
     this.onSize,
+    this.input,
+    this.wrap,
   });
+
+  static Widget _plain(Widget child) => child;
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder(
@@ -234,12 +246,18 @@ class _Sized extends StatelessWidget {
               child: SizeReporter(
                 onSize: (size) {
                   onSize?.call(size);
-                  state.surfaces.resize(surface, size, input: padding);
+                  state.surfaces.resize(
+                    surface,
+                    size,
+                    input: input?.call() ?? padding,
+                  );
                 },
-                child: Padding(
-                  padding: padding,
-                  child: Builder(
-                    builder: (context) => builder(context, settings),
+                child: (wrap ?? _plain)(
+                  Padding(
+                    padding: padding,
+                    child: Builder(
+                      builder: (context) => builder(context, settings),
+                    ),
                   ),
                 ),
               ),
@@ -251,94 +269,205 @@ class _Sized extends StatelessWidget {
   );
 }
 
-class _DockView extends StatelessWidget {
+/// A dock, na borda das configurações. Com o ocultar sozinha, ela desliza
+/// para fora da tela e a superfície vira uma faixa de 2 px na borda, que a
+/// traz de volta.
+class _DockView extends StatefulWidget {
   final ShellState state;
   const _DockView(this.state);
 
   @override
-  Widget build(BuildContext context) {
-    final ui = state.dockUi;
-    return _Sized(
-      state,
-      Surface.dock,
-      alignment: Alignment.bottomCenter,
-      // A sombra da dock: 20 de blur, 2 de spread, 10 para baixo. Embaixo
-      // fica a margem da dock até a borda da tela (a reserva do system_shell)
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-      onSize: (size) => ui.surface = size,
-      builder: (context, settings) => Listener(
-        // O ícone arrastado sai da fileira (e o gesto dele junto): quem
-        // segue o ponteiro é a raiz da view, que continua com ele fora da
-        // superfície
-        onPointerMove: (event) {
-          if (ui.drag.value?.source == DockDragSource.dock) {
-            ui.moveDrag(ui.origin + event.position);
-          }
-        },
-        onPointerUp: (_) {
-          if (ui.drag.value?.source == DockDragSource.dock) {
-            unawaited(ui.endDrag());
-          }
-        },
-        onPointerCancel: (_) {
-          if (ui.drag.value?.source == DockDragSource.dock) ui.cancelDrag();
-        },
-        child: ListenableBuilder(
-          listenable: Listenable.merge([
-            state.toplevels,
-            state.apps,
-            state.dock,
-            ui.drag,
-            ui.trashFull,
-            ui.launching,
-            state.notifications,
-          ]),
-          builder: (context, _) {
-            final row = ui.row;
-            final byKey = {
-              for (final item in row.items)
-                DockController.keyOf(item.item): item.item,
-            };
-            final drag = ui.drag.value;
-            return PsitoDropTarget(
-              onWillAccept: (paths) => paths.isEmpty ? null : DropAction.link,
-              onAccept: (paths, _) => ui.dropPaths(paths),
-              builder: (context, hovering) => PsitoDock(
-                tiles: [
-                  for (final item in row.items)
-                    DockTile(
-                      key: DockController.keyOf(item.item),
-                      entry: ui.visual(item.item),
-                      windows: item.slot?.windows.length ?? 0,
-                      badge: switch (item.slot) {
-                        final slot? => state.notifications.unreadFor(slot.id),
-                        null => 0,
-                      },
-                      bouncing: ui.launching.value.contains(item.slot?.id),
-                    ),
-                ],
-                separators: row.separators,
-                gap: drag == null ? null : ui.dropIndex(row, drag),
-                highlighted: hovering,
-                onTap: (key, rect) => ui.tap(byKey[key]!, rect),
-                onMenu: (key, rect) => ui.openMenu(byKey[key]!, rect),
-                onDragStart: (key, position) => ui.startDrag(
-                  byKey[key]!,
-                  DockDragSource.dock,
-                  ui.origin + position,
-                ),
-                iconSize: settings.dockIconSize,
-                magnification: settings.dockMagnification && drag == null,
-                wrapTile: (tile, child) => _TileDropTarget(
-                  ui: ui,
-                  item: byKey[tile.key]!,
-                  radius: settings.dockIconSize * 0.3,
-                  child: child,
-                ),
-              ),
-            );
-          },
+  State<_DockView> createState() => _DockViewState();
+}
+
+class _DockViewState extends State<_DockView>
+    with SingleTickerProviderStateMixin {
+  ShellState get state => widget.state;
+  DockController get ui => widget.state.dockUi;
+
+  // 0 na tela, 1 fora dela
+  late final _slide = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+
+  // A dock saiu: só a faixa da borda
+  bool _collapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ui.revealed.addListener(_revealedChanged);
+  }
+
+  @override
+  void dispose() {
+    ui.revealed.removeListener(_revealedChanged);
+    _slide.dispose();
+    super.dispose();
+  }
+
+  void _revealedChanged() {
+    if (ui.revealed.value) {
+      setState(() => _collapsed = false);
+      unawaited(_slide.reverse());
+    } else {
+      unawaited(
+        _slide.forward().whenComplete(() {
+          if (mounted && !ui.revealed.value) setState(() => _collapsed = true);
+        }),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: state.settings,
+    builder: (context, settings, _) {
+      final position = settings.dockPosition;
+      final alignment = PsitoDock.edgeAlignment(position);
+      if (_collapsed) {
+        return _Sized(
+          state,
+          Surface.dock,
+          alignment: alignment,
+          onSize: (size) => ui.surface = size,
+          builder: (context, _) => _DockStrip(ui),
+        );
+      }
+      final away = switch (position) {
+        PsitoDockPosition.bottom => const Offset(0, 1),
+        PsitoDockPosition.left => const Offset(-1, 0),
+        PsitoDockPosition.right => const Offset(1, 0),
+      };
+      return _Sized(
+        state,
+        Surface.dock,
+        alignment: alignment,
+        padding: ui.padding,
+        input: () => ui.inputInsets,
+        onSize: (size) => ui.surface = size,
+        // O ponteiro em qualquer parte da superfície (a margem até a borda
+        // também) segura a dock
+        wrap: (child) => MouseRegion(
+          onEnter: (_) => ui.hovered.value = true,
+          onExit: (_) => ui.hovered.value = false,
+          child: AnimatedBuilder(
+            animation: _slide,
+            builder: (context, child) => FractionalTranslation(
+              translation: away * _slide.value,
+              child: child,
+            ),
+            child: child,
+          ),
         ),
+        builder: (context, settings) => _content(settings),
+      );
+    },
+  );
+
+  Widget _content(PsitoSettings settings) => Listener(
+    // O ícone arrastado sai da fileira (e o gesto dele junto): quem
+    // segue o ponteiro é a raiz da view, que continua com ele fora da
+    // superfície
+    onPointerMove: (event) {
+      if (ui.drag.value?.source == DockDragSource.dock) {
+        ui.moveDrag(ui.origin + event.position);
+      }
+    },
+    onPointerUp: (_) {
+      if (ui.drag.value?.source == DockDragSource.dock) {
+        unawaited(ui.endDrag());
+      }
+    },
+    onPointerCancel: (_) {
+      if (ui.drag.value?.source == DockDragSource.dock) ui.cancelDrag();
+    },
+    child: ListenableBuilder(
+      listenable: Listenable.merge([
+        state.toplevels,
+        state.apps,
+        state.dock,
+        ui.drag,
+        ui.trashFull,
+        ui.launching,
+        state.notifications,
+      ]),
+      builder: (context, _) {
+        final row = ui.row;
+        final byKey = {
+          for (final item in row.items)
+            DockController.keyOf(item.item): item.item,
+        };
+        final drag = ui.drag.value;
+        return PsitoDropTarget(
+          onWillAccept: (paths) {
+            ui.reveal();
+            return paths.isEmpty ? null : DropAction.link;
+          },
+          onAccept: (paths, _) => ui.dropPaths(paths),
+          builder: (context, hovering) => PsitoDock(
+            tiles: [
+              for (final item in row.items)
+                DockTile(
+                  key: DockController.keyOf(item.item),
+                  entry: ui.visual(item.item),
+                  windows: item.slot?.windows.length ?? 0,
+                  badge: switch (item.slot) {
+                    final slot? => state.notifications.unreadFor(slot.id),
+                    null => 0,
+                  },
+                  bouncing: ui.launching.value.contains(item.slot?.id),
+                ),
+            ],
+            separators: row.separators,
+            gap: drag == null ? null : ui.dropIndex(row, drag),
+            highlighted: hovering,
+            onTap: (key, rect) => ui.tap(byKey[key]!, rect),
+            onMenu: (key, rect) => ui.openMenu(byKey[key]!, rect),
+            onDragStart: (key, position) => ui.startDrag(
+              byKey[key]!,
+              DockDragSource.dock,
+              ui.origin + position,
+            ),
+            iconSize: settings.dockIconSize,
+            magnification: settings.dockMagnification && drag == null,
+            wrapTile: (tile, child) => _TileDropTarget(
+              ui: ui,
+              item: byKey[tile.key]!,
+              radius: settings.dockIconSize * 0.3,
+              alignment: PsitoDock.edgeAlignment(settings.dockPosition),
+              child: child,
+            ),
+            position: settings.dockPosition,
+          ),
+        );
+      },
+    ),
+  );
+}
+
+/// A dock escondida: uma faixa transparente de 2 px ao longo da borda. O
+/// ponteiro, ou um arquivo arrastado, chegando nela traz a dock de volta.
+class _DockStrip extends StatelessWidget {
+  final DockController ui;
+  const _DockStrip(this.ui);
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = ui.screen;
+    final size = ui.position.vertical
+        ? Size(2, screen.height - TopBar.height)
+        : Size(screen.width, 2);
+    return MouseRegion(
+      onEnter: (_) => ui.reveal(),
+      child: PsitoDropTarget(
+        onWillAccept: (_) {
+          ui.reveal();
+          return null;
+        },
+        onAccept: (_, _) => false,
+        builder: (context, _) => SizedBox.fromSize(size: size),
       ),
     );
   }
@@ -351,12 +480,16 @@ class _TileDropTarget extends StatelessWidget {
   final DockController ui;
   final DockItem item;
   final double radius;
+
+  /// De onde ele cresce (o lado da borda).
+  final Alignment alignment;
   final Widget child;
 
   const _TileDropTarget({
     required this.ui,
     required this.item,
     required this.radius,
+    required this.alignment,
     required this.child,
   });
 
@@ -365,12 +498,15 @@ class _TileDropTarget extends StatelessWidget {
     if (item is DockPath) return child;
     final accent = Theme.of(context).colorScheme.primary;
     return PsitoDropTarget(
-      onWillAccept: (paths) => ui.dropAction(item, paths),
+      onWillAccept: (paths) {
+        ui.reveal();
+        return ui.dropAction(item, paths);
+      },
       onAccept: (paths, _) => ui.dropOn(item, paths),
       builder: (context, hovering) => AnimatedScale(
         scale: hovering ? 1.15 : 1,
         duration: const Duration(milliseconds: 150),
-        alignment: Alignment.bottomCenter,
+        alignment: alignment,
         child: DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: BoxDecoration(
@@ -529,6 +665,7 @@ class _OverlayView extends StatelessWidget {
       }
       if (ui.stack.value case final stack?) {
         return DockStack(
+          position: state.settings.value.dockPosition,
           anchor: stack.anchor,
           title: stack.folder.name,
           entries: ui.stackEntries(stack),
@@ -539,6 +676,7 @@ class _OverlayView extends StatelessWidget {
       }
       if (state.dockUi.menu.value case final menu?) {
         return DockMenu(
+          position: state.settings.value.dockPosition,
           anchor: menu.anchor,
           title: state.dockUi.title(menu.item),
           items: state.dockUi.menuItems(menu.item),

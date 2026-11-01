@@ -46,6 +46,7 @@ Future<void> main() async {
     autostart: Autostart(Platform.environment),
   );
   final viewIds = await state.surfaces.viewIds();
+  state.applyDockSettings();
   runWidget(ShellViews(state: state, viewIds: viewIds));
 
   unawaited(state.toplevels.start());

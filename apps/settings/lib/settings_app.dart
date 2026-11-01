@@ -193,6 +193,35 @@ class _SettingsViewState extends State<SettingsView> {
       value: s.dockMagnification,
       onChanged: (v) => _update(s.copyWith(dockMagnification: v)),
     ),
+    const SizedBox(height: 16),
+    const _Label('Posição na tela'),
+    SegmentedButton<PsitoDockPosition>(
+      segments: [
+        for (final position in PsitoDockPosition.values)
+          ButtonSegment(
+            value: position,
+            label: Text(position.label),
+            icon: Icon(switch (position) {
+              PsitoDockPosition.bottom => Icons.border_bottom,
+              PsitoDockPosition.left => Icons.border_left,
+              PsitoDockPosition.right => Icons.border_right,
+            }),
+          ),
+      ],
+      selected: {s.dockPosition},
+      showSelectedIcon: false,
+      onSelectionChanged: (value) =>
+          _update(s.copyWith(dockPosition: value.single)),
+    ),
+    const SizedBox(height: 8),
+    SwitchListTile(
+      title: const Text('Ocultar automaticamente'),
+      subtitle: const Text(
+        'A dock some e volta quando o ponteiro encosta na borda.',
+      ),
+      value: s.dockAutoHide,
+      onChanged: (v) => _update(s.copyWith(dockAutoHide: v)),
+    ),
   ];
 
   List<Widget> _dateTime(PsitoSettings s) => [

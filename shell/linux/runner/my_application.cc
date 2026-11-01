@@ -16,7 +16,8 @@
 // psito/surfaces. PSITO_SURFACES=background,topbar,... cria só as pedidas
 // (o fundo sempre), para medir o custo de cada view.
 
-// As mesmas medidas do system_shell: TopBar.height e a reserva da dock
+// As mesmas medidas do system_shell: TopBar.height e a reserva da dock (a
+// do tamanho padrão; a de verdade vem do Dart, pelo método dock)
 constexpr int kTopBarHeight = 40;
 constexpr int kDockReserve = 100;
 // Espaço transparente embaixo da top bar para os tooltips, que o Flutter
@@ -210,6 +211,31 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
     if (i >= 0 && self->windows[i] != nullptr) {
       sized_window_resize(self->windows[i], width, height,
                           i == kOsd ? nullptr : insets);
+    }
+    fl_method_call_respond_success(call, nullptr, nullptr);
+  } else if (strcmp(method, "dock") == 0 && args != nullptr &&
+             fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+    // A borda da dock (bottom, left ou right) e a zona exclusiva (0 quando
+    // ela some sozinha: as janelas ficam com o lugar)
+    GtkWindow* dock = self->windows[kDock];
+    FlValue* edge = fl_value_lookup_string(args, "edge");
+    FlValue* exclusive = fl_value_lookup_string(args, "exclusive");
+    if (dock != nullptr && edge != nullptr &&
+        fl_value_get_type(edge) == FL_VALUE_TYPE_STRING) {
+      const gchar* name = fl_value_get_string(edge);
+      GtkLayerShellEdge anchor = strcmp(name, "left") == 0
+                                     ? GTK_LAYER_SHELL_EDGE_LEFT
+                                 : strcmp(name, "right") == 0
+                                     ? GTK_LAYER_SHELL_EDGE_RIGHT
+                                     : GTK_LAYER_SHELL_EDGE_BOTTOM;
+      for (auto e : {GTK_LAYER_SHELL_EDGE_LEFT, GTK_LAYER_SHELL_EDGE_RIGHT,
+                     GTK_LAYER_SHELL_EDGE_TOP, GTK_LAYER_SHELL_EDGE_BOTTOM}) {
+        gtk_layer_set_anchor(dock, e, e == anchor);
+      }
+      if (exclusive != nullptr &&
+          fl_value_get_type(exclusive) == FL_VALUE_TYPE_INT) {
+        gtk_layer_set_exclusive_zone(dock, fl_value_get_int(exclusive));
+      }
     }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else if (strcmp(method, "show") == 0 || strcmp(method, "hide") == 0) {

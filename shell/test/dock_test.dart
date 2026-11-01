@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_runtime/psito_runtime.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:psito_shell/autostart.dart';
 import 'package:psito_shell/desktop_entries.dart';
@@ -481,5 +482,104 @@ void main() {
     expect(state.notifications.unreadFor('foot'), 0);
     expect(state.notifications.unreadFor('gimp'), 1);
     expect(state.notifications.unreadCount, 1);
+  });
+
+  group('nas bordas dos lados', () {
+    setUp(() async {
+      await state.settings.update(
+        state.settings.value.copyWith(dockPosition: PsitoDockPosition.left),
+      );
+      ui.surface = const Size(110, 400);
+    });
+
+    test('a dock fica centrada abaixo da top bar, e cai pelo eixo y', () {
+      // (900 + 40) / 2
+      expect(ui.rowCenter, 470);
+      expect(ui.origin, const Offset(0, 270));
+      final centers = PsitoDock.centers(
+        count: ui.row.items.length,
+        separators: ui.row.separators,
+        iconSize: 52,
+        centerX: 470,
+      );
+      ui.startDrag(const DockApp('foot'), DockDragSource.dock, Offset.zero);
+      ui.moveDrag(Offset(40, centers.last + 20));
+      expect(ui.dropIndex(ui.row, ui.drag.value!), 2);
+      // Longe da borda esquerda, tira
+      ui.moveDrag(Offset(400, centers.first));
+      expect(ui.dropIndex(ui.row, ui.drag.value!), isNull);
+      ui.cancelDrag();
+    });
+
+    test('o menu abre à direita do ícone, na tela', () {
+      ui.openMenu(const DockApp('foot'), const Rect.fromLTWH(20, 30, 52, 52));
+      expect(ui.menu.value!.anchor.topLeft, const Offset(20, 300));
+    });
+
+    test('a borda e a reserva vão para o runner', () {
+      state.applyDockSettings();
+      expect(
+        surfaceCalls.last,
+        isMethodCall('dock', arguments: {'edge': 'left', 'exclusive': 100}),
+      );
+    });
+
+    test('a região de input só pega o lado de dentro com o ponteiro', () {
+      // 16 da sombra mais 0,4 do ícone
+      expect(ui.inputInsets.right, closeTo(36.8, 0.01));
+      expect(ui.inputInsets.left, 0);
+      ui.hovered.value = true;
+      expect(ui.inputInsets.right, 0);
+    });
+  });
+
+  group('ocultar sozinha', () {
+    setUp(() async {
+      ui.hideDelay = const Duration(milliseconds: 20);
+      await state.settings.update(
+        state.settings.value.copyWith(dockAutoHide: true),
+      );
+    });
+    Future<void> wait() =>
+        Future<void>.delayed(const Duration(milliseconds: 50));
+
+    test('sai sem nada segurando, e não reserva espaço', () async {
+      expect(ui.exclusiveZone, 0);
+      await wait();
+      expect(ui.revealed.value, isFalse);
+      ui.reveal();
+      expect(ui.revealed.value, isTrue);
+      await wait();
+      expect(ui.revealed.value, isFalse);
+    });
+
+    test('o ponteiro, o menu e o arrastar seguram a dock', () async {
+      ui.hovered.value = true;
+      await wait();
+      expect(ui.revealed.value, isTrue);
+      ui.openMenu(const DockApp('foot'), Rect.zero);
+      ui.hovered.value = false;
+      await wait();
+      expect(ui.revealed.value, isTrue);
+      ui.closeMenu();
+      await wait();
+      expect(ui.revealed.value, isFalse);
+
+      // Arrastar do launcher traz a dock
+      ui.startDrag(const DockApp('gimp'), DockDragSource.launcher, Offset.zero);
+      expect(ui.revealed.value, isTrue);
+      ui.cancelDrag();
+      await wait();
+      expect(ui.revealed.value, isFalse);
+    });
+
+    test('desligar traz a dock de volta', () async {
+      await wait();
+      await state.settings.update(
+        state.settings.value.copyWith(dockAutoHide: false),
+      );
+      expect(ui.revealed.value, isTrue);
+      expect(ui.exclusiveZone, 100);
+    });
   });
 }

@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 import '../shell/app_entry.dart';
 
@@ -58,6 +59,11 @@ class PsitoDock extends StatefulWidget {
   /// O lado de cada ícone (o `dockIconSize` das configurações).
   final double iconSize;
 
+  /// A borda da tela: na de baixo a fileira é horizontal; nas dos lados,
+  /// vertical. Os pontos ficam virados para a borda, e o ícone cresce e
+  /// pula para longe dela.
+  final PsitoDockPosition position;
+
   /// O ícone sob o mouse cresce.
   final bool magnification;
 
@@ -77,7 +83,27 @@ class PsitoDock extends StatefulWidget {
     this.iconSize = 52,
     this.magnification = true,
     this.wrapTile,
+    this.position = PsitoDockPosition.bottom,
   });
+
+  /// O quanto o ícone sob o mouse cresce. Ele cresce por cima do resto, sem
+  /// mexer no tamanho da dock: a superfície não muda a cada movimento.
+  static const magnifiedScale = 1.25;
+
+  /// O espaço a mais, para longe da borda, que o ícone ampliado e o pulo
+  /// ocupam além da dock.
+  static double overflow(double iconSize) => iconSize * 0.4;
+
+  /// A espessura da dock (o lado perpendicular à borda), sem a sombra.
+  static double thickness(double iconSize) => iconSize + 2 * 8 + 2;
+
+  /// O canto de onde o ícone cresce e o sentido do pulo.
+  static Alignment edgeAlignment(PsitoDockPosition position) =>
+      switch (position) {
+        PsitoDockPosition.bottom => Alignment.bottomCenter,
+        PsitoDockPosition.left => Alignment.centerLeft,
+        PsitoDockPosition.right => Alignment.centerRight,
+      };
 
   /// A margem de cada lado de um ícone.
   static const tileMargin = 6.0;
@@ -118,15 +144,22 @@ class _PsitoDockState extends State<PsitoDock> {
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final step = PsitoDock.span(widget.iconSize);
-    Widget gap(int index) => AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOutCubic,
-      width: widget.gap == index ? step : 0,
-      height: widget.iconSize,
-    );
+    final vertical = widget.position.vertical;
+    Widget gap(int index) {
+      final open = widget.gap == index ? step : 0.0;
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutCubic,
+        width: vertical ? widget.iconSize : open,
+        height: vertical ? open : widget.iconSize,
+      );
+    }
+
     final count = widget.tiles.length;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: vertical
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 12)
+          : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(24),
@@ -141,16 +174,21 @@ class _PsitoDockState extends State<PsitoDock> {
             color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 20,
             spreadRadius: 2,
-            offset: const Offset(0, 10),
+            offset: switch (widget.position) {
+              PsitoDockPosition.bottom => const Offset(0, 10),
+              PsitoDockPosition.left => const Offset(-10, 0),
+              PsitoDockPosition.right => const Offset(10, 0),
+            },
           ),
         ],
       ),
-      child: Row(
+      child: Flex(
+        direction: vertical ? Axis.vertical : Axis.horizontal,
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           for (var i = 0; i < count; i++) ...[
-            if (i > 0 && widget.separators.contains(i)) const _Separator(),
+            if (i > 0 && widget.separators.contains(i))
+              _Separator(vertical: vertical),
             gap(i),
             _tile(widget.tiles[i]),
           ],
@@ -162,10 +200,6 @@ class _PsitoDockState extends State<PsitoDock> {
 
   Widget _tile(DockTile tile) {
     final isHovered = _hovered == tile.key;
-    // Efeito de zoom estilo macOS (aumenta o ícone se o mouse estiver em cima)
-    final containerSize = isHovered && widget.magnification
-        ? widget.iconSize * 1.25
-        : widget.iconSize;
     final drag = widget.onDragStart != null;
 
     return MouseRegion(
@@ -190,12 +224,23 @@ class _PsitoDockState extends State<PsitoDock> {
                   }
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: PsitoDock.tileMargin,
-              ),
-              child: (widget.wrapTile ?? _plain)(
-                tile,
-                _square(tile, containerSize, isHovered),
+              padding: widget.position.vertical
+                  ? const EdgeInsets.symmetric(vertical: PsitoDock.tileMargin)
+                  : const EdgeInsets.symmetric(
+                      horizontal: PsitoDock.tileMargin,
+                    ),
+              // Como no macOS: o ícone sob o mouse cresce, a partir da borda
+              child: AnimatedScale(
+                scale: isHovered && widget.magnification
+                    ? PsitoDock.magnifiedScale
+                    : 1,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: PsitoDock.edgeAlignment(widget.position),
+                child: (widget.wrapTile ?? _plain)(
+                  tile,
+                  _square(tile, widget.iconSize, isHovered),
+                ),
               ),
             ),
           );
@@ -235,31 +280,17 @@ class _PsitoDockState extends State<PsitoDock> {
         alignment: Alignment.center,
         children: [
           app.icon(containerSize * 0.55),
-          if (tile.running)
-            Positioned(
-              bottom: containerSize * 0.06,
-              child: Row(
-                key: ValueKey('running-${tile.key}'),
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < tile.windows.clamp(1, 2); i++)
-                    Container(
-                      width: 5,
-                      height: 5,
-                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                      decoration: BoxDecoration(
-                        color: app.color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+          if (tile.running) _dots(tile, containerSize),
         ],
       ),
     );
     return _Bounce(
       active: tile.bouncing,
+      direction: switch (widget.position) {
+        PsitoDockPosition.bottom => const Offset(0, -1),
+        PsitoDockPosition.left => const Offset(1, 0),
+        PsitoDockPosition.right => const Offset(-1, 0),
+      },
       // Cabe na margem de cima da superfície da dock
       height: widget.iconSize * 0.25,
       child: Stack(
@@ -275,6 +306,36 @@ class _PsitoDockState extends State<PsitoDock> {
         ],
       ),
     );
+  }
+}
+
+extension on _PsitoDockState {
+  /// Os pontos das janelas, no lado do ícone virado para a borda.
+  Widget _dots(DockTile tile, double size) {
+    final vertical = widget.position.vertical;
+    final dots = Flex(
+      key: ValueKey('running-${tile.key}'),
+      direction: vertical ? Axis.vertical : Axis.horizontal,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < tile.windows.clamp(1, 2); i++)
+          Container(
+            width: 5,
+            height: 5,
+            margin: const EdgeInsets.all(1.5),
+            decoration: BoxDecoration(
+              color: tile.entry.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+      ],
+    );
+    final inset = size * 0.06;
+    return switch (widget.position) {
+      PsitoDockPosition.bottom => Positioned(bottom: inset, child: dots),
+      PsitoDockPosition.left => Positioned(left: inset, child: dots),
+      PsitoDockPosition.right => Positioned(right: inset, child: dots),
+    };
   }
 }
 
@@ -309,11 +370,15 @@ class _Badge extends StatelessWidget {
 class _Bounce extends StatefulWidget {
   final bool active;
   final double height;
+
+  /// Para onde ele pula (para longe da borda).
+  final Offset direction;
   final Widget child;
 
   const _Bounce({
     required this.active,
     required this.height,
+    required this.direction,
     required this.child,
   });
 
@@ -363,23 +428,27 @@ class _BounceState extends State<_Bounce> with SingleTickerProviderStateMixin {
       // Meio seno: sobe e cai, com uma pausa curta no chão
       final t = (_controller.value / 0.8).clamp(0.0, 1.0);
       final lift = math.sin(t * math.pi) * widget.height;
-      return Transform.translate(offset: Offset(0, -lift), child: child);
+      return Transform.translate(offset: widget.direction * lift, child: child);
     },
     child: widget.child,
   );
 }
 
 class _Separator extends StatelessWidget {
-  const _Separator();
+  final bool vertical;
+
+  const _Separator({this.vertical = false});
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 32,
-    margin: const EdgeInsets.symmetric(
-      horizontal: (PsitoDock.separatorWidth - 1) / 2,
-      vertical: 4,
-    ),
-    color: Colors.white24,
-  );
+  Widget build(BuildContext context) {
+    const across = (PsitoDock.separatorWidth - 1) / 2;
+    return Container(
+      width: vertical ? 32 : 1,
+      height: vertical ? 1 : 32,
+      margin: vertical
+          ? const EdgeInsets.symmetric(vertical: across, horizontal: 4)
+          : const EdgeInsets.symmetric(horizontal: across, vertical: 4),
+      color: Colors.white24,
+    );
+  }
 }

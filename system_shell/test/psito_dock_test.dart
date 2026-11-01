@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 
@@ -135,5 +136,53 @@ void main() {
       lessThan(ground - 5),
     );
     expect(tester.getCenter(find.byKey(const ValueKey('dock-a'))).dy, ground);
+  });
+
+  testWidgets('na vertical, os centros batem no eixo y', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PsitoDock(
+            tiles: [_tile('a'), _tile('b'), _tile('c')],
+            separators: const {2},
+            onTap: (_, _) {},
+            position: PsitoDockPosition.left,
+          ),
+        ),
+      ),
+    );
+    final centers = PsitoDock.centers(
+      count: 3,
+      separators: {2},
+      iconSize: 52,
+      centerX: 300,
+    );
+    for (final (i, id) in ['a', 'b', 'c'].indexed) {
+      final center = tester.getCenter(find.byKey(ValueKey('dock-$id')));
+      expect(center.dy, closeTo(centers[i], 0.5));
+      expect(center.dx, 400);
+    }
+  });
+
+  testWidgets('a ampliação não muda o tamanho da dock', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: PsitoDock(tiles: [_tile('a'), _tile('b')], onTap: (_, _) {}),
+        ),
+      ),
+    );
+    final before = tester.getSize(find.byType(PsitoDock));
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('dock-a'))),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(PsitoDock)), before);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('dock-a'))).height,
+      closeTo(52 * PsitoDock.magnifiedScale, 0.5),
+    );
+    await gesture.removePointer();
   });
 }

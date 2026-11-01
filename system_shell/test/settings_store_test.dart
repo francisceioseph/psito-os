@@ -87,6 +87,8 @@ void main() {
       showBatteryPercentage: false,
       dockIconSize: 72,
       dockMagnification: false,
+      dockPosition: PsitoDockPosition.left,
+      dockAutoHide: true,
     );
     expect(PsitoSettings.fromJson(s.toJson()), s);
   });
@@ -94,6 +96,17 @@ void main() {
   test('o tamanho da dock fica entre o mínimo e o máximo', () {
     expect(PsitoSettings.fromJson({'dockIconSize': 500}).dockIconSize, 96);
     expect(PsitoSettings.fromJson({'dockIconSize': 'x'}).dockIconSize, 52);
+  });
+
+  test('posição da dock desconhecida cai no padrão', () {
+    expect(
+      PsitoSettings.fromJson({'dockPosition': 'top'}).dockPosition,
+      PsitoDockPosition.bottom,
+    );
+    expect(
+      PsitoSettings.fromJson({'dockPosition': 'right'}).dockPosition,
+      PsitoDockPosition.right,
+    );
   });
 
   test('papel de parede desconhecido cai no padrão', () {

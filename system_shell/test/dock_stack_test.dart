@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
@@ -78,5 +79,23 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  test('o painel abre do lado de dentro e fica na tela', () {
+    const screen = Size(1000, 800);
+    const child = Size(260, 300);
+    const anchor = Rect.fromLTWH(20, 380, 52, 52);
+    Offset at(PsitoDockPosition position, [Rect a = anchor]) =>
+        DockPopupLayout(a, position, 260).getPositionForChild(screen, child);
+    expect(at(PsitoDockPosition.left), const Offset(80, 256));
+    expect(
+      at(PsitoDockPosition.right, const Rect.fromLTWH(940, 380, 52, 52)),
+      const Offset(672, 256),
+    );
+    // Embaixo, acima do ícone, sem passar da borda esquerda
+    expect(
+      at(PsitoDockPosition.bottom, const Rect.fromLTWH(10, 740, 52, 52)),
+      const Offset(8, 432),
+    );
   });
 }

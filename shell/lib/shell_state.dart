@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/notification_center.dart';
@@ -48,6 +49,28 @@ class ShellState {
     dockUi.menu.addListener(_syncOverlay);
     dockUi.stack.addListener(_syncOverlay);
     dockUi.askEmptyTrash.addListener(_syncOverlay);
+    // O que segura a dock na tela, com o ocultar sozinha
+    for (final listenable in [
+      dockUi.hovered,
+      dockUi.drag,
+      dockUi.menu,
+      dockUi.stack,
+      dockUi.askEmptyTrash,
+    ]) {
+      listenable.addListener(dockUi.syncAutoHide);
+    }
+    settings.addListener(_dockSettingsChanged);
+    // A faixa de dentro entra e sai da região de input com o ponteiro
+    dockUi.hovered.addListener(() {
+      if (dockUi.surface.isEmpty || !dockUi.revealed.value) return;
+      unawaited(
+        surfaces.resize(
+          Surface.dock,
+          dockUi.surface,
+          input: dockUi.inputInsets,
+        ),
+      );
+    });
     notifications.addListener(_syncToasts);
     toplevels.addListener(_windowsChanged);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
@@ -160,6 +183,21 @@ class ShellState {
   }
 
   static const appsReloadDelay = Duration(milliseconds: 500);
+
+  (PsitoDockPosition, int)? _dockPlacement;
+
+  /// A borda e a reserva da dock seguem as configurações. O main chama na
+  /// subida; depois, a cada mudança.
+  void applyDockSettings() {
+    final placement = (settings.value.dockPosition, dockUi.exclusiveZone);
+    if (placement != _dockPlacement) {
+      _dockPlacement = placement;
+      unawaited(surfaces.dock(placement.$1, placement.$2));
+    }
+    dockUi.syncAutoHide();
+  }
+
+  void _dockSettingsChanged() => applyDockSettings();
 
   /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
   void toggle(ShellOverlay value) {

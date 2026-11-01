@@ -16,6 +16,8 @@ import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
+import 'package:system_shell/widgets/top_bar.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 import 'app_icon.dart';
 import 'desktop_entries.dart';
@@ -153,10 +155,124 @@ class DockController {
     }
   }
 
-  /// A tela, e o tamanho da superfície da dock (centrada na base). A view
+  /// A tela, e o tamanho da superfície da dock (centrada na borda). A view
   /// da dock avisa os dois.
   Size screen = const Size(1440, 900);
   Size surface = Size.zero;
+
+  PsitoDockPosition get position => state.settings.value.dockPosition;
+  double get iconSize => state.settings.value.dockIconSize;
+
+  /// O espaço entre a dock e a borda da tela.
+  static const edgeMargin = 20.0;
+
+  /// A sombra da dock (20 de blur, 2 de spread) cabe nesta margem.
+  static const shadowMargin = 16.0;
+
+  /// Quanto das bordas da tela a dock reserva para ela: as janelas ficam
+  /// fora. Com o ocultar sozinha, nada.
+  int get exclusiveZone => state.settings.value.dockAutoHide
+      ? 0
+      : (PsitoDock.thickness(iconSize) + edgeMargin + 10).round();
+
+  /// O espaço transparente em volta da dock, dentro da superfície: a margem
+  /// até a borda da tela, a sombra e, do lado de dentro, o ícone ampliado e
+  /// o pulo.
+  EdgeInsets get padding {
+    final inner = shadowMargin + PsitoDock.overflow(iconSize);
+    return switch (position) {
+      PsitoDockPosition.bottom => EdgeInsets.fromLTRB(
+        24,
+        inner,
+        24,
+        edgeMargin,
+      ),
+      PsitoDockPosition.left => EdgeInsets.fromLTRB(edgeMargin, 24, inner, 24),
+      PsitoDockPosition.right => EdgeInsets.fromLTRB(inner, 24, edgeMargin, 24),
+    };
+  }
+
+  /// O ponteiro está sobre a dock. Enquanto está, o lado de dentro (onde o
+  /// ícone ampliado cresce) também recebe o ponteiro; fora, só a dock e a
+  /// margem até a borda, para a área transparente não tomar os cliques das
+  /// janelas.
+  final hovered = ValueNotifier(false);
+
+  /// A borda que fica fora da região de input da superfície.
+  EdgeInsets get inputInsets {
+    final p = padding;
+    final open = hovered.value;
+    return switch (position) {
+      PsitoDockPosition.bottom => EdgeInsets.fromLTRB(
+        p.left,
+        open ? 0 : p.top,
+        p.right,
+        0,
+      ),
+      PsitoDockPosition.left => EdgeInsets.fromLTRB(
+        0,
+        p.top,
+        open ? 0 : p.right,
+        p.bottom,
+      ),
+      PsitoDockPosition.right => EdgeInsets.fromLTRB(
+        open ? 0 : p.left,
+        p.top,
+        0,
+        p.bottom,
+      ),
+    };
+  }
+
+  /// O centro da fileira, no eixo dela. Dos lados, a dock fica centrada no
+  /// espaço abaixo da top bar.
+  double get rowCenter => position.vertical
+      ? (screen.height + TopBar.height) / 2
+      : screen.width / 2;
+
+  /// Na tela: a coordenada ao longo da fileira, e a distância até a borda.
+  double _along(Offset p) => position.vertical ? p.dy : p.dx;
+  double _fromEdge(Offset p) => switch (position) {
+    PsitoDockPosition.bottom => screen.height - p.dy,
+    PsitoDockPosition.left => p.dx,
+    PsitoDockPosition.right => screen.width - p.dx,
+  };
+
+  // Ocultar sozinha
+
+  /// A dock está na tela. Com o ocultar sozinha, ela sai quando nada a
+  /// segura (o ponteiro, um menu, uma pilha, um arrastar) e volta quando o
+  /// ponteiro encosta na faixa da borda.
+  final revealed = ValueNotifier(true);
+  Timer? _hideTimer;
+  Duration hideDelay = const Duration(milliseconds: 600);
+
+  bool get _busy =>
+      hovered.value ||
+      drag.value != null ||
+      menu.value != null ||
+      stack.value != null ||
+      askEmptyTrash.value;
+
+  /// Reavalia o ocultar sozinha: com algo segurando, ela aparece (e fica);
+  /// sem nada, sai depois de [hideDelay].
+  void syncAutoHide() {
+    _hideTimer?.cancel();
+    if (!state.settings.value.dockAutoHide || _busy) {
+      revealed.value = true;
+      return;
+    }
+    if (!revealed.value) return;
+    _hideTimer = Timer(hideDelay, () => revealed.value = false);
+  }
+
+  /// O ponteiro (ou um arquivo arrastado) chegou na faixa da borda, ou
+  /// passou sobre a dock arrastando um arquivo: ela aparece e o prazo para
+  /// sair recomeça.
+  void reveal() {
+    revealed.value = true;
+    syncAutoHide();
+  }
 
   /// O último ponto do ponteiro na sobreposição, onde começa o arrastar do
   /// launcher.
@@ -189,10 +305,17 @@ class DockController {
   };
 
   /// Onde o canto da superfície da dock fica na tela.
-  Offset get origin => Offset(
-    (screen.width - surface.width) / 2,
-    screen.height - surface.height,
-  );
+  Offset get origin => switch (position) {
+    PsitoDockPosition.bottom => Offset(
+      (screen.width - surface.width) / 2,
+      screen.height - surface.height,
+    ),
+    PsitoDockPosition.left => Offset(0, rowCenter - surface.height / 2),
+    PsitoDockPosition.right => Offset(
+      screen.width - surface.width,
+      rowCenter - surface.height / 2,
+    ),
+  };
 
   DockRow get row {
     final sections = state.dockSections;
@@ -227,26 +350,25 @@ class DockController {
   /// longe da dock. Um app cai entre os fixados; uma pasta ou um arquivo,
   /// entre os seus, antes da lixeira.
   int? dropIndex(DockRow row, DockDrag drag) {
-    final size = state.settings.value.dockIconSize;
-    final position = drag.position;
-    if (position.dy < screen.height - surface.height - size * 0.75) {
-      return null;
-    }
+    final size = iconSize;
+    final zone = PsitoDock.thickness(size) + edgeMargin + size * 0.75;
+    if (_fromEdge(drag.position) > zone) return null;
+    final along = _along(drag.position);
     final centers = PsitoDock.centers(
       count: row.items.length,
       separators: row.separators,
       iconSize: size,
-      centerX: screen.width / 2,
+      centerX: rowCenter,
     );
     final reach = PsitoDock.span(size) * 1.5;
-    final left = (centers.firstOrNull ?? screen.width / 2) - reach;
-    final right = (centers.lastOrNull ?? screen.width / 2) + reach;
-    if (position.dx < left || position.dx > right) return null;
+    final first = (centers.firstOrNull ?? rowCenter) - reach;
+    final last = (centers.lastOrNull ?? rowCenter) + reach;
+    if (along < first || along > last) return null;
     final (start, end) = drag.item is DockApp
         ? (0, row.pinned)
         : (row.paths, row.items.length - 1);
     var index = start;
-    while (index < end && centers[index] < position.dx) {
+    while (index < end && centers[index] < along) {
       index++;
     }
     return index;

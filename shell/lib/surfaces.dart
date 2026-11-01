@@ -4,6 +4,7 @@
 // uma view do Flutter em cada.
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 /// As que o runner cria; com `PSITO_SURFACES`, só as pedidas (medições).
 enum Surface { background, topbar, dock, overlay, toasts, osd }
@@ -32,6 +33,11 @@ class Surfaces {
       });
 
   Future<void> hideOverlay() => _channel.invokeMethod('hideOverlay');
+
+  /// A borda em que a dock fica e quanto ela reserva da tela (a zona
+  /// exclusiva; 0 com o ocultar sozinha).
+  Future<void> dock(PsitoDockPosition edge, int exclusive) => _channel
+      .invokeMethod('dock', {'edge': edge.name, 'exclusive': exclusive});
 
   /// Os toasts e o OSD, que só existem enquanto têm algo na tela.
   Future<void> show(Surface surface) =>

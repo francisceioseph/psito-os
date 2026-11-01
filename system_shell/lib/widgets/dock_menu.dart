@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 class DockMenuItem {
   final String label;
@@ -25,6 +26,68 @@ class DockMenuItem {
   });
 }
 
+/// Põe um painel da dock (o menu, a pilha) ao lado do ícone [anchor], do
+/// lado de dentro da tela: acima com a dock embaixo, à direita com ela na
+/// esquerda, à esquerda com ela na direita. Ele fica inteiro na tela.
+class DockPopupLayout extends SingleChildLayoutDelegate {
+  final Rect anchor;
+  final PsitoDockPosition position;
+
+  /// A largura do painel.
+  final double width;
+
+  const DockPopupLayout(this.anchor, this.position, this.width);
+
+  static const gap = 8.0;
+  static const margin = 8.0;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      BoxConstraints(
+        maxWidth: math.max(
+          0,
+          math.min(width, constraints.maxWidth - 2 * margin),
+        ),
+        maxHeight: math.max(0, constraints.maxHeight - 2 * margin),
+      );
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    double fit(double value, double extent, double space) =>
+        value.clamp(margin, math.max(margin, space - extent - margin));
+    return switch (position) {
+      PsitoDockPosition.bottom => Offset(
+        fit(
+          anchor.center.dx - childSize.width / 2,
+          childSize.width,
+          size.width,
+        ),
+        fit(anchor.top - gap - childSize.height, childSize.height, size.height),
+      ),
+      PsitoDockPosition.left => Offset(
+        fit(anchor.right + gap, childSize.width, size.width),
+        fit(
+          anchor.center.dy - childSize.height / 2,
+          childSize.height,
+          size.height,
+        ),
+      ),
+      PsitoDockPosition.right => Offset(
+        fit(anchor.left - gap - childSize.width, childSize.width, size.width),
+        fit(
+          anchor.center.dy - childSize.height / 2,
+          childSize.height,
+          size.height,
+        ),
+      ),
+    };
+  }
+
+  @override
+  bool shouldRelayout(DockPopupLayout old) =>
+      old.anchor != anchor || old.position != position || old.width != width;
+}
+
 class DockMenu extends StatelessWidget {
   /// O retângulo do ícone, nas coordenadas da tela.
   final Rect anchor;
@@ -32,24 +95,22 @@ class DockMenu extends StatelessWidget {
   final List<DockMenuItem> items;
   final VoidCallback onClose;
 
+  /// A borda da dock: o menu abre do lado de dentro.
+  final PsitoDockPosition position;
+
   const DockMenu({
     super.key,
     required this.anchor,
     required this.title,
     required this.items,
     required this.onClose,
+    this.position = PsitoDockPosition.bottom,
   });
 
   static const width = 260.0;
 
   @override
   Widget build(BuildContext context) {
-    final screen = MediaQuery.sizeOf(context);
-    final left = (anchor.center.dx - width / 2).clamp(
-      8.0,
-      // No primeiro quadro a sobreposição pode ainda não ter o tamanho
-      math.max(8.0, screen.width - width - 8).toDouble(),
-    );
     return CallbackShortcuts(
       bindings: {const SingleActivator(LogicalKeyboardKey.escape): onClose},
       child: FocusScope(
@@ -63,58 +124,58 @@ class DockMenu extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
               ),
             ),
-            Positioned(
-              left: left,
-              bottom: screen.height - anchor.top + 8,
-              width: width,
-              child: Material(
-                color: const Color(0xFF1E252B),
-                borderRadius: BorderRadius.circular(14),
-                elevation: 12,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                        child: Text(
-                          title,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white60,
-                          ),
-                        ),
-                      ),
-                      for (final item in items) ...[
-                        if (item.separated)
-                          const Divider(
-                            height: 9,
-                            indent: 12,
-                            endIndent: 12,
-                            color: Colors.white12,
-                          ),
-                        ListTile(
-                          dense: true,
-                          visualDensity: VisualDensity.compact,
-                          title: Text(
-                            item.label,
-                            maxLines: 1,
+            Positioned.fill(
+              child: CustomSingleChildLayout(
+                delegate: DockPopupLayout(anchor, position, width),
+                child: Material(
+                  color: const Color(0xFF1E252B),
+                  borderRadius: BorderRadius.circular(14),
+                  elevation: 12,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: Text(
+                            title,
                             overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white60,
+                            ),
                           ),
-                          trailing: item.checked == true
-                              ? const Icon(Icons.check, size: 18)
-                              : null,
-                          onTap: () {
-                            onClose();
-                            item.onTap();
-                          },
                         ),
+                        for (final item in items) ...[
+                          if (item.separated)
+                            const Divider(
+                              height: 9,
+                              indent: 12,
+                              endIndent: 12,
+                              color: Colors.white12,
+                            ),
+                          ListTile(
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                            title: Text(
+                              item.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: item.checked == true
+                                ? const Icon(Icons.check, size: 18)
+                                : null,
+                            onTap: () {
+                              onClose();
+                              item.onTap();
+                            },
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),

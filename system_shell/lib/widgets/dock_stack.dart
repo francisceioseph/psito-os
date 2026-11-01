@@ -8,7 +8,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:psito_sdk/psito_sdk.dart';
+
 import '../shell/app_entry.dart';
+import 'dock_menu.dart';
 
 class DockStackEntry {
   /// Identifica o item no [DockStack.onOpen] (o caminho, no shell).
@@ -31,6 +34,9 @@ class DockStack extends StatelessWidget {
   final VoidCallback onOpenFolder;
   final VoidCallback onClose;
 
+  /// A borda da dock. O leque só existe embaixo; dos lados é a grade.
+  final PsitoDockPosition position;
+
   const DockStack({
     super.key,
     required this.anchor,
@@ -39,6 +45,7 @@ class DockStack extends StatelessWidget {
     required this.onOpen,
     required this.onOpenFolder,
     required this.onClose,
+    this.position = PsitoDockPosition.bottom,
   });
 
   /// Até quantos itens a pilha é um leque.
@@ -46,7 +53,10 @@ class DockStack extends StatelessWidget {
   static const columns = 5;
   static const cell = 104.0;
 
-  bool get fan => entries.isNotEmpty && entries.length <= fanLimit;
+  bool get fan =>
+      position == PsitoDockPosition.bottom &&
+      entries.isNotEmpty &&
+      entries.length <= fanLimit;
 
   void _open(String key) {
     onClose();
@@ -127,76 +137,75 @@ class DockStack extends StatelessWidget {
   }
 
   Widget _grid(Size screen) {
-    final width = math.max(
-      0.0,
-      math.min(columns * cell + 24, screen.width - 16),
-    );
-    final left = (anchor.center.dx - width / 2).clamp(
-      8.0,
-      // No primeiro quadro a sobreposição pode ainda não ter o tamanho
-      math.max(8.0, screen.width - width - 8).toDouble(),
-    );
-    return Positioned(
-      left: left,
-      bottom: screen.height - anchor.top + 8,
-      width: width,
-      child: Material(
-        color: const Color(0xFF1E252B),
-        borderRadius: BorderRadius.circular(18),
-        elevation: 12,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const SizedBox(width: 4),
-                  Expanded(
+    return Positioned.fill(
+      child: CustomSingleChildLayout(
+        delegate: DockPopupLayout(anchor, position, columns * cell + 24),
+        child: Material(
+          color: const Color(0xFF1E252B),
+          borderRadius: BorderRadius.circular(18),
+          elevation: 12,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        onClose();
+                        onOpenFolder();
+                      },
+                      child: const Text('Abrir no Files'),
+                    ),
+                  ],
+                ),
+                if (entries.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      title,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      'A pasta está vazia.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: math.max(
+                        120,
+                        math.min(
+                          420,
+                          position == PsitoDockPosition.bottom
+                              ? anchor.top - 120
+                              : screen.height - 160,
+                        ),
+                      ),
+                    ),
+                    child: GridView.extent(
+                      maxCrossAxisExtent: cell,
+                      shrinkWrap: true,
+                      children: [
+                        for (final item in entries)
+                          _GridCell(
+                            key: ValueKey('stack-${item.key}'),
+                            entry: item.entry,
+                            onTap: () => _open(item.key),
+                          ),
+                      ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      onClose();
-                      onOpenFolder();
-                    },
-                    child: const Text('Abrir no Files'),
-                  ),
-                ],
-              ),
-              if (entries.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text(
-                    'A pasta está vazia.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white60),
-                  ),
-                )
-              else
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: math.max(120, math.min(420, anchor.top - 120)),
-                  ),
-                  child: GridView.extent(
-                    maxCrossAxisExtent: cell,
-                    shrinkWrap: true,
-                    children: [
-                      for (final item in entries)
-                        _GridCell(
-                          key: ValueKey('stack-${item.key}'),
-                          entry: item.entry,
-                          onTap: () => _open(item.key),
-                        ),
-                    ],
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

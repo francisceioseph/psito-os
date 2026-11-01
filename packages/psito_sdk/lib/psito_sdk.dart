@@ -247,6 +247,18 @@ const psitoShortcuts = [
   PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
 ];
 
+/// Em que borda da tela a dock fica.
+enum PsitoDockPosition {
+  bottom('Embaixo'),
+  left('À esquerda'),
+  right('À direita');
+
+  final String label;
+  const PsitoDockPosition(this.label);
+
+  bool get vertical => this != bottom;
+}
+
 /// Preferências do sistema. O JSON de [toJson] é o formato do arquivo de
 /// configurações e, na fase 4, do protocolo.
 @immutable
@@ -268,6 +280,12 @@ class PsitoSettings {
 
   static const dockSizes = (min: 32.0, max: 96.0);
 
+  final PsitoDockPosition dockPosition;
+
+  /// A dock some quando o ponteiro sai dela e volta quando ele encosta na
+  /// borda; as janelas ocupam o lugar dela.
+  final bool dockAutoHide;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -277,6 +295,8 @@ class PsitoSettings {
     this.showBatteryPercentage = true,
     this.dockIconSize = 52,
     this.dockMagnification = true,
+    this.dockPosition = PsitoDockPosition.bottom,
+    this.dockAutoHide = false,
   });
 
   static const defaults = PsitoSettings();
@@ -292,6 +312,8 @@ class PsitoSettings {
     bool? showBatteryPercentage,
     double? dockIconSize,
     bool? dockMagnification,
+    PsitoDockPosition? dockPosition,
+    bool? dockAutoHide,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -301,6 +323,8 @@ class PsitoSettings {
     showBatteryPercentage: showBatteryPercentage ?? this.showBatteryPercentage,
     dockIconSize: dockIconSize ?? this.dockIconSize,
     dockMagnification: dockMagnification ?? this.dockMagnification,
+    dockPosition: dockPosition ?? this.dockPosition,
+    dockAutoHide: dockAutoHide ?? this.dockAutoHide,
   );
 
   Map<String, Object?> toJson() => {
@@ -312,6 +336,8 @@ class PsitoSettings {
     'showBatteryPercentage': showBatteryPercentage,
     'dockIconSize': dockIconSize,
     'dockMagnification': dockMagnification,
+    'dockPosition': dockPosition.name,
+    'dockAutoHide': dockAutoHide,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -336,6 +362,13 @@ class PsitoSettings {
         defaults.dockIconSize,
       ).toDouble().clamp(dockSizes.min, dockSizes.max),
       dockMagnification: pick('dockMagnification', defaults.dockMagnification),
+      dockPosition:
+          PsitoDockPosition.values.asNameMap()[pick<Object?>(
+            'dockPosition',
+            null,
+          )] ??
+          defaults.dockPosition,
+      dockAutoHide: pick('dockAutoHide', defaults.dockAutoHide),
     );
   }
 
@@ -349,7 +382,9 @@ class PsitoSettings {
       other.doNotDisturb == doNotDisturb &&
       other.showBatteryPercentage == showBatteryPercentage &&
       other.dockIconSize == dockIconSize &&
-      other.dockMagnification == dockMagnification;
+      other.dockMagnification == dockMagnification &&
+      other.dockPosition == dockPosition &&
+      other.dockAutoHide == dockAutoHide;
 
   @override
   int get hashCode => Object.hash(
@@ -361,6 +396,8 @@ class PsitoSettings {
     showBatteryPercentage,
     dockIconSize,
     dockMagnification,
+    dockPosition,
+    dockAutoHide,
   );
 }
 
