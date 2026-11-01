@@ -361,9 +361,13 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   bool get _shift => _keysLive && HardwareKeyboard.instance.isShiftPressed;
 
   void setKeyboard(bool focused) {
-    if (focused == _keyboard) return;
-    _keyboard = focused;
-    if (!focused) _keysLive = false;
+    // O foco da superfície vem depois do clique, às vezes com o diálogo que ele
+    // abriu já na tela: as views dividem o foco do Flutter, e a mesa levaria o
+    // do campo de senha
+    final keyboard = focused && !state.overlayHoldsKeyboard;
+    if (keyboard == _keyboard) return;
+    _keyboard = keyboard;
+    if (!keyboard) _keysLive = false;
     notifyListeners();
   }
 

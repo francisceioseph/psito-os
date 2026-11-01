@@ -57,7 +57,9 @@ class FilesController extends ChangeNotifier {
   /// Abre um disco, montando antes se precisar.
   Future<void> openVolume(PsitoVolume volume) async {
     if (volume.locked) {
-      onError?.call(l10n.volumeLocked);
+      // Desistir não é erro, e uma falha o shell já avisou
+      final where = await volumes.unlock(volume.id);
+      if (where != null) tab.go(FolderLocation(where));
       return;
     }
     final where = volume.mountPoint ?? await volumes.mount(volume.id);

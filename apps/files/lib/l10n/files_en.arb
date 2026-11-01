@@ -107,7 +107,6 @@
   "volumeUnnamed": "{size} disk",
   "@volumeUnnamed": {"placeholders": {"size": {"type": "String"}}},
   "volumeEject": "Eject",
-  "volumeLocked": "This disk is encrypted.",
   "volumeMountFailed": "Could not open this disk.",
   "volumeSafeToRemove": "You can remove the disk now.",
   "volumeBusy": "The disk is in use. Close what is using it and try again.",

@@ -36,7 +36,10 @@ class FakeVolumes implements PsitoVolumes {
   }
 
   @override
-  Future<PsitoDiskResult> unlock(String id, String password) async => answer;
+  Future<String?> unlock(String id) async {
+    asked.add('unlock $id');
+    return mounted;
+  }
 
   List<String> users = const [];
 
@@ -231,10 +234,19 @@ void main() {
         expect(files.tab.folder, before);
       });
 
-      test('um trancado não tenta montar', () async {
+      test('um trancado pede para destrancar e vai para onde montou', () async {
+        ctx.volumes.mounted = mount;
         await files.openVolume(volume.copyWith(locked: true));
-        expect(ctx.volumes.asked, isEmpty);
-        expect(messages, ['Este disco é criptografado.']);
+        expect(ctx.volumes.asked, ['unlock ${volume.id}']);
+        expect(files.tab.folder, mount);
+        expect(messages, isEmpty);
+      });
+
+      test('desistir da senha fica onde estava, sem aviso', () async {
+        final before = files.tab.folder;
+        await files.openVolume(volume.copyWith(locked: true));
+        expect(files.tab.folder, before);
+        expect(messages, isEmpty);
       });
 
       test('ejetar tira as abas do disco antes de pedir', () async {

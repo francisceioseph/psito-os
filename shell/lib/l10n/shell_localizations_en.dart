@@ -262,7 +262,34 @@ class ShellLocalizationsEn extends ShellLocalizations {
   String get diskPluggedBody => 'Disk connected. Click to open it.';
 
   @override
-  String get diskLockedBody => 'This disk is encrypted.';
+  String get diskLockedBody =>
+      'This disk is encrypted. Click to enter its password.';
+
+  @override
+  String diskUnlockTitle(Object name) {
+    return 'Unlock $name';
+  }
+
+  @override
+  String get diskUnlockBody => 'Enter the password of this disk.';
+
+  @override
+  String get diskUnlockHint => 'Password';
+
+  @override
+  String get diskUnlockWrong => 'Wrong password.';
+
+  @override
+  String get diskUnlockAction => 'Unlock';
+
+  @override
+  String get diskUnlockCancel => 'Cancel';
+
+  @override
+  String get diskUnlockShow => 'Show password';
+
+  @override
+  String get diskUnlockHide => 'Hide password';
 
   @override
   String get diskOpenFailed => 'Could not open this disk.';

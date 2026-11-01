@@ -132,8 +132,18 @@ class VolumesClient implements PsitoVolumes {
   Future<PsitoDiskResult> eject(String id) => _call('Eject', [DBusString(id)]);
 
   @override
-  Future<PsitoDiskResult> unlock(String id, String password) =>
-      _call('Unlock', [DBusString(id), DBusString(password)]);
+  Future<String?> unlock(String id) async {
+    try {
+      final reply = await _object.callMethod(volumesInterface, 'Unlock', [
+        DBusString(id),
+      ], replySignature: DBusSignature('s'));
+      final where = reply.returnValues[0].asString();
+      return where.isEmpty ? null : where;
+    } catch (e) {
+      debugPrint('🦜 Erro destrancando: $e');
+      return null;
+    }
+  }
 
   @override
   Future<List<String>> usersOf(String id) async {

@@ -113,8 +113,16 @@ Future<String> _processName(String pid) async =>
     (await File('/proc/$pid/comm').readAsString()).trim();
 
 abstract class DisksService implements PsitoVolumes {
+  /// Quem pede a senha do [unlock]: o shell, na sobreposição.
+  abstract Future<String?> Function(String id)? askUnlock;
+
+  /// Destranca com a senha e monta o que tem dentro.
+  Future<DiskUnlockResult> unlockWith(String id, String password);
+
   Future<void> dispose();
 }
+
+typedef DiskUnlockResult = ({PsitoDiskResult result, String? mountPoint});
 
 class UDisks2Service implements DisksService {
   static final managerPath = DBusObjectPath('/org/freedesktop/UDisks2');
@@ -290,7 +298,13 @@ class UDisks2Service implements DisksService {
   }
 
   @override
-  Future<PsitoDiskResult> unlock(String id, String password) async {
+  Future<String?> Function(String id)? askUnlock;
+
+  @override
+  Future<String?> unlock(String id) async => askUnlock?.call(id);
+
+  @override
+  Future<DiskUnlockResult> unlockWith(String id, String password) async {
     try {
       final reply = await _object(DBusObjectPath(id)).callMethod(
         _encryptedInterface,
@@ -298,12 +312,13 @@ class UDisks2Service implements DisksService {
         [DBusString(password), _noOptions],
         replySignature: DBusSignature('o'),
       );
-      final inside = reply.returnValues[0].asObjectPath();
-      return await mount(inside.value) == null
-          ? PsitoDiskResult.failed
-          : PsitoDiskResult.ok;
+      final where = await mount(reply.returnValues[0].asObjectPath().value);
+      return (
+        result: where == null ? PsitoDiskResult.failed : PsitoDiskResult.ok,
+        mountPoint: where,
+      );
     } on DBusMethodResponseException catch (e) {
-      return _resultOf(e);
+      return (result: _resultOf(e), mountPoint: null);
     }
   }
 
@@ -388,19 +403,22 @@ class FakeDisksService implements DisksService {
   }
 
   @override
-  Future<PsitoDiskResult> unlock(String id, String password) async {
+  Future<String?> Function(String id)? askUnlock;
+
+  @override
+  Future<String?> unlock(String id) async => askUnlock?.call(id);
+
+  @override
+  Future<DiskUnlockResult> unlockWith(String id, String password) async {
     if (password != FakeDisksService.password) {
-      return PsitoDiskResult.wrongPassword;
+      return (result: PsitoDiskResult.wrongPassword, mountPoint: null);
     }
+    final where = '/media/ana/$id';
     _replace(
       id,
-      (v) => v.copyWith(
-        locked: false,
-        unlocked: true,
-        mountPoint: () => '/media/ana/$id',
-      ),
+      (v) => v.copyWith(locked: false, unlocked: true, mountPoint: () => where),
     );
-    return PsitoDiskResult.ok;
+    return (result: PsitoDiskResult.ok, mountPoint: where);
   }
 
   @override

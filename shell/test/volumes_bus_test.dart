@@ -70,10 +70,19 @@ void main() {
     expect(await client.mount('pendrive'), isNull);
   });
 
-  test('ocupado e senha errada chegam ao app', () async {
+  test('ocupado chega ao app', () async {
     disks.answer = PsitoDiskResult.busy;
     expect(await client.eject('pendrive'), PsitoDiskResult.busy);
-    expect(await client.unlock('x', 'errada'), PsitoDiskResult.wrongPassword);
+  });
+
+  test('destrancar não leva senha, e devolve onde montou', () async {
+    disks.askUnlock = (id) async => '/media/ana/$id';
+    expect(await client.unlock('cofre'), '/media/ana/cofre');
+  });
+
+  test('desistir de destrancar chega como null', () async {
+    disks.askUnlock = (_) async => null;
+    expect(await client.unlock('cofre'), isNull);
   });
 
   test('sem o shell, a lista fica vazia e nada trava', () async {

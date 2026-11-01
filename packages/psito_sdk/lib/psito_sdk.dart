@@ -1006,8 +1006,10 @@ abstract class PsitoVolumes {
   /// Desmonta tudo que está no mesmo disco e desliga. Depois disso pode tirar.
   Future<PsitoDiskResult> eject(String id);
 
-  /// Destranca um volume criptografado e monta o que tem dentro.
-  Future<PsitoDiskResult> unlock(String id, String password);
+  /// Destranca um volume criptografado e monta o que tem dentro. Quem pede a
+  /// senha é o shell, e o app não a vê. Devolve onde montou. Null se a pessoa
+  /// desistiu ou se não deu, e aí o shell já avisou.
+  Future<String?> unlock(String id);
 
   /// O nome de quem está segurando o disco: o motivo do [PsitoDiskResult.busy].
   Future<List<String>> usersOf(String id);

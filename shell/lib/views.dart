@@ -37,6 +37,7 @@ import 'package:system_shell/widgets/window_switcher_overlay.dart';
 import 'app_icon.dart';
 import 'desk.dart';
 import 'dock.dart';
+import 'disk_unlock_dialog.dart';
 import 'polkit_dialog.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
@@ -177,10 +178,11 @@ class _DeskView extends StatelessWidget {
       return PsitoIcon(const ['user-home', 'folder'], size: size);
     }
     if (item.volume != null) {
-      return PsitoIcon(const [
-        'drive-removable-media',
-        'drive-harddisk',
-      ], size: size, fallback: fallback);
+      return PsitoIcon(
+        const ['drive-removable-media', 'drive-harddisk'],
+        size: size,
+        fallback: fallback,
+      );
     }
     if (item.key == DeskItem.trashKey) {
       return ValueListenableBuilder(
@@ -804,12 +806,20 @@ class _OverlayView extends StatelessWidget {
       state.deskMenu,
       state.deskTrust,
       state.polkit.current,
+      state.diskUnlock,
     ]),
     builder: (context, _) {
       final accent = Theme.of(context).colorScheme.primary;
       if (state.polkit.current.value case final request?) {
         return PolkitDialog(
           key: ValueKey(request.cookie),
+          request: request,
+          l10n: state.l10n,
+        );
+      }
+      if (state.diskUnlock.value case final request?) {
+        return DiskUnlockDialog(
+          key: ValueKey(request.id),
           request: request,
           l10n: state.l10n,
         );

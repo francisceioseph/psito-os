@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
@@ -13,6 +14,7 @@ import 'package:psito_services/disks_service.dart';
 import 'package:psito_shell/desk.dart';
 import 'package:psito_shell/dock.dart';
 import 'package:psito_shell/desktop_entries.dart';
+import 'package:psito_shell/disk_unlock_dialog.dart';
 import 'package:psito_shell/shell_state.dart';
 import 'package:psito_shell/surfaces.dart';
 import 'package:psito_shell/toplevels.dart';
@@ -1141,8 +1143,124 @@ void main() {
       expect(disks.volumes.value.single.mountPoint, isNull);
       expect(
         state.notifications.history.single.body,
-        'Este disco é criptografado.',
+        'Este disco é criptografado. Clique para digitar a senha.',
       );
+    });
+
+    group('destrancar', () {
+      const cofre = PsitoVolume(
+        id: '/d/z',
+        label: 'COFRE',
+        device: '/dev/sde1',
+        locked: true,
+      );
+
+      Future<DiskUnlockRequest> asked(Future<void> Function() ask) async {
+        unawaited(ask());
+        await until(() => state.diskUnlock.value != null);
+        return state.diskUnlock.value!;
+      }
+
+      test('a senha errada insiste, e a certa abre no Files', () async {
+        await plug(cofre);
+        final request = await asked(() => state.openVolume(cofre.id));
+        expect(request.name, 'COFRE');
+
+        await request.submit('errada');
+        expect(request.wrong, isTrue);
+        expect(state.diskUnlock.value, request);
+
+        await request.submit(FakeDisksService.password);
+        await until(() => opened.isNotEmpty);
+        expect(opened.single, ['/media/ana/${cofre.id}']);
+        expect(state.diskUnlock.value, isNull);
+      });
+
+      test('o que o app pede passa pelo mesmo pedido, sem repetir', () async {
+        await plug(cofre);
+        final first = disks.unlock(cofre.id);
+        final second = disks.unlock(cofre.id);
+        await until(() => state.diskUnlock.value != null);
+        await state.diskUnlock.value!.submit(FakeDisksService.password);
+        expect(await first, '/media/ana/${cofre.id}');
+        expect(await second, '/media/ana/${cofre.id}');
+      });
+
+      test('desistir não abre nem avisa de novo', () async {
+        await plug(cofre);
+        await until(() => state.notifications.history.isNotEmpty);
+        final seen = state.notifications.history.length;
+        final result = state.unlockVolume(cofre.id);
+        await until(() => state.diskUnlock.value != null);
+        state.diskUnlock.value!.cancel();
+        expect(await result, isNull);
+        expect(state.diskUnlock.value, isNull);
+        expect(state.notifications.history.length, seen);
+      });
+
+      test('destrancar não é um disco novo, nem trancar de novo', () async {
+        const cheio = PsitoVolume(
+          id: '/d/z',
+          label: 'COFRE',
+          device: '/dev/sde',
+          drive: 'sde',
+          locked: true,
+          autoMount: true,
+        );
+        const aberto = PsitoVolume(
+          id: '/d/dm0',
+          label: 'INTERNO',
+          device: '/dev/dm-0',
+          drive: 'sde',
+          unlocked: true,
+          autoMount: true,
+        );
+        await plug(cheio);
+        await until(() => state.notifications.history.isNotEmpty);
+        final seen = state.notifications.history.length;
+
+        disks.volumes.value = const [aberto];
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(disks.volumes.value.single.mountPoint, isNull);
+        expect(state.notifications.history.length, seen);
+
+        disks.volumes.value = const [cheio];
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(state.notifications.history.length, seen);
+      });
+
+      test('a mesa não tira o teclado do diálogo', () async {
+        await plug(cofre);
+        unawaited(state.unlockVolume(cofre.id));
+        await until(() => state.diskUnlock.value != null);
+        desk.setKeyboard(true);
+        expect(desk.keyboard, isFalse);
+        state.diskUnlock.value!.cancel();
+        await until(() => state.diskUnlock.value == null);
+        desk.setKeyboard(true);
+        expect(desk.keyboard, isTrue);
+      });
+
+      test('o id que muda durante a tentativa não cancela', () async {
+        await plug(cofre);
+        final result = state.unlockVolume(cofre.id);
+        await until(() => state.diskUnlock.value != null);
+        final request = state.diskUnlock.value!..checking = true;
+        disks.volumes.value = const [];
+        await Future<void>.delayed(Duration.zero);
+        expect(state.diskUnlock.value, request);
+        request.cancel();
+        await result;
+      });
+
+      test('o disco que sai fecha o pedido', () async {
+        await plug(cofre);
+        final result = state.unlockVolume(cofre.id);
+        await until(() => state.diskUnlock.value != null);
+        await disks.eject(cofre.id);
+        expect(await result, isNull);
+        expect(state.diskUnlock.value, isNull);
+      });
     });
 
     test('abrir monta e pede ao Files', () async {

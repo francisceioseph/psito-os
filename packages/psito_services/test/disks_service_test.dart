@@ -287,7 +287,7 @@ void main() {
       sdb1.error = '$_udisks.Error.Failed';
       sdb1.message = 'Failed to activate device: Incorrect passphrase';
       expect(
-        await service.unlock(sdb1.path.value, 'x'),
+        (await service.unlockWith(sdb1.path.value, 'x')).result,
         PsitoDiskResult.wrongPassword,
       );
     });
@@ -362,9 +362,15 @@ void main() {
       ),
     ]);
     addTearDown(fake.dispose);
-    expect(await fake.unlock('cofre', 'errada'), PsitoDiskResult.wrongPassword);
+    expect(await fake.unlock('cofre'), isNull);
+    fake.askUnlock = (id) async => 'pediu $id';
+    expect(await fake.unlock('cofre'), 'pediu cofre');
     expect(
-      await fake.unlock('cofre', FakeDisksService.password),
+      (await fake.unlockWith('cofre', 'errada')).result,
+      PsitoDiskResult.wrongPassword,
+    );
+    expect(
+      (await fake.unlockWith('cofre', FakeDisksService.password)).result,
       PsitoDiskResult.ok,
     );
     expect(fake.volumes.value.last.locked, isFalse);

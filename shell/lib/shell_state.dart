@@ -26,6 +26,7 @@ import 'autostart.dart';
 import 'clipboard_keeper.dart';
 import 'desk.dart';
 import 'desktop_entries.dart';
+import 'disk_unlock_dialog.dart';
 import 'idle.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
@@ -77,6 +78,8 @@ class ShellState {
     deskMenu.addListener(_syncOverlay);
     deskTrust.addListener(_syncOverlay);
     polkit.current.addListener(_syncOverlay);
+    diskUnlock.addListener(_syncOverlay);
+    services.disks.askUnlock = unlockVolume;
     // O que segura a dock na tela, com o ocultar sozinha
     for (final listenable in [
       dockUi.hovered,
@@ -490,11 +493,29 @@ class ShellState {
 
   void _watchVolumes() {
     final volumes = services.disks.volumes.value;
+    // O disco saiu com a senha sendo pedida. Durante a tentativa, não: destrancar
+    // troca o id, e o que sai no meio dela já falha sozinho
+    final asking = diskUnlock.value;
+    if (asking != null &&
+        !asking.checking &&
+        !volumes.any((v) => v.id == asking.id)) {
+      asking.cancel();
+    }
+    final ids = {for (final volume in volumes) volume.id};
+    // Destrancar e trancar trocam o id, mas o disco é o mesmo: não é um disco
+    // novo, e quem destrancou é que monta. Montar aqui chegaria ao UDisks antes
+    // de ele anotar quem destrancou, e ele pediria a senha de administrador
+    final relocked = {
+      for (final old in _knownVolumes.values)
+        if (old.unlocked && !ids.contains(old.id)) old.drive,
+    };
     final fresh = [
       for (final volume in volumes)
-        if (!_knownVolumes.containsKey(volume.id)) volume,
+        if (!_knownVolumes.containsKey(volume.id) &&
+            !volume.unlocked &&
+            !(volume.locked && relocked.contains(volume.drive)))
+          volume,
     ];
-    final ids = {for (final volume in volumes) volume.id};
     // Quem ejeta desmonta antes: sumir ainda montado é o cabo puxado
     for (final old in _knownVolumes.values) {
       if (!ids.contains(old.id) && old.mountPoint != null) {
@@ -546,11 +567,8 @@ class ShellState {
         .firstOrNull;
     if (volume == null) return;
     if (volume.locked) {
-      notifications.add(
-        app: _disksApp,
-        title: volumeName(volume),
-        body: l10n.diskLockedBody,
-      );
+      final where = await unlockVolume(id);
+      if (where != null) await openPaths?.call([where]);
       return;
     }
     final where = volume.mountPoint ?? await services.disks.mount(id);
@@ -563,6 +581,47 @@ class ShellState {
       return;
     }
     await openPaths?.call([where]);
+  }
+
+  /// O pedido da senha de um disco criptografado, na sobreposição.
+  final diskUnlock = ValueNotifier<DiskUnlockRequest?>(null);
+  final _unlocks = <String, Future<String?>>{};
+
+  /// Pede a senha e destranca. Devolve onde montou, ou null se a pessoa
+  /// desistiu ou não deu. Um pedido de cada vez, e pedir de novo o mesmo disco
+  /// é o mesmo pedido.
+  Future<String?> unlockVolume(String id) =>
+      _unlocks[id] ??= _askUnlock(id).whenComplete(() {
+        // Com bloco: o whenComplete espera o futuro que recebe, e o que o
+        // remove devolve é este mesmo
+        _unlocks.remove(id);
+      });
+
+  Future<String?> _askUnlock(String id) async {
+    while (diskUnlock.value != null) {
+      await diskUnlock.value!.done;
+    }
+    final volume = services.disks.volumes.value
+        .where((v) => v.id == id && v.locked)
+        .firstOrNull;
+    if (volume == null) return null;
+    final request = DiskUnlockRequest(
+      id: id,
+      name: volumeName(volume),
+      attempt: (password) => services.disks.unlockWith(id, password),
+    );
+    diskUnlock.value = request;
+    final where = await request.done;
+    diskUnlock.value = null;
+    if (request.failed) {
+      notifications.add(
+        app: _disksApp,
+        title: request.name,
+        body: l10n.diskOpenFailed,
+      );
+    }
+    request.dispose();
+    return where;
   }
 
   /// Depois disso, ejetar avisa que está gravando: o que é rápido não pisca.
@@ -929,18 +988,23 @@ class ShellState {
   /// A superfície da sobreposição existe só enquanto tem algo aberto.
   // O ícone arrastado do launcher continua com o ponteiro da sobreposição;
   // o da dock só é desenhado nela
+  /// A sobreposição fica com o teclado só para ela.
+  bool get overlayHoldsKeyboard =>
+      polkit.current.value != null ||
+      diskUnlock.value != null ||
+      confirm.value != null ||
+      dockUi.askEmptyTrash.value ||
+      deskTrust.value != null ||
+      overlay.value == ShellOverlay.launcher ||
+      // Com o teclado, os números escolhem; fechando, o foco volta para a
+      // janela em que se vai colar
+      overlay.value == ShellOverlay.clipboard ||
+      switcher.isOpen ||
+      dockUi.drag.value?.source == DockDragSource.launcher;
+
   void _syncOverlay() {
     final drag = dockUi.drag.value;
-    if (polkit.current.value != null ||
-        confirm.value != null ||
-        dockUi.askEmptyTrash.value ||
-        deskTrust.value != null ||
-        overlay.value == ShellOverlay.launcher ||
-        // Com o teclado, os números escolhem; fechando, o foco volta para a
-        // janela em que se vai colar
-        overlay.value == ShellOverlay.clipboard ||
-        switcher.isOpen ||
-        drag?.source == DockDragSource.launcher) {
+    if (overlayHoldsKeyboard) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.exclusive));
     } else if (overlay.value != null ||
         dockUi.menu.value != null ||

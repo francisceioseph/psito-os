@@ -734,12 +734,6 @@ abstract class FilesLocalizations {
   /// **'Eject'**
   String get volumeEject;
 
-  /// No description provided for @volumeLocked.
-  ///
-  /// In en, this message translates to:
-  /// **'This disk is encrypted.'**
-  String get volumeLocked;
-
   /// No description provided for @volumeMountFailed.
   ///
   /// In en, this message translates to:

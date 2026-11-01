@@ -563,8 +563,56 @@ abstract class ShellLocalizations {
   /// No description provided for @diskLockedBody.
   ///
   /// In en, this message translates to:
-  /// **'This disk is encrypted.'**
+  /// **'This disk is encrypted. Click to enter its password.'**
   String get diskLockedBody;
+
+  /// No description provided for @diskUnlockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock {name}'**
+  String diskUnlockTitle(Object name);
+
+  /// No description provided for @diskUnlockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the password of this disk.'**
+  String get diskUnlockBody;
+
+  /// No description provided for @diskUnlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get diskUnlockHint;
+
+  /// No description provided for @diskUnlockWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get diskUnlockWrong;
+
+  /// No description provided for @diskUnlockAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get diskUnlockAction;
+
+  /// No description provided for @diskUnlockCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get diskUnlockCancel;
+
+  /// No description provided for @diskUnlockShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get diskUnlockShow;
+
+  /// No description provided for @diskUnlockHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get diskUnlockHide;
 
   /// No description provided for @diskOpenFailed.
   ///

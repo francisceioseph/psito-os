@@ -401,9 +401,6 @@ class FilesLocalizationsEn extends FilesLocalizations {
   String get volumeEject => 'Eject';
 
   @override
-  String get volumeLocked => 'This disk is encrypted.';
-
-  @override
   String get volumeMountFailed => 'Could not open this disk.';
 
   @override

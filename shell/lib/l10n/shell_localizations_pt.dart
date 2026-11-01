@@ -262,7 +262,34 @@ class ShellLocalizationsPt extends ShellLocalizations {
   String get diskPluggedBody => 'Disco ligado. Clique para abrir.';
 
   @override
-  String get diskLockedBody => 'Este disco é criptografado.';
+  String get diskLockedBody =>
+      'Este disco é criptografado. Clique para digitar a senha.';
+
+  @override
+  String diskUnlockTitle(Object name) {
+    return 'Destrancar $name';
+  }
+
+  @override
+  String get diskUnlockBody => 'Digite a senha deste disco.';
+
+  @override
+  String get diskUnlockHint => 'Senha';
+
+  @override
+  String get diskUnlockWrong => 'Senha incorreta.';
+
+  @override
+  String get diskUnlockAction => 'Destrancar';
+
+  @override
+  String get diskUnlockCancel => 'Cancelar';
+
+  @override
+  String get diskUnlockShow => 'Mostrar a senha';
+
+  @override
+  String get diskUnlockHide => 'Ocultar a senha';
 
   @override
   String get diskOpenFailed => 'Não foi possível abrir este disco.';

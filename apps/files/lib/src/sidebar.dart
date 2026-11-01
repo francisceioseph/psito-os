@@ -151,7 +151,13 @@ class Sidebar extends StatelessWidget {
           : context.l10n.volumeUnnamed(formatSize(context.l10n, volume.size)),
       selected: current is FolderLocation && current.path == mount,
       onTap: () => unawaited(controller.openVolume(volume)),
-      trailing: volume.canEject && !volume.locked
+      trailing: volume.locked
+          ? Icon(
+              Icons.lock_outline,
+              size: 14,
+              color: context.palette.textSecondary,
+            )
+          : volume.canEject
           ? ValueListenableBuilder(
               valueListenable: controller.ejecting,
               builder: (context, ejecting, _) => ejecting.contains(volume.id)

@@ -406,9 +406,6 @@ class FilesLocalizationsPt extends FilesLocalizations {
   String get volumeEject => 'Ejetar';
 
   @override
-  String get volumeLocked => 'Este disco é criptografado.';
-
-  @override
   String get volumeMountFailed => 'Não foi possível abrir este disco.';
 
   @override
