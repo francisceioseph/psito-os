@@ -655,6 +655,18 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'The disk was removed without ejecting. Recent files may be incomplete.'**
   String get diskPulledBody;
+
+  /// No description provided for @diskFullTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is almost full'**
+  String get diskFullTitle;
+
+  /// No description provided for @diskFullBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{free} left. Click to see what takes up space.'**
+  String diskFullBody(String free);
 }
 
 class _ShellLocalizationsDelegate

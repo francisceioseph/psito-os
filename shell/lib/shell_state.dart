@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/storage_service.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/clipboard_history.dart';
@@ -527,7 +528,7 @@ class ShellState {
       }
     }
     _knownVolumes = {for (final volume in volumes) volume.id: volume};
-    if (fresh.isNotEmpty) unawaited(_volumesPlugged(fresh));
+    if (fresh.isNotEmpty && !_formatting) unawaited(_volumesPlugged(fresh));
   }
 
   // Monta sem abrir janela, e nunca executa nada do disco. Com a tela bloqueada
@@ -624,6 +625,74 @@ class ShellState {
     return where;
   }
 
+  /// O uso dos discos, medido aqui: no sandbox, as Configurações não os veem.
+  late final LocalStorage storage = LocalStorage(
+    disks: services.disks,
+    home: Platform.environment['HOME'] ?? '/',
+    trashDirs: () async {
+      final trash = dockUi.trash;
+      if (trash == null) return const [];
+      return [
+        trash.home.filesDir,
+        for (final folder in await trash.diskFolders()) folder.filesDir,
+      ];
+    },
+    onEmptyTrash: () => dockUi.askEmptyTrash.value = true,
+    onOpen: (path) async => openPaths?.call([path]),
+    formatter: formatDisk,
+  );
+
+  /// O disco sai e volta da lista ao formatar: não é um disco novo.
+  bool _formatting = false;
+
+  /// Quanto ainda esperar o disco voltar à lista depois de formatar.
+  static const formatSettle = Duration(seconds: 2);
+
+  Future<PsitoDiskResult> formatDisk(
+    String id,
+    PsitoDiskFormat type,
+    String label,
+  ) async {
+    _formatting = true;
+    try {
+      return await services.disks.format(id, type, label);
+    } finally {
+      unawaited(Future<void>.delayed(formatSettle, () => _formatting = false));
+    }
+  }
+
+  bool _warnedDiskFull = false;
+
+  /// De tempos em tempos, mede o disco do sistema, e avisa antes de dar erro.
+  void watchDiskSpace() {
+    storage.disks.addListener(checkDiskSpace);
+    unawaited(storage.refresh());
+    Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => unawaited(storage.refresh()),
+    );
+  }
+
+  /// Uma vez só, até sobrar espaço de novo: repetir não ajudaria.
+  void checkDiskSpace() {
+    final system = storage.disks.value.where((d) => d.isSystem).firstOrNull;
+    if (system == null) return;
+    if (!system.almostFull) {
+      _warnedDiskFull = false;
+      return;
+    }
+    if (_warnedDiskFull) return;
+    _warnedDiskFull = true;
+    notifications.add(
+      app: _disksApp,
+      title: l10n.diskFullTitle,
+      body: l10n.diskFullBody(
+        formatPsitoSize(system.free ?? 0, l10n.localeName),
+      ),
+      onOpen: () => _openSettings('storage'),
+    );
+  }
+
   /// Depois disso, ejetar avisa que está gravando: o que é rápido não pisca.
   static const ejectNoticeDelay = Duration(seconds: 2);
 
@@ -678,14 +747,16 @@ class ShellState {
   }
 
   /// Abre as Configurações na seção de rede, fechando o painel.
-  void openNetworkSettings() {
+  void openNetworkSettings() => _openSettings('network');
+
+  void _openSettings(String section) {
     closeOverlay();
     final settings = installed('org.psito.settings');
     if (settings == null) return;
     unawaited(
       settings.launch(
         sandbox: sandbox,
-        command: [...settings.command, '${psitoSettingsSectionPrefix}network'],
+        command: [...settings.command, '$psitoSettingsSectionPrefix$section'],
       ),
     );
   }

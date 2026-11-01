@@ -92,5 +92,7 @@
   "diskEjectFailed": "Não foi possível ejetar o disco.",
   "diskBusyBy": "O disco está em uso por {names}. Feche e tente de novo.",
   "diskWriting": "Gravando no disco. Não tire ainda.",
-  "diskPulledBody": "O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos."
+  "diskPulledBody": "O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos.",
+  "diskFullTitle": "O disco está quase cheio",
+  "diskFullBody": "Restam {free}. Clique para ver o que ocupa espaço."
 }

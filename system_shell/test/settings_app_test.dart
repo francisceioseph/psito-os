@@ -32,6 +32,9 @@ final _topBarClock = find.descendant(
 
 class _SectionContext implements PsitoAppContext {
   @override
+  PsitoStorage get storage => const PsitoNoStorage();
+
+  @override
   final List<String> openedPaths;
 
   _SectionContext(this.openedPaths);

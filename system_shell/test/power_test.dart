@@ -142,6 +142,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.settings_rounded).first);
     await tester.pump();
+    await scrollToSection(tester, find.text('Energia'));
     await tester.tap(find.text('Energia'));
     await tester.pump();
     await tester.tap(find.text('Mostrar porcentagem da bateria'));

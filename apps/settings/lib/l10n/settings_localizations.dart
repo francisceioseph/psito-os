@@ -940,6 +940,168 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'External disks'**
   String get desktopVolumes;
+
+  /// No description provided for @sectionStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage'**
+  String get sectionStorage;
+
+  /// No description provided for @storageUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not measure the disks.'**
+  String get storageUnavailable;
+
+  /// No description provided for @storageThisComputer.
+  ///
+  /// In en, this message translates to:
+  /// **'This computer'**
+  String get storageThisComputer;
+
+  /// No description provided for @storageUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed disk'**
+  String get storageUnnamed;
+
+  /// No description provided for @storageFree.
+  ///
+  /// In en, this message translates to:
+  /// **'{free} free of {total}'**
+  String storageFree(String free, String total);
+
+  /// No description provided for @storageNotMounted.
+  ///
+  /// In en, this message translates to:
+  /// **'{total}, not mounted'**
+  String storageNotMounted(String total);
+
+  /// No description provided for @storageAlmostFull.
+  ///
+  /// In en, this message translates to:
+  /// **'This disk is almost full.'**
+  String get storageAlmostFull;
+
+  /// No description provided for @storageLargest.
+  ///
+  /// In en, this message translates to:
+  /// **'Largest folders'**
+  String get storageLargest;
+
+  /// No description provided for @storageHideLargest.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide folders'**
+  String get storageHideLargest;
+
+  /// No description provided for @storageNoFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'No folders here.'**
+  String get storageNoFolders;
+
+  /// No description provided for @storageOpenFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {name} in Files'**
+  String storageOpenFolder(String name);
+
+  /// No description provided for @storageTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get storageTrash;
+
+  /// No description provided for @storageTrashSize.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} in the trash, on every disk'**
+  String storageTrashSize(String size);
+
+  /// No description provided for @storageEmptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty'**
+  String get storageEmptyTrash;
+
+  /// No description provided for @storageFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format…'**
+  String get storageFormat;
+
+  /// No description provided for @storageFormatWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This erases everything on {name}, and it cannot be undone.'**
+  String storageFormatWarning(String name);
+
+  /// No description provided for @storageFormatType.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get storageFormatType;
+
+  /// No description provided for @storageFormatFat.
+  ///
+  /// In en, this message translates to:
+  /// **'FAT: works on any device, files up to 4 GB'**
+  String get storageFormatFat;
+
+  /// No description provided for @storageFormatExfat.
+  ///
+  /// In en, this message translates to:
+  /// **'exFAT: works on most devices, large files'**
+  String get storageFormatExfat;
+
+  /// No description provided for @storageFormatExt4.
+  ///
+  /// In en, this message translates to:
+  /// **'ext4: Linux only'**
+  String get storageFormatExt4;
+
+  /// No description provided for @storageFormatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New name'**
+  String get storageFormatLabel;
+
+  /// No description provided for @storageFormatConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {name} to confirm'**
+  String storageFormatConfirm(String name);
+
+  /// No description provided for @storageFormatAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase and format'**
+  String get storageFormatAction;
+
+  /// No description provided for @storageFormatCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get storageFormatCancel;
+
+  /// No description provided for @storageFormatBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is in use. Close what is using it and try again.'**
+  String get storageFormatBusy;
+
+  /// No description provided for @storageFormatFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not format the disk.'**
+  String get storageFormatFailed;
+
+  /// No description provided for @storageFormatDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Disk formatted.'**
+  String get storageFormatDone;
 }
 
 class _SettingsLocalizationsDelegate

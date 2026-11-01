@@ -4,6 +4,7 @@
 // Na fase 4 este contrato vira o protocolo entre processos, então tudo que um
 // app pede ao shell precisa passar pelo PsitoAppContext.
 import 'dart:convert';
+import 'dart:math' show min;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'
@@ -11,6 +12,8 @@ import 'package:flutter/material.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'package:intl/intl.dart' show NumberFormat;
 
 import 'l10n/sdk_localizations.dart';
 
@@ -104,6 +107,10 @@ abstract class PsitoAppContext {
   /// As conexões de rede guardadas. Sem [PsitoApp.canChangeSettings], é a lista
   /// vazia e nenhuma ação vale.
   PsitoNetworkConnections get networkConnections;
+
+  /// O uso dos discos. Sem [PsitoApp.canChangeSettings], é a lista vazia e
+  /// nenhuma ação vale.
+  PsitoStorage get storage;
 
   /// Os discos externos. Sem a permissão `files:removable`, a lista fica vazia.
   PsitoVolumes get volumes;
@@ -942,16 +949,18 @@ class PsitoVolume {
   });
 
   PsitoVolume copyWith({
+    String? label,
+    String? fileSystem,
     String? Function()? mountPoint,
     bool? locked,
     bool? unlocked,
   }) => PsitoVolume(
     id: id,
-    label: label,
+    label: label ?? this.label,
     device: device,
     mountPoint: mountPoint == null ? this.mountPoint : mountPoint(),
     size: size,
-    fileSystem: fileSystem,
+    fileSystem: fileSystem ?? this.fileSystem,
     readOnly: readOnly,
     locked: locked ?? this.locked,
     unlocked: unlocked ?? this.unlocked,
@@ -1050,6 +1059,145 @@ class PsitoUserAccount {
     isAdmin: isAdmin,
     isCurrent: isCurrent,
   );
+}
+
+/// Em potências de 1000, como no Files: "512 B", "1,2 KB", "3,4 GB".
+String formatPsitoSize(int bytes, String locale) {
+  if (bytes < 1000) return '$bytes B';
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  var value = bytes / 1000;
+  var unit = 0;
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000;
+    unit++;
+  }
+  final number = NumberFormat(value < 10 ? '0.0' : '0', locale);
+  return '${number.format(value)} ${units[unit]}';
+}
+
+/// O uso de um disco.
+class PsitoDiskUsage {
+  /// O id do volume. Vazio é o disco do sistema, onde está o home.
+  final String id;
+
+  /// O rótulo. Vazio é sem nome.
+  final String name;
+
+  /// Onde ele está montado (no do sistema, o home). Null é sem montar.
+  final String? path;
+
+  final int total;
+
+  /// Null sem montar: só o sistema de arquivos sabe.
+  final int? free;
+
+  const PsitoDiskUsage({
+    this.id = '',
+    this.name = '',
+    this.path,
+    required this.total,
+    this.free,
+  });
+
+  bool get isSystem => id.isEmpty;
+
+  /// Dá para avisar com folga, mas um disco grande com 5% livres ainda tem
+  /// muito espaço, e um pequeno vive com menos de 2 GB: vale o menor dos dois.
+  bool get almostFull {
+    final free = this.free;
+    if (free == null || total <= 0) return false;
+    return free < min(total * 0.05, 2000000000);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoDiskUsage &&
+      other.id == id &&
+      other.name == name &&
+      other.path == path &&
+      other.total == total &&
+      other.free == free;
+
+  @override
+  int get hashCode => Object.hash(id, name, path, total, free);
+}
+
+/// Uma pasta e o quanto ela ocupa.
+class PsitoFolderSize {
+  final String path;
+  final int size;
+
+  const PsitoFolderSize(this.path, this.size);
+}
+
+/// O sistema de arquivos de um disco formatado, com o tamanho do rótulo. O nome
+/// é o que o UDisks2 entende.
+enum PsitoDiskFormat {
+  vfat(11),
+  exfat(11),
+  ext4(16);
+
+  final int maxLabel;
+
+  const PsitoDiskFormat(this.maxLabel);
+}
+
+/// O espaço em disco, para as Configurações: o shell mede, porque no sandbox o
+/// app não vê os discos nem o home.
+abstract class PsitoStorage {
+  /// O disco do sistema primeiro, depois os externos.
+  ValueListenable<List<PsitoDiskUsage>> get disks;
+
+  /// Mede de novo.
+  Future<void> refresh();
+
+  /// As maiores pastas logo abaixo de [path], da maior para a menor. Em disco
+  /// grande pode demorar.
+  Future<List<PsitoFolderSize>> largestFolders(String path);
+
+  /// Quanto as lixeiras ocupam, a do home e as dos discos.
+  Future<int> trashSize();
+
+  /// O shell pergunta antes de esvaziar.
+  Future<void> emptyTrash();
+
+  /// Abre a pasta nos Arquivos.
+  Future<void> openFolder(String path);
+
+  /// Apaga tudo de um disco externo e formata. Nunca o do sistema.
+  Future<PsitoDiskResult> format(String id, PsitoDiskFormat type, String label);
+}
+
+/// Sem a permissão: nada a mostrar, e nada acontece.
+class PsitoNoStorage implements PsitoStorage {
+  static final _empty = ValueNotifier<List<PsitoDiskUsage>>(const []);
+
+  const PsitoNoStorage();
+
+  @override
+  ValueListenable<List<PsitoDiskUsage>> get disks => _empty;
+
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  Future<List<PsitoFolderSize>> largestFolders(String path) async => const [];
+
+  @override
+  Future<int> trashSize() async => 0;
+
+  @override
+  Future<void> emptyTrash() async {}
+
+  @override
+  Future<void> openFolder(String path) async {}
+
+  @override
+  Future<PsitoDiskResult> format(
+    String id,
+    PsitoDiskFormat type,
+    String label,
+  ) async => PsitoDiskResult.failed;
 }
 
 /// As contas de usuário do sistema. Cada ação devolve se deu certo: recusada,

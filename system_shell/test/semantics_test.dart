@@ -104,13 +104,16 @@ void main() {
     'Usuários',
     'Privacidade',
     'Idioma',
+    'Armazenamento',
   ]) {
     testWidgets('a seção $section das Configurações', (tester) async {
       await openApp(
         tester,
         registeredApps.firstWhere((a) => a.id == 'settings'),
       );
-      await tester.tap(find.widgetWithText(ListTile, section).first);
+      final item = find.widgetWithText(ListTile, section);
+      await scrollToSection(tester, item);
+      await tester.tap(item.first);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       await expectAllLabeled(tester);

@@ -457,4 +457,98 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get desktopVolumes => 'External disks';
+
+  @override
+  String get sectionStorage => 'Storage';
+
+  @override
+  String get storageUnavailable => 'Could not measure the disks.';
+
+  @override
+  String get storageThisComputer => 'This computer';
+
+  @override
+  String get storageUnnamed => 'Unnamed disk';
+
+  @override
+  String storageFree(String free, String total) {
+    return '$free free of $total';
+  }
+
+  @override
+  String storageNotMounted(String total) {
+    return '$total, not mounted';
+  }
+
+  @override
+  String get storageAlmostFull => 'This disk is almost full.';
+
+  @override
+  String get storageLargest => 'Largest folders';
+
+  @override
+  String get storageHideLargest => 'Hide folders';
+
+  @override
+  String get storageNoFolders => 'No folders here.';
+
+  @override
+  String storageOpenFolder(String name) {
+    return 'Open $name in Files';
+  }
+
+  @override
+  String get storageTrash => 'Trash';
+
+  @override
+  String storageTrashSize(String size) {
+    return '$size in the trash, on every disk';
+  }
+
+  @override
+  String get storageEmptyTrash => 'Empty';
+
+  @override
+  String get storageFormat => 'Format…';
+
+  @override
+  String storageFormatWarning(String name) {
+    return 'This erases everything on $name, and it cannot be undone.';
+  }
+
+  @override
+  String get storageFormatType => 'Format';
+
+  @override
+  String get storageFormatFat => 'FAT: works on any device, files up to 4 GB';
+
+  @override
+  String get storageFormatExfat => 'exFAT: works on most devices, large files';
+
+  @override
+  String get storageFormatExt4 => 'ext4: Linux only';
+
+  @override
+  String get storageFormatLabel => 'New name';
+
+  @override
+  String storageFormatConfirm(String name) {
+    return 'Type $name to confirm';
+  }
+
+  @override
+  String get storageFormatAction => 'Erase and format';
+
+  @override
+  String get storageFormatCancel => 'Cancel';
+
+  @override
+  String get storageFormatBusy =>
+      'The disk is in use. Close what is using it and try again.';
+
+  @override
+  String get storageFormatFailed => 'Could not format the disk.';
+
+  @override
+  String get storageFormatDone => 'Disk formatted.';
 }

@@ -24,6 +24,7 @@ import 'notifications_server.dart';
 import 'opener.dart';
 import 'polkit_agent.dart';
 import 'settings_bus.dart';
+import 'storage_bus.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
 import 'toplevels.dart';
@@ -152,6 +153,20 @@ Future<void> main() async {
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Volumes ($e)');
   }
+  try {
+    final storageBus = DBusClient.session();
+    await publishStorage(
+      storageBus,
+      StorageBusObject(
+        state.storage,
+        mayChange: (sender) async =>
+            state.maySetSettings(await senderAppId(storageBus, sender)),
+      ),
+    );
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Storage ($e)');
+  }
+  state.watchDiskSpace();
   unawaited(_publishPolkit(state, settings));
   final server = NotificationsServer(
     onNotify: state.notify,

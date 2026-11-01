@@ -81,6 +81,21 @@ List<PsitoVolume> volumesFrom(UDisksObjects objects) {
   });
 }
 
+/// Onde o sistema roda: um sistema instalado num disco USB o UDisks2 não marca
+/// como do sistema, e formatar é a ação mais perigosa que existe.
+bool isSystemMount(String? mount) =>
+    mount == '/' ||
+    (mount != null &&
+        const [
+          '/boot',
+          '/etc',
+          '/home',
+          '/opt',
+          '/srv',
+          '/usr',
+          '/var',
+        ].any((dir) => mount == dir || mount.startsWith('$dir/')));
+
 /// Os programas com algo aberto em [mount], pelo `fuser`, que é quem sabe olhar
 /// cada processo. O nome vem do `/proc`, sem repetir.
 Future<List<String>> usersOfMount(
@@ -118,6 +133,9 @@ abstract class DisksService implements PsitoVolumes {
 
   /// Destranca com a senha e monta o que tem dentro.
   Future<DiskUnlockResult> unlockWith(String id, String password);
+
+  /// Desmonta, apaga tudo e formata. Nunca um disco em que o sistema roda.
+  Future<PsitoDiskResult> format(String id, PsitoDiskFormat type, String label);
 
   Future<void> dispose();
 }
@@ -240,6 +258,54 @@ class UDisks2Service implements DisksService {
   }
 
   @override
+  Future<PsitoDiskResult> format(
+    String id,
+    PsitoDiskFormat type,
+    String label,
+  ) async {
+    await _reload();
+    final volume = _volumes.value.where((v) => v.id == id).firstOrNull;
+    if (volume == null) return PsitoDiskResult.failed;
+    final drive = volume.drive;
+    final siblings = drive == null
+        ? [volume]
+        : _volumes.value.where((v) => v.drive == drive);
+    if (siblings.any((v) => isSystemMount(v.mountPoint))) {
+      return PsitoDiskResult.failed;
+    }
+    if (volume.mountPoint != null) {
+      final result = await unmount(id);
+      if (result != PsitoDiskResult.ok) return result;
+    }
+    // O de dentro de um criptografado: quem se formata é o de fora
+    var target = DBusObjectPath(id);
+    if (volume.unlocked) {
+      final block = _objects[target]?[_blockInterface];
+      final backing = _path(block?['CryptoBackingDevice']);
+      if (backing == null) return PsitoDiskResult.failed;
+      final result = await _lock(id);
+      if (result != PsitoDiskResult.ok) return result;
+      target = backing;
+    }
+    try {
+      await _object(target).callMethod(_blockInterface, 'Format', [
+        DBusString(type.name),
+        DBusDict.stringVariant({
+          'label': DBusString(label),
+          'update-partition-type': const DBusBoolean(true),
+          // Sem isto, a raiz do ext4 é do root, e a pessoa não grava nele
+          if (type == PsitoDiskFormat.ext4)
+            'take-ownership': const DBusBoolean(true),
+        }),
+      ], replySignature: DBusSignature(''));
+    } on DBusMethodResponseException catch (e) {
+      return _resultOf(e);
+    }
+    await mount(target.value);
+    return PsitoDiskResult.ok;
+  }
+
+  @override
   Future<PsitoDiskResult> eject(String id) async {
     await _reload();
     final volume = _volumes.value.where((v) => v.id == id).firstOrNull;
@@ -344,6 +410,9 @@ class FakeDisksService implements DisksService {
   /// A senha que os falsos aceitam.
   static const password = 'calopsita';
 
+  /// O que pediram para formatar.
+  final formatted = <(String, PsitoDiskFormat, String)>[];
+
   /// O nome que o disco tem: não é um texto da interface.
   static const _sampleName = 'PENDRIVE';
 
@@ -419,6 +488,26 @@ class FakeDisksService implements DisksService {
       (v) => v.copyWith(locked: false, unlocked: true, mountPoint: () => where),
     );
     return (result: PsitoDiskResult.ok, mountPoint: where);
+  }
+
+  @override
+  Future<PsitoDiskResult> format(
+    String id,
+    PsitoDiskFormat type,
+    String label,
+  ) async {
+    formatted.add((id, type, label));
+    if (answer != PsitoDiskResult.ok) return answer;
+    _replace(
+      id,
+      (v) => v.copyWith(
+        label: label,
+        fileSystem: type.name,
+        locked: false,
+        unlocked: false,
+      ),
+    );
+    return PsitoDiskResult.ok;
   }
 
   @override

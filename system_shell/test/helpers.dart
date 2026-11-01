@@ -168,3 +168,20 @@ final _framework = RegExp(
   r'ValueListenableBuilder|KeyedSubtree|RepaintBoundary|LayoutBuilder|MetaData)'
   r'(<.*)?$',
 );
+
+/// Rola a lista das seções das Configurações até [item], longe do pé da janela,
+/// que a dock cobre.
+Future<void> scrollToSection(WidgetTester tester, Finder item) async {
+  await tester.scrollUntilVisible(
+    item,
+    60,
+    scrollable: find
+        .ancestor(
+          of: find.byType(ListTile).first,
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  await Scrollable.ensureVisible(tester.element(item.first), alignment: 0.3);
+  await tester.pump();
+}

@@ -12,6 +12,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/disks_service.dart';
 import 'package:psito_services/network_connections.dart';
+import 'package:psito_services/storage_service.dart';
 import 'package:psito_services/time_service.dart';
 
 enum SnapMode { left, right, maximized }
@@ -96,6 +97,9 @@ class WindowManager extends ChangeNotifier {
 
   /// Idem para as conexões de rede.
   final PsitoNetworkConnections networkConnections;
+
+  /// Idem para o uso dos discos.
+  final PsitoStorage storage = FakeStorage();
 
   /// Os discos do laboratório: um pendrive, nunca os de verdade do host.
   final PsitoVolumes volumes = FakeDisksService([FakeDisksService.sample]);
@@ -422,6 +426,14 @@ class _WindowContext implements PsitoAppContext {
     return window != null && window.app.canChangeSettings
         ? _manager.networkConnections
         : const PsitoNoNetworkConnections();
+  }
+
+  @override
+  PsitoStorage get storage {
+    final window = _manager._byId(windowId);
+    return window != null && window.app.canChangeSettings
+        ? _manager.storage
+        : const PsitoNoStorage();
   }
 
   @override

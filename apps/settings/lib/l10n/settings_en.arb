@@ -115,7 +115,13 @@
   "detailDns": "DNS",
   "detailMac": "MAC address",
   "connectionForgetConfirm": "Forget {name}?",
-  "@connectionForgetConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@connectionForgetConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "vpnImport": "Import VPN…",
   "vpnImportTitle": "Import VPN (WireGuard or OpenVPN)",
   "vpnImported": "VPN saved. Turn it on from the network icon in the top bar.",
@@ -140,5 +146,77 @@
   "accentBlue": "Blue",
   "accentPurple": "Purple",
   "accentPink": "Pink",
-  "desktopVolumes": "External disks"
+  "desktopVolumes": "External disks",
+  "sectionStorage": "Storage",
+  "storageUnavailable": "Could not measure the disks.",
+  "storageThisComputer": "This computer",
+  "storageUnnamed": "Unnamed disk",
+  "storageFree": "{free} free of {total}",
+  "@storageFree": {
+    "placeholders": {
+      "free": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "storageNotMounted": "{total}, not mounted",
+  "@storageNotMounted": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "storageAlmostFull": "This disk is almost full.",
+  "storageLargest": "Largest folders",
+  "storageHideLargest": "Hide folders",
+  "storageNoFolders": "No folders here.",
+  "storageOpenFolder": "Open {name} in Files",
+  "@storageOpenFolder": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storageTrash": "Trash",
+  "storageTrashSize": "{size} in the trash, on every disk",
+  "@storageTrashSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "storageEmptyTrash": "Empty",
+  "storageFormat": "Format…",
+  "storageFormatWarning": "This erases everything on {name}, and it cannot be undone.",
+  "@storageFormatWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storageFormatType": "Format",
+  "storageFormatFat": "FAT: works on any device, files up to 4 GB",
+  "storageFormatExfat": "exFAT: works on most devices, large files",
+  "storageFormatExt4": "ext4: Linux only",
+  "storageFormatLabel": "New name",
+  "storageFormatConfirm": "Type {name} to confirm",
+  "@storageFormatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "storageFormatAction": "Erase and format",
+  "storageFormatCancel": "Cancel",
+  "storageFormatBusy": "The disk is in use. Close what is using it and try again.",
+  "storageFormatFailed": "Could not format the disk.",
+  "storageFormatDone": "Disk formatted."
 }

@@ -6,6 +6,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 
 import 'l10n/l10n.dart';
 import 'network_section.dart';
+import 'storage_section.dart';
 import 'users_section.dart';
 
 enum _Section {
@@ -14,6 +15,7 @@ enum _Section {
   desktop(Icons.desktop_windows_outlined),
   dateTime(Icons.schedule),
   network(Icons.lan_outlined),
+  storage(Icons.storage_outlined),
   notifications(Icons.notifications_none),
   power(Icons.battery_std_outlined),
   shortcuts(Icons.keyboard_outlined),
@@ -35,6 +37,7 @@ enum _Section {
     desktop => l.sectionDesktop,
     dateTime => l.sectionDateTime,
     network => l.sectionNetwork,
+    storage => l.sectionStorage,
     notifications => l.sectionNotifications,
     power => l.sectionPower,
     shortcuts => l.sectionShortcuts,
@@ -115,6 +118,9 @@ class _SettingsViewState extends State<SettingsView> {
                   _Section.desktop => _desktop(settings),
                   _Section.dateTime => _dateTime(settings),
                   _Section.network => _network(),
+                  _Section.storage => [
+                    StorageSection(storage: widget.appContext.storage),
+                  ],
                   _Section.notifications => _notifications(settings),
                   _Section.power => _power(settings),
                   _Section.shortcuts => _shortcuts(),
@@ -134,7 +140,7 @@ class _SettingsViewState extends State<SettingsView> {
     return Material(
       color: context.palette.shadow.withValues(alpha: 0.15),
       child: SizedBox(
-        width: compact ? 56 : 180,
+        width: compact ? 56 : 212,
         child: ListView(
           padding: EdgeInsets.symmetric(
             vertical: compact ? 4 : 12,
@@ -161,6 +167,7 @@ class _SettingsViewState extends State<SettingsView> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         leading: Icon(section.icon, size: 18),
+                        horizontalTitleGap: 10,
                         title: Text(section.label(context.l10n)),
                         onTap: () => setState(() => _section = section),
                       ),

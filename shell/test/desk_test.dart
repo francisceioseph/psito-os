@@ -1147,6 +1147,45 @@ void main() {
       );
     });
 
+    test('formatar não vira um disco novo', () async {
+      locked = true;
+      await plug();
+      locked = false;
+      final result = state.formatDisk(pendrive.id, PsitoDiskFormat.ext4, 'N');
+      disks.volumes.value = const [];
+      await plug();
+      expect(await result, PsitoDiskResult.ok);
+      await Future<void>.delayed(Duration.zero);
+      expect(disks.formatted.single.$3, 'N');
+      expect(state.notifications.history, isEmpty);
+    });
+
+    group('o disco cheio', () {
+      test('avisa uma vez, e de novo só depois de sobrar espaço', () {
+        void measure(int free) {
+          disks.volumes.value = const [];
+          state.storage.seed([
+            PsitoDiskUsage(path: '/h', total: 100000000000, free: free),
+          ]);
+          state.checkDiskSpace();
+        }
+
+        measure(50000000000);
+        expect(state.notifications.history, isEmpty);
+        measure(1000000000);
+        expect(state.notifications.history, hasLength(1));
+        expect(
+          state.notifications.history.single.title,
+          state.l10n.diskFullTitle,
+        );
+        measure(900000000);
+        expect(state.notifications.history, hasLength(1));
+        measure(50000000000);
+        measure(1000000000);
+        expect(state.notifications.history, hasLength(2));
+      });
+    });
+
     group('destrancar', () {
       const cofre = PsitoVolume(
         id: '/d/z',

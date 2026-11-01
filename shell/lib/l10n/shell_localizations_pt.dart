@@ -315,4 +315,12 @@ class ShellLocalizationsPt extends ShellLocalizations {
   @override
   String get diskPulledBody =>
       'O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos.';
+
+  @override
+  String get diskFullTitle => 'O disco está quase cheio';
+
+  @override
+  String diskFullBody(String free) {
+    return 'Restam $free. Clique para ver o que ocupa espaço.';
+  }
 }

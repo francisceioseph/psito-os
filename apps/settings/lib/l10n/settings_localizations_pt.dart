@@ -459,4 +459,100 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
 
   @override
   String get desktopVolumes => 'Discos externos';
+
+  @override
+  String get sectionStorage => 'Armazenamento';
+
+  @override
+  String get storageUnavailable => 'Não deu para medir os discos.';
+
+  @override
+  String get storageThisComputer => 'Este computador';
+
+  @override
+  String get storageUnnamed => 'Disco sem nome';
+
+  @override
+  String storageFree(String free, String total) {
+    return '$free livres de $total';
+  }
+
+  @override
+  String storageNotMounted(String total) {
+    return '$total, sem montar';
+  }
+
+  @override
+  String get storageAlmostFull => 'Este disco está quase cheio.';
+
+  @override
+  String get storageLargest => 'Maiores pastas';
+
+  @override
+  String get storageHideLargest => 'Esconder as pastas';
+
+  @override
+  String get storageNoFolders => 'Nenhuma pasta aqui.';
+
+  @override
+  String storageOpenFolder(String name) {
+    return 'Abrir $name nos Arquivos';
+  }
+
+  @override
+  String get storageTrash => 'Lixeira';
+
+  @override
+  String storageTrashSize(String size) {
+    return '$size na lixeira, somando todos os discos';
+  }
+
+  @override
+  String get storageEmptyTrash => 'Esvaziar';
+
+  @override
+  String get storageFormat => 'Formatar…';
+
+  @override
+  String storageFormatWarning(String name) {
+    return 'Isto apaga tudo que há em $name, sem volta.';
+  }
+
+  @override
+  String get storageFormatType => 'Formato';
+
+  @override
+  String get storageFormatFat =>
+      'FAT: serve em qualquer aparelho, arquivos de até 4 GB';
+
+  @override
+  String get storageFormatExfat =>
+      'exFAT: serve na maioria dos aparelhos, arquivos grandes';
+
+  @override
+  String get storageFormatExt4 => 'ext4: só no Linux';
+
+  @override
+  String get storageFormatLabel => 'Nome novo';
+
+  @override
+  String storageFormatConfirm(String name) {
+    return 'Digite $name para confirmar';
+  }
+
+  @override
+  String get storageFormatAction => 'Apagar e formatar';
+
+  @override
+  String get storageFormatCancel => 'Cancelar';
+
+  @override
+  String get storageFormatBusy =>
+      'O disco está em uso. Feche o que o usa e tente de novo.';
+
+  @override
+  String get storageFormatFailed => 'Não deu para formatar o disco.';
+
+  @override
+  String get storageFormatDone => 'Disco formatado.';
 }

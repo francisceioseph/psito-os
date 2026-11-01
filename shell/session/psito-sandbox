@@ -9,7 +9,7 @@
 #
 # Permissões: network (a rede e ler o estado do NetworkManager; mudar, só junto
 # com settings), settings (o Update do
-# org.psito.Settings e mudar o fuso e o nome), files:home (o $HOME de verdade),
+# org.psito.Settings, o org.psito.Storage e mudar o fuso e o nome), files:home (o $HOME de verdade),
 # files:removable (os discos externos: a /media e o org.psito.Volumes) e
 # notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
@@ -95,6 +95,7 @@ has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[
 has files:home && proxy+=("--call=${LAUNCHER[0]}=${LAUNCHER[1]}.SetDefault@${LAUNCHER[2]}")
 has notifications && proxy+=(--talk=org.freedesktop.Notifications)
 has files:removable && proxy+=(--talk=org.psito.Volumes)
+has settings && proxy+=(--talk=org.psito.Storage)
 
 # O sistema: ler o nome e a hora é de todos (o systemInfo e o time do
 # contexto); mudar o fuso, o NTP e o nome só com settings
