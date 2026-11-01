@@ -39,16 +39,21 @@ class DeskItem {
   /// O atalho não acha o programa (o app desinstalado).
   final bool broken;
 
+  /// Um disco externo.
+  final PsitoVolume? volume;
+
   const DeskItem({
     required this.key,
     required this.name,
     this.entry,
     this.shortcut,
     this.broken = false,
+    this.volume,
   });
 
   static const homeKey = '/home';
   static const trashKey = '/trash';
+  static String volumeKey(String id) => '/volume$id';
 }
 
 /// Um copiar ou mover da mesa em andamento.
@@ -127,6 +132,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
            launchEntry ?? ((app) => app.launch(sandbox: state.sandbox)) {
     state.settings.addListener(_settingsChanged);
     state.apps.addListener(_appsChanged);
+    state.services.disks.volumes.addListener(_volumesChanged);
     state.deskMenu.addListener(notifyListeners);
     this.clipboard.current.addListener(notifyListeners);
     _settings = state.settings.value;
@@ -233,6 +239,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
             for (final entry in _entries) entry.name,
             DeskItem.homeKey,
             DeskItem.trashKey,
+            for (final volume in state.services.disks.volumes.value)
+              DeskItem.volumeKey(volume.id),
           }),
         );
       } on FileSystemException catch (e) {
@@ -296,6 +304,13 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
               DeskItem(key: DeskItem.homeKey, name: state.l10n.home),
             if (_settings.desktopShowTrash)
               DeskItem(key: DeskItem.trashKey, name: state.l10n.trash),
+            if (_settings.desktopShowVolumes)
+              for (final volume in state.services.disks.volumes.value)
+                DeskItem(
+                  key: DeskItem.volumeKey(volume.id),
+                  name: state.volumeName(volume),
+                  volume: volume,
+                ),
             for (final entry in _entries) _itemFor(entry),
           ];
     _arrange();
@@ -840,13 +855,16 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (key == DeskItem.trashKey || key == DeskItem.homeKey) return true;
     final item = _item(key);
     return item != null &&
-        (item.shortcut != null || (item.entry?.isDirectory ?? false));
+        (item.shortcut != null ||
+            (item.entry?.isDirectory ?? false) ||
+            item.volume?.mountPoint != null);
   }
 
   /// A pasta para onde vai o que se solta em [key] (null: a mesa).
   String? _dropFolder(String? key) {
     if (key == null) return canCreateShortcut ? dir : null;
     if (key == DeskItem.homeKey) return home;
+    if (_item(key)?.volume case final volume?) return volume.mountPoint;
     final entry = _item(key)?.entry;
     return entry != null && entry.isDirectory ? entry.path : null;
   }
@@ -951,9 +969,15 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   bool canDropOn(String target, Set<String> keys) =>
       acceptsDrops(target) && dropAction(target, _pathsOf(keys)) != null;
 
-  /// [keys] soltos em cima de [target], dentro da mesa: é sempre mover.
-  void dropOn(String target, Set<String> keys) =>
-      unawaited(drop(target, _pathsOf(keys), DropAction.move));
+  /// [keys] soltos em cima de [target], dentro da mesa: é sempre mover, menos
+  /// para um disco externo, em que o original fica.
+  void dropOn(String target, Set<String> keys) => unawaited(
+    drop(
+      target,
+      _pathsOf(keys),
+      _item(target)?.volume != null ? DropAction.copy : DropAction.move,
+    ),
+  );
 
   /// O atalho de [app] na mesa, já executável: uma cópia do `.desktop`, que
   /// fica na célula de [at]. Se já tem um, é ele que vai para lá.
@@ -1087,6 +1111,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     } else if (old.desktopShowIcons != now.desktopShowIcons ||
         old.desktopShowHome != now.desktopShowHome ||
         old.desktopShowTrash != now.desktopShowTrash ||
+        old.desktopShowVolumes != now.desktopShowVolumes ||
         old.desktopAutoArrange != now.desktopAutoArrange) {
       _rebuild();
     } else if (old != now) {
@@ -1098,6 +1123,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   // Um app instalado ou removido conserta ou quebra os atalhos
   void _appsChanged() => _rebuild();
 
+  void _volumesChanged() => _rebuild();
+
   void open(String key) {
     if (_item(key) case final item?) _openItem(item);
   }
@@ -1107,6 +1134,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       unawaited(state.dockUi.openTrash());
     } else if (item.key == DeskItem.homeKey) {
       _openPath(home);
+    } else if (item.volume case final volume?) {
+      unawaited(state.openVolume(volume.id));
     } else if (item.shortcut case final shortcut?) {
       unawaited(_openShortcut(item, shortcut));
     } else {
@@ -1319,7 +1348,14 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     }
     final entry = item.entry;
     if (entry == null) {
-      return [DockMenuItem(state.l10n.open, () => open(item.key))];
+      return [
+        DockMenuItem(state.l10n.open, () => open(item.key)),
+        if (item.volume case final volume? when volume.canEject)
+          DockMenuItem(
+            state.l10n.diskEject,
+            () => unawaited(state.ejectVolume(volume)),
+          ),
+      ];
     }
     final dockItem = _dockItem(item);
     return [
@@ -1389,6 +1425,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   void dispose() {
     state.settings.removeListener(_settingsChanged);
     state.apps.removeListener(_appsChanged);
+    state.services.disks.volumes.removeListener(_volumesChanged);
     state.deskMenu.removeListener(notifyListeners);
     clipboard.current.removeListener(notifyListeners);
     unawaited(_watch?.cancel());

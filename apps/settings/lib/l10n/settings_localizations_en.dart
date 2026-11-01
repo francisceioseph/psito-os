@@ -454,4 +454,7 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get accentPink => 'Pink';
+
+  @override
+  String get desktopVolumes => 'External disks';
 }

@@ -138,5 +138,6 @@
   "accentGreen": "Verde",
   "accentBlue": "Azul",
   "accentPurple": "Roxo",
-  "accentPink": "Rosa"
+  "accentPink": "Rosa",
+  "desktopVolumes": "Discos externos"
 }

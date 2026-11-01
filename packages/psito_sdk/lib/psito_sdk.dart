@@ -403,6 +403,9 @@ class PsitoSettings {
   /// A lixeira na mesa.
   final bool desktopShowTrash;
 
+  /// Os discos externos, na mesa.
+  final bool desktopShowVolumes;
+
   /// Os ícones ficam em ordem de nome, sem buracos, e não onde foram postos.
   final bool desktopAutoArrange;
 
@@ -430,6 +433,7 @@ class PsitoSettings {
     this.desktopIconSize = 48,
     this.desktopShowHome = false,
     this.desktopShowTrash = false,
+    this.desktopShowVolumes = true,
     this.desktopAutoArrange = false,
     this.desktopHotCorner = false,
     this.language = '',
@@ -455,6 +459,7 @@ class PsitoSettings {
     double? desktopIconSize,
     bool? desktopShowHome,
     bool? desktopShowTrash,
+    bool? desktopShowVolumes,
     bool? desktopAutoArrange,
     bool? desktopHotCorner,
     String? language,
@@ -474,6 +479,7 @@ class PsitoSettings {
     desktopIconSize: desktopIconSize ?? this.desktopIconSize,
     desktopShowHome: desktopShowHome ?? this.desktopShowHome,
     desktopShowTrash: desktopShowTrash ?? this.desktopShowTrash,
+    desktopShowVolumes: desktopShowVolumes ?? this.desktopShowVolumes,
     desktopAutoArrange: desktopAutoArrange ?? this.desktopAutoArrange,
     desktopHotCorner: desktopHotCorner ?? this.desktopHotCorner,
     language: language ?? this.language,
@@ -495,6 +501,7 @@ class PsitoSettings {
     'desktopIconSize': desktopIconSize,
     'desktopShowHome': desktopShowHome,
     'desktopShowTrash': desktopShowTrash,
+    'desktopShowVolumes': desktopShowVolumes,
     'desktopAutoArrange': desktopAutoArrange,
     'desktopHotCorner': desktopHotCorner,
     'language': language,
@@ -537,6 +544,10 @@ class PsitoSettings {
       ).toDouble().clamp(desktopSizes.min, desktopSizes.max),
       desktopShowHome: pick('desktopShowHome', defaults.desktopShowHome),
       desktopShowTrash: pick('desktopShowTrash', defaults.desktopShowTrash),
+      desktopShowVolumes: pick(
+        'desktopShowVolumes',
+        defaults.desktopShowVolumes,
+      ),
       desktopAutoArrange: pick(
         'desktopAutoArrange',
         defaults.desktopAutoArrange,
@@ -564,6 +575,7 @@ class PsitoSettings {
       other.desktopIconSize == desktopIconSize &&
       other.desktopShowHome == desktopShowHome &&
       other.desktopShowTrash == desktopShowTrash &&
+      other.desktopShowVolumes == desktopShowVolumes &&
       other.desktopAutoArrange == desktopAutoArrange &&
       other.desktopHotCorner == desktopHotCorner &&
       other.language == language &&
@@ -585,6 +597,7 @@ class PsitoSettings {
     desktopIconSize,
     desktopShowHome,
     desktopShowTrash,
+    desktopShowVolumes,
     desktopAutoArrange,
     desktopHotCorner,
     language,
@@ -910,6 +923,9 @@ class PsitoVolume {
   /// Dá para desligar o disco, para tirar com segurança.
   final bool canEject;
 
+  /// O sistema indica montar ao ligar, como num pendrive.
+  final bool autoMount;
+
   const PsitoVolume({
     required this.id,
     required this.label,
@@ -922,6 +938,7 @@ class PsitoVolume {
     this.unlocked = false,
     this.drive,
     this.canEject = false,
+    this.autoMount = false,
   });
 
   PsitoVolume copyWith({
@@ -940,6 +957,7 @@ class PsitoVolume {
     unlocked: unlocked ?? this.unlocked,
     drive: drive,
     canEject: canEject,
+    autoMount: autoMount,
   );
 
   @override
@@ -955,7 +973,8 @@ class PsitoVolume {
       other.locked == locked &&
       other.unlocked == unlocked &&
       other.drive == drive &&
-      other.canEject == canEject;
+      other.canEject == canEject &&
+      other.autoMount == autoMount;
 
   @override
   int get hashCode => Object.hash(
@@ -970,6 +989,7 @@ class PsitoVolume {
     unlocked,
     drive,
     canEject,
+    autoMount,
   );
 }
 

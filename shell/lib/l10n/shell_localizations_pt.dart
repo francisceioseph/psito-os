@@ -247,4 +247,32 @@ class ShellLocalizationsPt extends ShellLocalizations {
 
   @override
   String get portalBody => 'Clique para abrir a página de login no navegador.';
+
+  @override
+  String get disksApp => 'Discos';
+
+  @override
+  String get diskUnnamed => 'Disco externo';
+
+  @override
+  String get diskEject => 'Ejetar';
+
+  @override
+  String get diskPluggedBody => 'Disco ligado. Clique para abrir.';
+
+  @override
+  String get diskLockedBody => 'Este disco é criptografado.';
+
+  @override
+  String get diskOpenFailed => 'Não foi possível abrir este disco.';
+
+  @override
+  String get diskSafeToRemove => 'Já pode tirar o disco.';
+
+  @override
+  String get diskBusy =>
+      'O disco está em uso. Feche o que está usando e tente de novo.';
+
+  @override
+  String get diskEjectFailed => 'Não foi possível ejetar o disco.';
 }

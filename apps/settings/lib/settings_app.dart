@@ -302,6 +302,12 @@ class _SettingsViewState extends State<SettingsView> {
         onChanged: (v) => _update(s.copyWith(desktopShowTrash: v)),
       ),
       SwitchListTile(
+        key: const ValueKey('desktop-volumes'),
+        title: Text(context.l10n.desktopVolumes),
+        value: s.desktopShowVolumes,
+        onChanged: (v) => _update(s.copyWith(desktopShowVolumes: v)),
+      ),
+      SwitchListTile(
         title: Text(context.l10n.desktopAutoArrange),
         subtitle: Text(context.l10n.desktopAutoArrangeHint),
         value: s.desktopAutoArrange,

@@ -9,6 +9,7 @@ import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_services.dart';
+import 'package:psito_services/disks_service.dart';
 import 'package:psito_shell/desk.dart';
 import 'package:psito_shell/dock.dart';
 import 'package:psito_shell/desktop_entries.dart';
@@ -1042,6 +1043,152 @@ void main() {
       expect(desk.dropAction('gimp.desktop', ['/tmp/x.png']), DropAction.copy);
       await desk.drop('gimp.desktop', ['/tmp/x.png'], DropAction.copy);
       expect(opened.single, ['/tmp/x.png', 'gimp']);
+    });
+  });
+
+  group('os discos', () {
+    late FakeDisksService disks;
+    var locked = false;
+
+    const pendrive = PsitoVolume(
+      id: '/d/sdb1',
+      label: 'PENDRIVE',
+      device: '/dev/sdb1',
+      drive: 'sdb',
+      canEject: true,
+      autoMount: true,
+    );
+    final key = DeskItem.volumeKey(pendrive.id);
+
+    setUp(() async {
+      disks = state.services.disks as FakeDisksService;
+      locked = false;
+      state.sessionLocked = () async => locked;
+      await state.services.ready;
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    Future<void> plug([PsitoVolume volume = pendrive]) async {
+      disks.volumes.value = [...disks.volumes.value, volume];
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    test('um disco ligado aparece na mesa, e sai quando tiram', () async {
+      await plug();
+      expect(item(key).name, 'PENDRIVE');
+      disks.volumes.value = const [];
+      expect(desk.items.where((i) => i.key == key), isEmpty);
+    });
+
+    test('sem nome, usa o genérico', () async {
+      await plug(const PsitoVolume(id: '/d/x', label: '', device: '/dev/sdc1'));
+      expect(item(DeskItem.volumeKey('/d/x')).name, 'Disco externo');
+    });
+
+    test('a configuração esconde', () async {
+      await plug();
+      await state.settings.update(
+        state.settings.value.copyWith(desktopShowVolumes: false),
+      );
+      expect(desk.items.where((i) => i.key == key), isEmpty);
+    });
+
+    test('ao ligar, monta e avisa', () async {
+      await plug();
+      await until(() => state.notifications.history.isNotEmpty);
+      expect(disks.volumes.value.single.mountPoint, isNotNull);
+      final notice = state.notifications.history.single;
+      expect(notice.title, 'PENDRIVE');
+      expect(notice.body, 'Disco ligado. Clique para abrir.');
+    });
+
+    test('o clique no aviso abre onde montou', () async {
+      await plug();
+      await until(() => state.notifications.history.isNotEmpty);
+      state.notifications.history.single.onOpen!();
+      await until(() => opened.isNotEmpty);
+      expect(opened.single, [disks.volumes.value.single.mountPoint]);
+    });
+
+    test('com a tela bloqueada, não monta nem avisa', () async {
+      locked = true;
+      await plug();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(disks.volumes.value.single.mountPoint, isNull);
+      expect(state.notifications.history, isEmpty);
+    });
+
+    test('o que o sistema não indica montar não monta, mas avisa', () async {
+      await plug(
+        const PsitoVolume(id: '/d/y', label: 'DADOS', device: '/dev/sdd1'),
+      );
+      await until(() => state.notifications.history.isNotEmpty);
+      expect(disks.volumes.value.single.mountPoint, isNull);
+    });
+
+    test('um trancado não monta', () async {
+      await plug(
+        const PsitoVolume(
+          id: '/d/z',
+          label: 'COFRE',
+          device: '/dev/sde1',
+          locked: true,
+          autoMount: true,
+        ),
+      );
+      await until(() => state.notifications.history.isNotEmpty);
+      expect(disks.volumes.value.single.mountPoint, isNull);
+      expect(
+        state.notifications.history.single.body,
+        'Este disco é criptografado.',
+      );
+    });
+
+    test('abrir monta e pede ao Files', () async {
+      locked = true;
+      await plug();
+      locked = false;
+      desk.open(key);
+      await until(() => opened.isNotEmpty);
+      expect(disks.volumes.value.single.mountPoint, isNotNull);
+      expect(opened.single, [disks.volumes.value.single.mountPoint]);
+    });
+
+    test('o menu tem ejetar, que diz quando dá para tirar', () async {
+      locked = true;
+      await plug();
+      await desk.openMenu(key, Offset.zero);
+      final items = state.deskMenu.value!.items;
+      expect(items.map((i) => i.label), ['Abrir', 'Ejetar']);
+      items.last.onTap();
+      await until(() => state.notifications.history.isNotEmpty);
+      expect(disks.volumes.value, isEmpty);
+      expect(state.notifications.history.single.body, 'Já pode tirar o disco.');
+    });
+
+    test('um disco em uso avisa e fica', () async {
+      locked = true;
+      await plug();
+      disks.answer = PsitoDiskResult.busy;
+      await state.ejectVolume(pendrive);
+      expect(disks.volumes.value, hasLength(1));
+      expect(state.notifications.history.single.body, contains('em uso'));
+    });
+
+    test('só recebe arquivo depois de montado, e copia', () async {
+      File(path('a.txt')).writeAsStringSync('a');
+      final inside = Directory(path('dentro'))..createSync();
+      await desk.reload();
+      locked = true;
+      await plug();
+      expect(desk.acceptsDrops(key), isFalse);
+      disks.volumes.value = [pendrive.copyWith(mountPoint: () => inside.path)];
+      expect(desk.acceptsDrops(key), isTrue);
+      desk.dropOn(key, {'a.txt'});
+      await until(() => File('${inside.path}/a.txt').existsSync());
+      // O original fica na mesa
+      expect(File(path('a.txt')).existsSync(), isTrue);
     });
   });
 }

@@ -26,6 +26,7 @@ DBusValue volumeToDBus(PsitoVolume v) => DBusDict.stringVariant({
   'unlocked': DBusBoolean(v.unlocked),
   'drive': DBusString(v.drive ?? ''),
   'canEject': DBusBoolean(v.canEject),
+  'autoMount': DBusBoolean(v.autoMount),
 });
 
 PsitoVolume volumeFromDBus(DBusValue value) {
@@ -45,6 +46,7 @@ PsitoVolume volumeFromDBus(DBusValue value) {
     unlocked: flag('unlocked'),
     drive: optional('drive'),
     canEject: flag('canEject'),
+    autoMount: flag('autoMount'),
   );
 }
 

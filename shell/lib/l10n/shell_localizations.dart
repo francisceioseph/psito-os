@@ -535,6 +535,60 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'Click to open the login page in the browser.'**
   String get portalBody;
+
+  /// No description provided for @disksApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Disks'**
+  String get disksApp;
+
+  /// No description provided for @diskUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'External disk'**
+  String get diskUnnamed;
+
+  /// No description provided for @diskEject.
+  ///
+  /// In en, this message translates to:
+  /// **'Eject'**
+  String get diskEject;
+
+  /// No description provided for @diskPluggedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Disk connected. Click to open it.'**
+  String get diskPluggedBody;
+
+  /// No description provided for @diskLockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This disk is encrypted.'**
+  String get diskLockedBody;
+
+  /// No description provided for @diskOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open this disk.'**
+  String get diskOpenFailed;
+
+  /// No description provided for @diskSafeToRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'You can remove the disk now.'**
+  String get diskSafeToRemove;
+
+  /// No description provided for @diskBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'The disk is in use. Close what is using it and try again.'**
+  String get diskBusy;
+
+  /// No description provided for @diskEjectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not eject the disk.'**
+  String get diskEjectFailed;
 }
 
 class _ShellLocalizationsDelegate

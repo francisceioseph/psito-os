@@ -72,5 +72,14 @@
   "logoutAction": "Sair",
   "networkApp": "Rede",
   "portalTitle": "Esta rede pede login",
-  "portalBody": "Clique para abrir a página de login no navegador."
+  "portalBody": "Clique para abrir a página de login no navegador.",
+  "disksApp": "Discos",
+  "diskUnnamed": "Disco externo",
+  "diskEject": "Ejetar",
+  "diskPluggedBody": "Disco ligado. Clique para abrir.",
+  "diskLockedBody": "Este disco é criptografado.",
+  "diskOpenFailed": "Não foi possível abrir este disco.",
+  "diskSafeToRemove": "Já pode tirar o disco.",
+  "diskBusy": "O disco está em uso. Feche o que está usando e tente de novo.",
+  "diskEjectFailed": "Não foi possível ejetar o disco."
 }

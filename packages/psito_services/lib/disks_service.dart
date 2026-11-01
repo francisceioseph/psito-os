@@ -70,6 +70,7 @@ List<PsitoVolume> volumesFrom(UDisksObjects objects) {
         canEject:
             (drive?['Ejectable']?.asBoolean() ?? false) ||
             (drive?['CanPowerOff']?.asBoolean() ?? false),
+        autoMount: outer['HintAuto']?.asBoolean() ?? false,
       ),
     );
   }
@@ -299,6 +300,7 @@ class FakeDisksService implements DisksService {
     fileSystem: 'vfat',
     drive: 'sdb',
     canEject: true,
+    autoMount: true,
   );
 
   @override

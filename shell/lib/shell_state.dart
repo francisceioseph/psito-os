@@ -104,6 +104,8 @@ class ShellState {
     });
     notifications.addListener(_syncToasts);
     services.network.state.addListener(_watchPortal);
+    services.disks.volumes.addListener(_watchVolumes);
+    unawaited(services.ready.then((_) => _servicesReady = true));
     toplevels.addListener(_windowsChanged);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
   }
@@ -465,6 +467,104 @@ class ShellState {
       );
     }
     _onPortal = portal;
+  }
+
+  /// Os discos de antes: quem aparece fora deles acabou de ser ligado.
+  Set<String> _knownVolumes = const {};
+
+  /// Os que já estavam ligados ao subir o shell não merecem aviso.
+  bool _servicesReady = false;
+
+  /// Se a tela está bloqueada. Os testes trocam.
+  late Future<bool> Function() sessionLocked = _lockUnitActive;
+
+  static Future<bool> _lockUnitActive() async {
+    final result = await Process.run('systemctl', [
+      '--user',
+      'is-active',
+      '--quiet',
+      'psito-lock',
+    ]);
+    return result.exitCode == 0;
+  }
+
+  void _watchVolumes() {
+    final volumes = services.disks.volumes.value;
+    final fresh = [
+      for (final volume in volumes)
+        if (!_knownVolumes.contains(volume.id)) volume,
+    ];
+    _knownVolumes = {for (final volume in volumes) volume.id};
+    if (fresh.isNotEmpty) unawaited(_volumesPlugged(fresh));
+  }
+
+  // Monta sem abrir janela, e nunca executa nada do disco. Com a tela bloqueada
+  // não monta: quem espeta um pendrive numa máquina sozinha não acorda o código
+  // que lê o sistema de arquivos dele. Fica o clique, depois de desbloquear
+  Future<void> _volumesPlugged(List<PsitoVolume> volumes) async {
+    final tell = _servicesReady;
+    if (await sessionLocked()) return;
+    for (final volume in volumes) {
+      if (volume.autoMount && !volume.locked && volume.mountPoint == null) {
+        await services.disks.mount(volume.id);
+      }
+      if (tell) _tellVolume(volume);
+    }
+  }
+
+  void _tellVolume(PsitoVolume volume) {
+    notifications.add(
+      app: _disksApp,
+      title: volumeName(volume),
+      body: volume.locked ? l10n.diskLockedBody : l10n.diskPluggedBody,
+      onOpen: () => unawaited(openVolume(volume.id)),
+    );
+  }
+
+  AppEntry get _disksApp =>
+      appFor('psito-disks', name: l10n.disksApp, icon: 'drive-removable-media');
+
+  String volumeName(PsitoVolume volume) =>
+      volume.label.isNotEmpty ? volume.label : l10n.diskUnnamed;
+
+  /// Abre um disco no Files, montando antes se precisar. Pelo id, porque o que
+  /// se sabe dele pode ser de antes de montar.
+  Future<void> openVolume(String id) async {
+    final volume = services.disks.volumes.value
+        .where((v) => v.id == id)
+        .firstOrNull;
+    if (volume == null) return;
+    if (volume.locked) {
+      notifications.add(
+        app: _disksApp,
+        title: volumeName(volume),
+        body: l10n.diskLockedBody,
+      );
+      return;
+    }
+    final where = volume.mountPoint ?? await services.disks.mount(id);
+    if (where == null) {
+      notifications.add(
+        app: _disksApp,
+        title: volumeName(volume),
+        body: l10n.diskOpenFailed,
+      );
+      return;
+    }
+    await openPaths?.call([where]);
+  }
+
+  Future<void> ejectVolume(PsitoVolume volume) async {
+    final result = await services.disks.eject(volume.id);
+    notifications.add(
+      app: _disksApp,
+      title: volumeName(volume),
+      body: switch (result) {
+        PsitoDiskResult.ok => l10n.diskSafeToRemove,
+        PsitoDiskResult.busy => l10n.diskBusy,
+        _ => l10n.diskEjectFailed,
+      },
+    );
   }
 
   /// Abre um endereço. Os testes trocam.

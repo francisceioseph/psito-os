@@ -176,6 +176,12 @@ class _DeskView extends StatelessWidget {
     if (item.key == DeskItem.homeKey) {
       return PsitoIcon(const ['user-home', 'folder'], size: size);
     }
+    if (item.volume != null) {
+      return PsitoIcon(const [
+        'drive-removable-media',
+        'drive-harddisk',
+      ], size: size, fallback: fallback);
+    }
     if (item.key == DeskItem.trashKey) {
       return ValueListenableBuilder(
         valueListenable: desk.state.dockUi.trashFull,

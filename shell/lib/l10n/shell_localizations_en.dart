@@ -248,4 +248,32 @@ class ShellLocalizationsEn extends ShellLocalizations {
 
   @override
   String get portalBody => 'Click to open the login page in the browser.';
+
+  @override
+  String get disksApp => 'Disks';
+
+  @override
+  String get diskUnnamed => 'External disk';
+
+  @override
+  String get diskEject => 'Eject';
+
+  @override
+  String get diskPluggedBody => 'Disk connected. Click to open it.';
+
+  @override
+  String get diskLockedBody => 'This disk is encrypted.';
+
+  @override
+  String get diskOpenFailed => 'Could not open this disk.';
+
+  @override
+  String get diskSafeToRemove => 'You can remove the disk now.';
+
+  @override
+  String get diskBusy =>
+      'The disk is in use. Close what is using it and try again.';
+
+  @override
+  String get diskEjectFailed => 'Could not eject the disk.';
 }

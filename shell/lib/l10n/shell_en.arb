@@ -72,5 +72,14 @@
   "logoutAction": "Log out",
   "networkApp": "Network",
   "portalTitle": "This network asks you to log in",
-  "portalBody": "Click to open the login page in the browser."
+  "portalBody": "Click to open the login page in the browser.",
+  "disksApp": "Disks",
+  "diskUnnamed": "External disk",
+  "diskEject": "Eject",
+  "diskPluggedBody": "Disk connected. Click to open it.",
+  "diskLockedBody": "This disk is encrypted.",
+  "diskOpenFailed": "Could not open this disk.",
+  "diskSafeToRemove": "You can remove the disk now.",
+  "diskBusy": "The disk is in use. Close what is using it and try again.",
+  "diskEjectFailed": "Could not eject the disk."
 }

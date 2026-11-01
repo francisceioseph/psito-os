@@ -35,6 +35,7 @@ Map<String, Map<String, DBusValue>> _block(
     'ReadOnly': const DBusBoolean(false),
     'HintSystem': DBusBoolean(system),
     'HintIgnore': DBusBoolean(ignore),
+    'HintAuto': const DBusBoolean(true),
     'Drive': drive == null ? _none : _path(drive),
     'CryptoBackingDevice': backing == null ? _none : _path(backing),
   },
@@ -79,6 +80,7 @@ void main() {
       expect(volume.drive, '$_base/drives/usb');
       expect(volume.canEject, isTrue);
       expect(volume.fileSystem, 'vfat');
+      expect(volume.autoMount, isTrue);
     });
 
     test('deixa de fora o disco do sistema, o ignorado e o que não tem '

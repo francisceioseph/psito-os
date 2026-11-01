@@ -934,6 +934,12 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Pink'**
   String get accentPink;
+
+  /// No description provided for @desktopVolumes.
+  ///
+  /// In en, this message translates to:
+  /// **'External disks'**
+  String get desktopVolumes;
 }
 
 class _SettingsLocalizationsDelegate
