@@ -19,11 +19,17 @@ class AppServices {
   final NetworkService network;
   final TimeService time;
 
+  /// Só nasce para quem pode mudar o sistema (`canChangeSettings`).
+  final PsitoAccounts Function() accounts;
+
   const AppServices({
     required this.systemInfo,
     required this.network,
     required this.time,
+    this.accounts = _noAccounts,
   });
+
+  static PsitoAccounts _noAccounts() => const PsitoNoAccounts();
 }
 
 class ProcessAppContext implements PsitoAppContext {
@@ -99,6 +105,11 @@ class ProcessAppContext implements PsitoAppContext {
     debugPrint('🦜 ${app.id} não pode alterar $what');
     return false;
   }
+
+  @override
+  late final PsitoAccounts accounts = app.canChangeSettings
+      ? services.accounts()
+      : const PsitoNoAccounts();
 
   @override
   void setTimezone(String timezone) {

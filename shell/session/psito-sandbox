@@ -100,6 +100,7 @@ for service in hostname1 timedate1; do
     fi
 done
 has settings || proxy+=("--call=org.freedesktop.timedate1=org.freedesktop.timedate1.ListTimezones@/org/freedesktop/timedate1")
+has settings && proxy+=(--talk=org.freedesktop.Accounts)
 has network && proxy+=(--talk=org.freedesktop.NetworkManager)
 
 sandbox=(bwrap

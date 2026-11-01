@@ -53,6 +53,9 @@ class FakeContext implements PsitoAppContext {
   @override
   void setTimezone(String timezone) {}
   @override
+  PsitoAccounts get accounts => const PsitoNoAccounts();
+
+  @override
   void setNtp(bool enabled) {}
   @override
   Stream<List<String>> get openRequests => requests.stream;

@@ -12,6 +12,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/settings_client.dart';
+import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/time_service.dart';
 
@@ -28,6 +29,7 @@ AppServices startServices(Map<String, String> env) {
       systemInfo: FakeSystemInfoService(),
       network: FakeNetworkService(),
       time: FakeTimeService(),
+      accounts: FakeAccountsService.new,
     );
   }
   final bus = DBusClient.system();
@@ -35,6 +37,7 @@ AppServices startServices(Map<String, String> env) {
     systemInfo: HostnamedSystemInfoService(bus),
     network: NetworkManagerService(bus),
     time: TimedatedTimeService(bus),
+    accounts: () => AccountsdService(bus),
   );
 }
 

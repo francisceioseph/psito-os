@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/time_service.dart';
 
 enum SnapMode { left, right, maximized }
@@ -85,6 +86,9 @@ class WindowManager extends ChangeNotifier {
 
   /// Relógio do sistema: [PsitoAppContext.now], fuso e NTP.
   final TimeService time;
+
+  /// As contas do laboratório: nunca as de verdade do host.
+  final PsitoAccounts accounts = FakeAccountsService();
 
   final List<ShellWindow> _windows = [];
   String? _focusedId;
@@ -389,6 +393,14 @@ class _WindowContext implements PsitoAppContext {
     if (window.app.canChangeSettings) return true;
     debugPrint('🦜 ${window.app.id} não pode alterar $what');
     return false;
+  }
+
+  @override
+  PsitoAccounts get accounts {
+    final window = _manager._byId(windowId);
+    return window != null && window.app.canChangeSettings
+        ? _manager.accounts
+        : const PsitoNoAccounts();
   }
 
   @override

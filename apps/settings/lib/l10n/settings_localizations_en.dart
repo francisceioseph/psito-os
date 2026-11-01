@@ -224,4 +224,72 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
   @override
   String get lockNote =>
       'The screen also locks with Super+L and before suspending.';
+
+  @override
+  String get sectionUsers => 'Users';
+
+  @override
+  String get usersUnavailable => 'The list of users isn\'t available.';
+
+  @override
+  String get userAdmin => 'Administrator';
+
+  @override
+  String get userStandard => 'Standard';
+
+  @override
+  String userYou(Object login, Object role) {
+    return '$login · $role · you';
+  }
+
+  @override
+  String get userName => 'Full name';
+
+  @override
+  String get userLogin => 'Login name';
+
+  @override
+  String get userNewPassword => 'New password';
+
+  @override
+  String get userConfirmPassword => 'Confirm the password';
+
+  @override
+  String get userSaveName => 'Save name';
+
+  @override
+  String get userChangePassword => 'Change password';
+
+  @override
+  String get userDelete => 'Delete account';
+
+  @override
+  String userDeleteConfirm(Object login) {
+    return 'Delete $login and all their files?';
+  }
+
+  @override
+  String get userAdd => 'Add user';
+
+  @override
+  String get userCreate => 'Create account';
+
+  @override
+  String get userAdminChoice => 'Administrator';
+
+  @override
+  String get userSaved => 'Saved.';
+
+  @override
+  String get userFailed => 'That didn\'t work, or it was cancelled.';
+
+  @override
+  String get userPasswordEmpty => 'Enter a password.';
+
+  @override
+  String get userPasswordMismatch => 'The passwords don\'t match.';
+
+  @override
+  String get userLoginInvalid =>
+      'Use lowercase letters, digits, - and _, starting with a letter.';
 }

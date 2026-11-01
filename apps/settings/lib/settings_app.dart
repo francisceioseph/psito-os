@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'l10n/l10n.dart';
+import 'users_section.dart';
 
 enum _Section {
   appearance(Icons.palette_outlined),
@@ -15,6 +16,7 @@ enum _Section {
   notifications(Icons.notifications_none),
   power(Icons.battery_std_outlined),
   shortcuts(Icons.keyboard_outlined),
+  users(Icons.people_outline),
   privacy(Icons.lock_outline),
   language(Icons.language),
   about(Icons.info_outline);
@@ -25,6 +27,7 @@ enum _Section {
 
   String label(SettingsLocalizations l) => switch (this) {
     appearance => l.sectionAppearance,
+    users => l.sectionUsers,
     privacy => l.sectionPrivacy,
     language => l.sectionLanguage,
     dock => l.sectionDock,
@@ -102,6 +105,9 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 16),
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
+                  _Section.users => [
+                    UsersSection(accounts: widget.appContext.accounts),
+                  ],
                   _Section.privacy => _privacy(settings),
                   _Section.language => _language(settings),
                   _Section.dock => _dock(settings),

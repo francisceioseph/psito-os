@@ -5,7 +5,7 @@ DEST=/usr/lib/psito/shell
 BINARY=psito_shell
 DESCRIPTION="Shell do Psito OS (cliente layer-shell do labwc)"
 # O terminal dos apps com Terminal=true, os ícones SVG e as pastas do usuário
-DEPENDS="labwc, wlr-randr, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd"
+DEPENDS="labwc, wlr-randr, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl"
 FILES=(
     session/psito-session:/usr/bin/psito-session
     session/psito-shell-start:/usr/bin/psito-shell-start

@@ -502,6 +502,132 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'The screen also locks with Super+L and before suspending.'**
   String get lockNote;
+
+  /// No description provided for @sectionUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get sectionUsers;
+
+  /// No description provided for @usersUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The list of users isn\'t available.'**
+  String get usersUnavailable;
+
+  /// No description provided for @userAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrator'**
+  String get userAdmin;
+
+  /// No description provided for @userStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get userStandard;
+
+  /// No description provided for @userYou.
+  ///
+  /// In en, this message translates to:
+  /// **'{login} · {role} · you'**
+  String userYou(Object login, Object role);
+
+  /// No description provided for @userName.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get userName;
+
+  /// No description provided for @userLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login name'**
+  String get userLogin;
+
+  /// No description provided for @userNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get userNewPassword;
+
+  /// No description provided for @userConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the password'**
+  String get userConfirmPassword;
+
+  /// No description provided for @userSaveName.
+  ///
+  /// In en, this message translates to:
+  /// **'Save name'**
+  String get userSaveName;
+
+  /// No description provided for @userChangePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get userChangePassword;
+
+  /// No description provided for @userDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get userDelete;
+
+  /// No description provided for @userDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {login} and all their files?'**
+  String userDeleteConfirm(Object login);
+
+  /// No description provided for @userAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add user'**
+  String get userAdd;
+
+  /// No description provided for @userCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get userCreate;
+
+  /// No description provided for @userAdminChoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrator'**
+  String get userAdminChoice;
+
+  /// No description provided for @userSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved.'**
+  String get userSaved;
+
+  /// No description provided for @userFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t work, or it was cancelled.'**
+  String get userFailed;
+
+  /// No description provided for @userPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a password.'**
+  String get userPasswordEmpty;
+
+  /// No description provided for @userPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The passwords don\'t match.'**
+  String get userPasswordMismatch;
+
+  /// No description provided for @userLoginInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use lowercase letters, digits, - and _, starting with a letter.'**
+  String get userLoginInvalid;
 }
 
 class _SettingsLocalizationsDelegate

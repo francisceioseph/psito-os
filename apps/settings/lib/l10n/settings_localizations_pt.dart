@@ -225,4 +225,72 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
   @override
   String get lockNote =>
       'A tela também bloqueia com Super+L e antes de suspender.';
+
+  @override
+  String get sectionUsers => 'Usuários';
+
+  @override
+  String get usersUnavailable => 'A lista de usuários não está disponível.';
+
+  @override
+  String get userAdmin => 'Administrador';
+
+  @override
+  String get userStandard => 'Padrão';
+
+  @override
+  String userYou(Object login, Object role) {
+    return '$login · $role · você';
+  }
+
+  @override
+  String get userName => 'Nome completo';
+
+  @override
+  String get userLogin => 'Nome de login';
+
+  @override
+  String get userNewPassword => 'Nova senha';
+
+  @override
+  String get userConfirmPassword => 'Confirme a senha';
+
+  @override
+  String get userSaveName => 'Salvar o nome';
+
+  @override
+  String get userChangePassword => 'Mudar a senha';
+
+  @override
+  String get userDelete => 'Apagar a conta';
+
+  @override
+  String userDeleteConfirm(Object login) {
+    return 'Apagar $login e todos os arquivos da conta?';
+  }
+
+  @override
+  String get userAdd => 'Adicionar usuário';
+
+  @override
+  String get userCreate => 'Criar a conta';
+
+  @override
+  String get userAdminChoice => 'Administrador';
+
+  @override
+  String get userSaved => 'Salvo.';
+
+  @override
+  String get userFailed => 'Não deu certo, ou foi cancelado.';
+
+  @override
+  String get userPasswordEmpty => 'Digite uma senha.';
+
+  @override
+  String get userPasswordMismatch => 'As senhas não são iguais.';
+
+  @override
+  String get userLoginInvalid =>
+      'Use letras minúsculas, números, - e _, começando com uma letra.';
 }

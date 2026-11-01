@@ -95,6 +95,10 @@ abstract class PsitoAppContext {
   /// [PsitoApp.canChangeSettings].
   void setNtp(bool enabled);
 
+  /// As contas de usuário. Sem [PsitoApp.canChangeSettings], é a lista vazia e
+  /// nenhuma ação vale.
+  PsitoAccounts get accounts;
+
   /// Os arquivos com que o app foi aberto (o "Abrir" do Files ou de outro
   /// app). No sandbox, o que o app não veria chega montado em
   /// `$XDG_RUNTIME_DIR/doc/`.
@@ -670,6 +674,80 @@ class PsitoNetworkState {
 
 /// Relógio do sistema (systemd-timedated no Linux).
 @immutable
+class PsitoUserAccount {
+  final int uid;
+  final String login;
+  final String name;
+  final bool isAdmin;
+
+  /// A conta de quem está na sessão.
+  final bool isCurrent;
+
+  const PsitoUserAccount({
+    required this.uid,
+    required this.login,
+    required this.name,
+    this.isAdmin = false,
+    this.isCurrent = false,
+  });
+
+  PsitoUserAccount copyWith({String? name}) => PsitoUserAccount(
+    uid: uid,
+    login: login,
+    name: name ?? this.name,
+    isAdmin: isAdmin,
+    isCurrent: isCurrent,
+  );
+}
+
+/// As contas de usuário do sistema. Cada ação devolve se deu certo: recusada,
+/// ou com o diálogo de senha cancelado, é false.
+abstract class PsitoAccounts {
+  /// Vazia enquanto carrega, ou sem o serviço.
+  ValueListenable<List<PsitoUserAccount>> get users;
+
+  Future<bool> setName(int uid, String name);
+
+  Future<bool> setPassword(int uid, String password);
+
+  Future<bool> create({
+    required String login,
+    required String name,
+    required bool admin,
+    required String password,
+  });
+
+  /// Apaga a conta e os arquivos dela.
+  Future<bool> delete(int uid);
+}
+
+/// O [PsitoAppContext.accounts] de quem não pode mexer no sistema.
+class PsitoNoAccounts implements PsitoAccounts {
+  static final _empty = ValueNotifier<List<PsitoUserAccount>>(const []);
+
+  const PsitoNoAccounts();
+
+  @override
+  ValueListenable<List<PsitoUserAccount>> get users => _empty;
+
+  @override
+  Future<bool> setName(int uid, String name) async => false;
+
+  @override
+  Future<bool> setPassword(int uid, String password) async => false;
+
+  @override
+  Future<bool> create({
+    required String login,
+    required String name,
+    required bool admin,
+    required String password,
+  }) async => false;
+
+  @override
+  Future<bool> delete(int uid) async => false;
+}
+
 class PsitoTimeState {
   /// False enquanto carrega ou se o serviço não existe.
   final bool available;
