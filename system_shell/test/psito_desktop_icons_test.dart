@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:system_shell/widgets/psito_desktop_icons.dart';
@@ -7,18 +8,25 @@ const _long =
     'um nome muito comprido que não cabe em duas linhas de jeito nenhum';
 
 void main() {
-  late List<String?> selected;
+  late List<String?> pressed;
+  late List<String> released;
+  late List<Set<String>> rects;
   late List<String> opened;
 
   setUp(() {
-    selected = [];
+    pressed = [];
+    released = [];
+    rects = [];
     opened = [];
   });
 
   Future<void> pump(
     WidgetTester tester, {
-    String? current,
+    Set<String> current = const {},
     EdgeInsets insets = EdgeInsets.zero,
+    Widget? editor,
+    bool keyboard = true,
+    KeyEventResult Function(KeyEvent)? onKey,
   }) async {
     tester.view.physicalSize = const Size(1000, 800);
     tester.view.devicePixelRatio = 1;
@@ -32,6 +40,7 @@ void main() {
                 key: name,
                 name: name,
                 icon: (size) => SizedBox.square(dimension: size),
+                editor: name == 'a' ? editor : null,
               ),
           ],
           cells: const {
@@ -42,8 +51,12 @@ void main() {
           iconSize: 48,
           insets: insets,
           selected: current,
-          onSelect: selected.add,
+          onPress: pressed.add,
+          onRelease: released.add,
+          onRect: rects.add,
           onOpen: opened.add,
+          keyboard: keyboard,
+          onKey: onKey,
         ),
       ),
     );
@@ -68,11 +81,12 @@ void main() {
   ) async {
     await pump(tester);
     final gesture = await tester.startGesture(tester.getCenter(find.text('a')));
-    expect(selected, ['a']);
+    expect(pressed, ['a']);
     await gesture.up();
+    expect(released, ['a']);
     await tester.pump(const Duration(seconds: 1));
     await tester.tapAt(const Offset(100, 700));
-    expect(selected, ['a', null]);
+    expect(pressed, ['a', null]);
   });
 
   testWidgets('o duplo clique abre', (tester) async {
@@ -89,8 +103,67 @@ void main() {
   ) async {
     await pump(tester);
     expect(tester.widget<Text>(find.text(_long)).maxLines, 2);
-    await pump(tester, current: _long);
+    await pump(tester, current: {_long});
     expect(tester.widget<Text>(find.text(_long)).maxLines, isNull);
+    // Com vários selecionados, os nomes se cobririam
+    await pump(tester, current: {_long, 'a'});
+    expect(tester.widget<Text>(find.text(_long)).maxLines, 2);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('o retângulo pega o que toca, só quando muda', (tester) async {
+    await pump(tester);
+    // 'a' é a célula de cima à direita: x de 896 a 1000, y de 0 a 104
+    final gesture = await tester.startGesture(const Offset(900, 300));
+    expect(pressed, [null]);
+    await gesture.moveTo(const Offset(905, 320));
+    await tester.pump();
+    expect(rects, isEmpty);
+    expect(find.byKey(const ValueKey('desk-band')), findsOneWidget);
+    await gesture.moveTo(const Offset(990, 50));
+    await tester.pump();
+    await gesture.moveTo(const Offset(995, 40));
+    await tester.pump();
+    expect(rects, [
+      {'a'},
+    ]);
+    await gesture.up();
+    await tester.pump();
+    expect(find.byKey(const ValueKey('desk-band')), findsNothing);
+  });
+
+  testWidgets('o teclado chega depois de um clique, e fora dele não', (
+    tester,
+  ) async {
+    final keys = <KeyEvent>[];
+    KeyEventResult onKey(KeyEvent event) {
+      keys.add(event);
+      return KeyEventResult.handled;
+    }
+
+    await pump(tester, onKey: onKey);
+    await tester.tapAt(const Offset(100, 700));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+    expect(keys.whereType<KeyDownEvent>(), hasLength(1));
+    // A superfície perdeu o teclado
+    await pump(tester, onKey: onKey, keyboard: false);
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.f2);
+    expect(keys.whereType<KeyDownEvent>(), hasLength(1));
+  });
+
+  testWidgets('com o campo aberto, os cliques no item são dele', (
+    tester,
+  ) async {
+    await pump(tester, editor: const SizedBox(width: 90, height: 20));
+    expect(find.text('a'), findsNothing);
+    final center = tester.getCenter(find.byKey(const ValueKey('desk-a')));
+    await tester.tapAt(center);
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tapAt(center);
+    await tester.pump(const Duration(seconds: 1));
+    expect(pressed, isEmpty);
+    expect(opened, isEmpty);
   });
 }

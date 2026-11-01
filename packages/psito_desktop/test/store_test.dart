@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -62,5 +64,23 @@ void main() {
       deskShortcutTrusted(_file('a.desktop', mode: 0x1ff)),
       isFalse,
     ); // 777
+  });
+
+  test('gravações ao mesmo tempo não se atropelam', () async {
+    final dir = await Directory.systemTemp.createTemp('psito_desk_store_');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File('${dir.path}/desktop.json');
+    final store = await DeskStore.load(file);
+    final logs = <String?>[];
+    final print = debugPrint;
+    debugPrint = (message, {wrapWidth}) => logs.add(message);
+    addTearDown(() => debugPrint = print);
+    await Future.wait([
+      for (var i = 0; i < 20; i++) store.put({'item$i': DeskCell(0, i)}),
+    ]);
+    expect(logs, isEmpty);
+    final again = await DeskStore.load(file);
+    expect(again.cells, hasLength(20));
+    expect(await File('${file.path}.tmp').exists(), isFalse);
   });
 }

@@ -88,6 +88,9 @@ class FilesController extends ChangeNotifier {
 
   /// A pasta da lixeira (o que a dock manda) abre a Lixeira.
   FilesTab _tabFor(String path) {
+    if (path.startsWith(psitoQuickLookPrefix)) {
+      return _quickLookTab(path.substring(psitoQuickLookPrefix.length));
+    }
     String bare(String p) =>
         p.endsWith('/') && p.length > 1 ? p.substring(0, p.length - 1) : p;
     if (bare(path) == bare(env.trash.filesDir)) {
@@ -102,10 +105,46 @@ class FilesController extends ChangeNotifier {
     return FilesTab(env, config, FolderLocation(path));
   }
 
+  /// A pasta de [path] com ele selecionado, e o Quick Look a abrir
+  /// ([takeQuickLook]).
+  FilesTab _quickLookTab(String path) {
+    _quickLook = true;
+    return FilesTab(env, config, FolderLocation(dirName(path)))
+      ..selection.add(path)
+      ..cursor = path;
+  }
+
+  /// Espaço de novo na mesa, na mesma pasta: não abre outra aba.
+  bool _reuseForQuickLook(String marked) {
+    if (!marked.startsWith(psitoQuickLookPrefix)) return false;
+    final path = marked.substring(psitoQuickLookPrefix.length);
+    final index = tabs.indexWhere((tab) => tab.folder == dirName(path));
+    if (index < 0) return false;
+    _active = index;
+    tabs[index]
+      ..selection.clear()
+      ..selection.add(path)
+      ..cursor = path;
+    _quickLook = true;
+    _updateTitle();
+    notifyListeners();
+    return true;
+  }
+
+  bool _quickLook = false;
+
+  /// Um pedido de Quick Look que chegou de fora (o Espaço na mesa).
+  bool takeQuickLook() {
+    final pending = _quickLook;
+    _quickLook = false;
+    return pending;
+  }
+
   /// O que o shell mandou com o Files já aberto: cada caminho numa aba nova
   /// (um arquivo abre a pasta dele, com ele selecionado).
   void openPaths(List<String> paths) {
     for (final path in paths) {
+      if (_reuseForQuickLook(path)) continue;
       final tab = _tabFor(path)..addListener(_tabChanged);
       tabs.add(tab);
       _active = tabs.length - 1;

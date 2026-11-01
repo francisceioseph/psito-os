@@ -228,6 +228,23 @@ void main() {
       expect(ctx.closed, isTrue);
     });
 
+    test('o caminho marcado abre o Quick Look, sem outra aba', () async {
+      expect(files.takeQuickLook(), isFalse);
+      ctx.requests.add(['$psitoQuickLookPrefix${p('Documentos')}/a.txt']);
+      await until(() => files.tabs.length == 2);
+      expect(files.tab.folder, p('Documentos'));
+      expect(files.tab.cursor, '${p('Documentos')}/a.txt');
+      expect(files.takeQuickLook(), isTrue);
+      expect(files.takeQuickLook(), isFalse);
+      // O seguinte, na mesma pasta, fica na mesma aba
+      files.selectTab(0);
+      ctx.requests.add(['$psitoQuickLookPrefix${p('Documentos')}/b.txt']);
+      await until(() => files.activeIndex == 1);
+      expect(files.tabs, hasLength(2));
+      expect(files.tab.selection, {'${p('Documentos')}/b.txt'});
+      expect(files.takeQuickLook(), isTrue);
+    });
+
     test('a busca acha nas subpastas', () async {
       files.tab.go(SearchLocation(home.path, 'NOTA'));
       await until(() => !files.tab.searching && files.tab.items.isNotEmpty);

@@ -7,7 +7,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -78,12 +79,24 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   List<DeskItem> _items = const [];
   Map<String, DeskCell> _cells = const {};
   DeskGrid? _grid;
-  String? _selected;
+  final _selection = DeskSelection();
+  String? _renaming;
+  bool _keyboard = false;
+  bool _keysLive = false;
+  String _typed = '';
+  Timer? _typedTimer;
   StreamSubscription<void>? _watch;
 
   List<DeskItem> get items => _items;
   Map<String, DeskCell> get cells => _cells;
-  String? get selected => _selected;
+  Set<String> get selected => _selection.keys;
+  String? get cursor => _selection.cursor;
+
+  /// O item com o campo de renomear aberto.
+  String? get renaming => _renaming;
+
+  /// A superfície do fundo tem o teclado.
+  bool get keyboard => _keyboard;
 
   @override
   String? folderIcon(String path) {
@@ -223,6 +236,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     final grid = _grid;
     if (grid == null) return;
     final keys = [for (final item in _items) item.key];
+    _selection.retain(keys.toSet());
+    if (!keys.contains(_renaming)) _renaming = null;
     if (_settings.desktopAutoArrange) {
       _cells = packDesk(keys, grid);
       return;
@@ -240,11 +255,203 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     notifyListeners();
   }
 
-  void select(String? key) {
-    if (key == _selected) return;
-    _selected = key;
+  // O Flutter guarda as teclas apertadas, e uma tecla solta noutra superfície
+  // deixaria o Ctrl preso. Só vale o que chegou desde que a mesa tem o teclado
+  bool get _ctrl => _keysLive && HardwareKeyboard.instance.isControlPressed;
+  bool get _shift => _keysLive && HardwareKeyboard.instance.isShiftPressed;
+
+  void setKeyboard(bool focused) {
+    if (focused == _keyboard) return;
+    _keyboard = focused;
+    if (!focused) _keysLive = false;
     notifyListeners();
   }
+
+  void press(String? key, {bool? ctrl, bool? shift}) {
+    _selection.press(key, _cells, ctrl: ctrl ?? _ctrl, shift: shift ?? _shift);
+    notifyListeners();
+  }
+
+  void release(String key, {bool? ctrl, bool? shift}) {
+    _selection.release(key, ctrl: ctrl ?? _ctrl, shift: shift ?? _shift);
+    notifyListeners();
+  }
+
+  void selectRect(Set<String> keys) {
+    _selection.rect(deskOrder(_cells).where(keys.contains));
+    notifyListeners();
+  }
+
+  /// O teclado da mesa. A superfície sem o foco pode ter recebido a tecla por
+  /// causa do foco do Flutter, que é um só para todas as views: um Delete no
+  /// painel não pode ir para a lixeira.
+  KeyEventResult handleKey(KeyEvent event) {
+    _keysLive = true;
+    if (event is KeyUpEvent || !_keyboard || _renaming != null) {
+      return KeyEventResult.ignored;
+    }
+    final handled = key(
+      event.logicalKey,
+      ctrl: HardwareKeyboard.instance.isControlPressed,
+      shift: HardwareKeyboard.instance.isShiftPressed,
+      alt: HardwareKeyboard.instance.isAltPressed,
+      character: event.character,
+    );
+    return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+  }
+
+  /// Uma tecla apertada; devolve se ela fez alguma coisa.
+  bool key(
+    LogicalKeyboardKey key, {
+    bool ctrl = false,
+    bool shift = false,
+    bool alt = false,
+    String? character,
+  }) {
+    bool done(void Function() action) {
+      action();
+      notifyListeners();
+      return true;
+    }
+
+    void arrow(int dx, int dy) =>
+        _selection.arrow(_cells, dx, dy, shift: shift);
+
+    if (ctrl && shift && key == LogicalKeyboardKey.keyN) {
+      unawaited(newFolder());
+      return true;
+    }
+    if (ctrl && key == LogicalKeyboardKey.keyA) {
+      return done(() => _selection.all(_cells));
+    }
+    if (ctrl || alt) return false;
+    switch (key) {
+      case LogicalKeyboardKey.arrowUp:
+        return done(() => arrow(0, -1));
+      case LogicalKeyboardKey.arrowDown:
+        return done(() => arrow(0, 1));
+      case LogicalKeyboardKey.arrowLeft:
+        return done(() => arrow(-1, 0));
+      case LogicalKeyboardKey.arrowRight:
+        return done(() => arrow(1, 0));
+      case LogicalKeyboardKey.escape:
+        return done(_selection.clear);
+      case LogicalKeyboardKey.enter || LogicalKeyboardKey.numpadEnter:
+        deskOrder(_cells).where(selected.contains).forEach(open);
+        return true;
+      case LogicalKeyboardKey.f2:
+        if (selected.length == 1) startRename(selected.single);
+        return true;
+      case LogicalKeyboardKey.delete:
+        unawaited(trashSelected());
+        return true;
+      case LogicalKeyboardKey.space:
+        _preview();
+        return true;
+    }
+    if (character != null && character.trim().isNotEmpty) {
+      return done(() => _typeAhead(character));
+    }
+    return false;
+  }
+
+  /// Digitar o começo do nome seleciona o primeiro que começa assim.
+  void _typeAhead(String text) {
+    _typedTimer?.cancel();
+    _typedTimer = Timer(const Duration(seconds: 1), () => _typed = '');
+    _typed += foldName(text);
+    final byKey = {for (final item in _items) item.key: item};
+    for (final key in deskOrder(_cells)) {
+      if (foldName(byKey[key]?.name ?? '').startsWith(_typed)) {
+        _selection.only(key);
+        return;
+      }
+    }
+  }
+
+  DeskItem? _item(String key) {
+    for (final item in _items) {
+      if (item.key == key) return item;
+    }
+    return null;
+  }
+
+  /// Abre o campo de renomear. O home e a lixeira não têm nome de arquivo.
+  void startRename(String key) {
+    if (_item(key)?.entry == null) return;
+    _selection.only(key);
+    _renaming = key;
+    notifyListeners();
+  }
+
+  void stopRename() {
+    if (_renaming == null) return;
+    _renaming = null;
+    notifyListeners();
+  }
+
+  /// Renomeia, levando a célula para o nome novo. Um nome que não serve avisa.
+  Future<void> rename(String key, String name) async {
+    final entry = _item(key)?.entry;
+    stopRename();
+    if (entry == null) return;
+    try {
+      await renameEntry(entry.path, name);
+    } on Exception catch (e) {
+      _warn('Sem como renomear', _message(e));
+      return;
+    }
+    // Antes do reload: o nome novo não pode cair na primeira célula livre
+    if (store.cells[key] case final cell?) await store.put({name: cell});
+    _selection.only(name);
+    await reload();
+  }
+
+  /// Cria uma pasta na mesa, já com o nome em edição, como no Files.
+  Future<void> newFolder() async {
+    final dir = this.dir;
+    if (dir == null) return;
+    final String path;
+    try {
+      (path, _) = await createFolder(dir, trash: state.dockUi.trash);
+    } on Exception catch (e) {
+      _warn('Sem como criar a pasta', _message(e));
+      return;
+    }
+    await reload();
+    startRename(baseName(path));
+  }
+
+  /// Joga a seleção na lixeira. O home e a lixeira ficam.
+  Future<void> trashSelected() async {
+    final trash = state.dockUi.trash;
+    final paths = [
+      for (final item in _items)
+        if (selected.contains(item.key) && item.entry != null) item.entry!.path,
+    ];
+    if (trash == null || paths.isEmpty) return;
+    try {
+      await trashEntries(trash, paths);
+    } on Exception catch (e) {
+      _warn('Sem como mover para a lixeira', _message(e));
+    }
+    await reload();
+  }
+
+  /// O Espaço: abre o item no Quick Look do Files.
+  void _preview() {
+    final key = _selection.cursor;
+    final path = key == null ? null : _item(key)?.entry?.path;
+    final preview = state.previewPath;
+    if (path == null || preview == null) return;
+    unawaited(
+      preview(path).catchError((Object e) {
+        _warn('Sem como pré-visualizar', '$e');
+      }),
+    );
+  }
+
+  String _message(Exception e) => e is FsError ? e.message : '$e';
 
   void _settingsChanged() {
     final old = _settings, now = state.settings.value;
@@ -264,12 +471,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   void _appsChanged() => _rebuild();
 
   void open(String key) {
-    for (final item in _items) {
-      if (item.key == key) {
-        _openItem(item);
-        return;
-      }
-    }
+    if (_item(key) case final item?) _openItem(item);
   }
 
   void _openItem(DeskItem item) {
@@ -322,6 +524,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     state.settings.removeListener(_settingsChanged);
     state.apps.removeListener(_appsChanged);
     unawaited(_watch?.cancel());
+    _typedTimer?.cancel();
     super.dispose();
   }
 }

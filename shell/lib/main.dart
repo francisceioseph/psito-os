@@ -96,6 +96,7 @@ Future<void> main() async {
     env: env,
   );
   state.desk.value = desk;
+  state.surfaces.onBackgroundFocus(desk.setKeyboard);
   unawaited(desk.start());
 
   try {
@@ -129,6 +130,7 @@ Future<void> main() async {
           MimeApps.setDefault(MimeApps.userFile(env), mime, appId),
     );
     state.openPaths = launcher.openPaths;
+    state.previewPath = launcher.preview;
     await publishLauncher(launcherBus, launcher);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');

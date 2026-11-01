@@ -235,6 +235,16 @@ void main() {
       );
     });
 
+    test('o Quick Look vai com a marca nos argumentos do Files', () async {
+      final path = '${dir.path}/nota.txt';
+      await launcher.preview(path);
+      final plan = launched.single;
+      expect(plan.app.id, 'org.psito.files');
+      expect(plan.paths, ['$psitoQuickLookPrefix$path']);
+      expect(plan.commands.single, contains('$psitoQuickLookPrefix$path'));
+      expect(plan.commands.single, isNot(contains(path)));
+    });
+
     test('o caminho que o app não vê e o padrão sem files:home', () async {
       final client = LauncherClient(appBus);
       caller = 'org.psito.files';

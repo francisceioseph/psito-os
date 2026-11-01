@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
@@ -190,6 +191,170 @@ void main() {
       expect(item('ruim.desktop').shortcut, isNull);
       expect(item('ruim.desktop').name, 'ruim.desktop');
     });
+  });
+
+  group('o teclado', () {
+    late Trash trash;
+
+    setUp(() async {
+      trash = Trash('${dir.path}/.lixo');
+      state.dockUi.trash = trash;
+      File(path('a.txt')).writeAsStringSync('a');
+      File(path('b.txt')).writeAsStringSync('b');
+      File(path('c.txt')).writeAsStringSync('c');
+      await desk.reload();
+      desk.setKeyboard(true);
+    });
+
+    KeyEventResult down(LogicalKeyboardKey key) => desk.handleKey(
+      KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.keyA,
+        logicalKey: key,
+        timeStamp: Duration.zero,
+      ),
+    );
+
+    test('sem o foco do fundo, nenhuma tecla vale', () {
+      desk.press('a.txt');
+      desk.setKeyboard(false);
+      expect(down(LogicalKeyboardKey.delete), KeyEventResult.ignored);
+      expect(File(path('a.txt')).existsSync(), isTrue);
+    });
+
+    test('as setas andam e o Shift estende', () {
+      desk.press('a.txt');
+      desk.key(LogicalKeyboardKey.arrowDown);
+      expect(desk.selected, {'b.txt'});
+      desk.key(LogicalKeyboardKey.arrowDown, shift: true);
+      expect(desk.selected, {'b.txt', 'c.txt'});
+      desk.key(LogicalKeyboardKey.escape);
+      expect(desk.selected, isEmpty);
+    });
+
+    test('o Ctrl+A pega todos, e o Enter abre todos', () {
+      desk.key(LogicalKeyboardKey.keyA, ctrl: true);
+      expect(desk.selected, {'a.txt', 'b.txt', 'c.txt'});
+      desk.key(LogicalKeyboardKey.enter);
+      expect(opened, [
+        [path('a.txt')],
+        [path('b.txt')],
+        [path('c.txt')],
+      ]);
+    });
+
+    test('digitar o começo do nome seleciona', () {
+      desk.key(LogicalKeyboardKey.keyB, character: 'B');
+      expect(desk.selected, {'b.txt'});
+      desk.key(LogicalKeyboardKey.period, character: '.');
+      expect(desk.selected, {'b.txt'});
+    });
+
+    test('uma letra com o Ctrl não é digitar', () {
+      expect(
+        desk.key(LogicalKeyboardKey.keyB, ctrl: true, character: 'b'),
+        isFalse,
+      );
+      expect(desk.selected, isEmpty);
+    });
+
+    test('o Delete joga a seleção na lixeira, e o home fica', () async {
+      state.settings.update(
+        state.settings.value.copyWith(desktopShowHome: true),
+      );
+      await desk.reload();
+      await desk.store.put({});
+      desk.press(DeskItem.homeKey);
+      desk.press('a.txt', ctrl: true);
+      await desk.trashSelected();
+      expect(File(path('a.txt')).existsSync(), isFalse);
+      expect(File('${trash.filesDir}/a.txt').existsSync(), isTrue);
+      expect(desk.selected, {DeskItem.homeKey});
+    });
+
+    test('o F2 abre o campo, mas não no home', () async {
+      state.settings.update(
+        state.settings.value.copyWith(desktopShowHome: true),
+      );
+      await desk.reload();
+      desk.press(DeskItem.homeKey);
+      desk.key(LogicalKeyboardKey.f2);
+      expect(desk.renaming, isNull);
+      desk.press('a.txt');
+      desk.key(LogicalKeyboardKey.f2);
+      expect(desk.renaming, 'a.txt');
+      // Com o campo aberto, as teclas são dele
+      expect(down(LogicalKeyboardKey.delete), KeyEventResult.ignored);
+    });
+
+    test('renomear leva a célula junto', () async {
+      await desk.store.put({'a.txt': const DeskCell(2, 2)});
+      await desk.reload();
+      desk.startRename('a.txt');
+      await desk.rename('a.txt', 'novo.txt');
+      expect(desk.renaming, isNull);
+      expect(File(path('novo.txt')).existsSync(), isTrue);
+      expect(desk.cells['novo.txt'], const DeskCell(2, 2));
+      expect(desk.selected, {'novo.txt'});
+      expect(desk.store.cells, isNot(contains('a.txt')));
+    });
+
+    test('um nome que já existe avisa, e nada muda', () async {
+      final cell = desk.cells['b.txt'];
+      await desk.rename('a.txt', 'b.txt');
+      expect(File(path('a.txt')).readAsStringSync(), 'a');
+      expect(File(path('b.txt')).readAsStringSync(), 'b');
+      expect(desk.cells['b.txt'], cell);
+      expect(state.notifications.history.single.title, 'Sem como renomear');
+    });
+
+    test('a pasta nova já entra com o nome em edição', () async {
+      await desk.newFolder();
+      expect(Directory(path('Nova pasta')).existsSync(), isTrue);
+      expect(desk.renaming, 'Nova pasta');
+      expect(desk.selected, {'Nova pasta'});
+    });
+
+    test('o Espaço pede o Quick Look do item', () {
+      final previews = <String>[];
+      state.previewPath = (path) async => previews.add(path);
+      desk.key(LogicalKeyboardKey.space);
+      expect(previews, isEmpty);
+      desk.press('a.txt');
+      desk.key(LogicalKeyboardKey.space);
+      expect(previews, [path('a.txt')]);
+    });
+  });
+
+  test('o Ctrl preso de outra superfície não conta no clique', () async {
+    File(path('a.txt')).writeAsStringSync('');
+    File(path('b.txt')).writeAsStringSync('');
+    await desk.reload();
+    desk.setKeyboard(true);
+    await simulateKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    addTearDown(() => simulateKeyUpEvent(LogicalKeyboardKey.controlLeft));
+    desk.press('a.txt');
+    desk.press('b.txt');
+    expect(desk.selected, {'b.txt'});
+    // Com uma tecla depois do foco, o Ctrl é de verdade
+    desk.handleKey(
+      const KeyDownEvent(
+        physicalKey: PhysicalKeyboardKey.controlLeft,
+        logicalKey: LogicalKeyboardKey.controlLeft,
+        timeStamp: Duration.zero,
+      ),
+    );
+    desk.press('a.txt');
+    expect(desk.selected, {'a.txt', 'b.txt'});
+  });
+
+  test('um item que some sai da seleção e do renomear', () async {
+    File(path('a.txt')).writeAsStringSync('');
+    await desk.reload();
+    desk.startRename('a.txt');
+    File(path('a.txt')).deleteSync();
+    await desk.reload();
+    expect(desk.selected, isEmpty);
+    expect(desk.renaming, isNull);
   });
 
   test('a dock na lateral tira o espaço daquele lado', () {

@@ -231,6 +231,10 @@ class PsitoShortcut {
   const PsitoShortcut(this.action, this.native, this.vm);
 }
 
+/// Um caminho com esta marca, nos argumentos ou no `openRequests` do Files,
+/// abre no Quick Look em vez de só abrir a pasta (o Espaço na mesa).
+const psitoQuickLookPrefix = 'quicklook:';
+
 const psitoShortcuts = [
   PsitoShortcut('Abrir e fechar o launcher', 'Super', 'Ctrl+Espaço'),
   PsitoShortcut('Alternar janelas', 'Alt+Tab', 'Ctrl+Tab'),

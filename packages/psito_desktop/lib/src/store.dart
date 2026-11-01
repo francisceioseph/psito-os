@@ -63,8 +63,14 @@ class DeskStore {
     if (_cells.length != before) await _save();
   }
 
+  Future<void> _saving = Future.value();
+
+  // Uma gravação de cada vez: duas no mesmo .tmp se atropelam, e renomear um
+  // ícone já faz o put e, logo depois, o retain
+  Future<void> _save() => _saving = _saving.then((_) => _write());
+
   // Grava num .tmp e renomeia: um desligamento no meio não corrompe o arquivo
-  Future<void> _save() async {
+  Future<void> _write() async {
     final file = this.file;
     if (file == null) return;
     try {

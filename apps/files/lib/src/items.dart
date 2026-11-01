@@ -254,94 +254,28 @@ class FolderDropTarget extends StatelessWidget {
 
 /// O nome em edição: o Enter grava, o Esc desiste, e clicar fora grava (como
 /// no Finder). Começa com o nome sem a extensão selecionado.
-class RenameField extends StatefulWidget {
+/// O [RenameField] de um item da aba.
+class EntryRenameField extends StatelessWidget {
   final FsEntry entry;
   final TextAlign textAlign;
-  final int? maxLines;
 
-  const RenameField({
+  const EntryRenameField({
     super.key,
     required this.entry,
     this.textAlign = TextAlign.start,
-    this.maxLines = 1,
   });
 
   @override
-  State<RenameField> createState() => _RenameFieldState();
-}
-
-class _RenameFieldState extends State<RenameField> {
-  late final _controller = TextEditingController(text: widget.entry.name);
-  final _focus = FocusNode();
-  bool _done = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final (stem, _) = splitExtension(
-      widget.entry.name,
-      isDirectory: widget.entry.isDirectory,
-    );
-    _controller.selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: stem.length,
-    );
-    _focus.addListener(() {
-      if (!_focus.hasFocus) _submit();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focus.requestFocus();
-    });
-  }
-
-  void _submit() {
-    if (_done) return;
-    _done = true;
+  Widget build(BuildContext context) {
     final controller = FilesScope.of(context).controller;
-    final name = _controller.text.trim();
-    if (name.isEmpty || name == widget.entry.name) {
-      controller.tab.stopRename();
-    } else {
-      controller.rename(widget.entry.path, name);
-    }
+    return RenameField(
+      name: entry.name,
+      isDirectory: entry.isDirectory,
+      textAlign: textAlign,
+      onSubmit: (name) => controller.rename(entry.path, name),
+      onCancel: controller.tab.stopRename,
+    );
   }
-
-  void _cancel() {
-    _done = true;
-    FilesScope.of(context).controller.tab.stopRename();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => CallbackShortcuts(
-    bindings: {const SingleActivator(LogicalKeyboardKey.escape): _cancel},
-    child: TextField(
-      controller: _controller,
-      focusNode: _focus,
-      textAlign: widget.textAlign,
-      maxLines: widget.maxLines,
-      autocorrect: false,
-      enableSuggestions: false,
-      style: const TextStyle(fontSize: 12, color: Colors.white),
-      decoration: InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.6),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
-        ),
-      ),
-      onSubmitted: (_) => _submit(),
-    ),
-  );
 }
 
 /// O fundo de um item selecionado.

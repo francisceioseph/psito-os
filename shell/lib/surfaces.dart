@@ -19,6 +19,13 @@ class Surfaces {
 
   final MethodChannel _channel;
 
+  /// O fundo ganhou ou perdeu o teclado.
+  void onBackgroundFocus(ValueChanged<bool> listener) {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'backgroundFocus') listener(call.arguments as bool);
+    });
+  }
+
   /// O id da view de cada superfície.
   Future<Map<Surface, int>> viewIds() async {
     final ids = await _channel.invokeMapMethod<String, int>('surfaces') ?? {};

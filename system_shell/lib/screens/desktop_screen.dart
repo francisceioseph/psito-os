@@ -602,7 +602,7 @@ class _LabDeskState extends State<_LabDesk> {
         Icons.picture_as_pdf_outlined,
   };
 
-  String? _selected;
+  final _selection = DeskSelection();
 
   @override
   Widget build(BuildContext context) {
@@ -610,6 +610,8 @@ class _LabDeskState extends State<_LabDesk> {
       widget.insets.deflateSize(MediaQuery.sizeOf(context)),
       deskCellSize(widget.iconSize),
     );
+    final cells = packDesk(_items.keys.toList(), grid);
+    final keyboard = HardwareKeyboard.instance;
     return PsitoDesktopIcons(
       icons: [
         for (final MapEntry(key: name, value: icon) in _items.entries)
@@ -619,11 +621,26 @@ class _LabDeskState extends State<_LabDesk> {
             icon: (size) => Icon(icon, size: size, color: Colors.white70),
           ),
       ],
-      cells: packDesk(_items.keys.toList(), grid),
+      cells: cells,
       iconSize: widget.iconSize,
       insets: widget.insets,
-      selected: _selected,
-      onSelect: (key) => setState(() => _selected = key),
+      selected: _selection.keys,
+      onPress: (key) => setState(
+        () => _selection.press(
+          key,
+          cells,
+          ctrl: keyboard.isControlPressed,
+          shift: keyboard.isShiftPressed,
+        ),
+      ),
+      onRelease: (key) => setState(
+        () => _selection.release(
+          key,
+          ctrl: keyboard.isControlPressed,
+          shift: keyboard.isShiftPressed,
+        ),
+      ),
+      onRect: (keys) => setState(() => _selection.rect(keys)),
       onOpen: (name) => debugPrint('🦜 mesa: abrir $name'),
     );
   }

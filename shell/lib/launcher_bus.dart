@@ -13,6 +13,7 @@ import 'dart:async';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/launcher_client.dart';
 
 import 'opener.dart';
@@ -70,6 +71,35 @@ class LauncherBusObject extends DBusObject {
       }
     }
   }
+
+  /// Abre [path] no Quick Look do Files: o caminho vai com a marca
+  /// [psitoQuickLookPrefix], na instância que espera ou nos argumentos.
+  Future<void> preview(String path) async {
+    final marked = '$psitoQuickLookPrefix$path';
+    final plan = opener.plan([path], withApp: _filesId).single;
+    final waiter = await _liveWaiter(plan.app.id);
+    if (waiter != null) {
+      waiter.complete([marked]);
+      return;
+    }
+    final uri = Uri.file(path).toString();
+    await launch(
+      OpenPlan(
+        plan.app,
+        [marked],
+        [
+          for (final command in plan.commands)
+            [
+              for (final arg in command)
+                if (arg == path || arg == uri) marked else arg,
+            ],
+        ],
+        plan.files,
+      ),
+    );
+  }
+
+  static const _filesId = 'org.psito.files';
 
   /// A primeira espera de [appId] de quem ainda está no barramento; as de
   /// quem saiu são descartadas.

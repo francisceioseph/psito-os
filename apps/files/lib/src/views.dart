@@ -299,7 +299,10 @@ class _IconTile extends StatelessWidget {
               const SizedBox(height: 2),
               Expanded(
                 child: renaming
-                    ? RenameField(entry: entry, textAlign: TextAlign.center)
+                    ? EntryRenameField(
+                        entry: entry,
+                        textAlign: TextAlign.center,
+                      )
                     : Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
@@ -561,7 +564,7 @@ class _ListRow extends StatelessWidget {
             const SizedBox(width: 6),
             Expanded(
               child: tab.renaming == entry.path
-                  ? RenameField(entry: entry)
+                  ? EntryRenameField(entry: entry)
                   : Text(
                       trashItem?.name ?? entry.name,
                       maxLines: 1,
@@ -768,7 +771,7 @@ class _Column extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: tab.renaming == entry.path
-                          ? RenameField(entry: entry)
+                          ? EntryRenameField(entry: entry)
                           : Text(
                               entry.name,
                               maxLines: 1,

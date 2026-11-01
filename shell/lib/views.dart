@@ -198,14 +198,28 @@ class _DeskView extends StatelessWidget {
               key: item.key,
               name: item.name,
               icon: (size) => _icon(item, size),
+              editor: desk.renaming == item.key
+                  ? RenameField(
+                      name: item.entry!.name,
+                      isDirectory: item.entry!.isDirectory,
+                      textAlign: TextAlign.center,
+                      onSubmit: (name) =>
+                          unawaited(desk.rename(item.key, name)),
+                      onCancel: desk.stopRename,
+                    )
+                  : null,
             ),
         ],
         cells: desk.cells,
         iconSize: size,
         insets: insets,
         selected: desk.selected,
-        onSelect: desk.select,
+        onPress: desk.press,
+        onRelease: desk.release,
+        onRect: desk.selectRect,
         onOpen: desk.open,
+        keyboard: desk.keyboard,
+        onKey: desk.handleKey,
       );
     },
   );

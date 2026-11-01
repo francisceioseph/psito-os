@@ -157,6 +157,15 @@ static void osd_size_allocate_cb(GtkWidget* widget, GdkRectangle*, gpointer) {
   set_input_region(widget, 0, 0);
 }
 
+static gboolean background_focus_cb(GtkWidget* widget, GdkEventFocus* event,
+                                    gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  g_autoptr(FlValue) focused = fl_value_new_bool(event->in);
+  fl_method_channel_invoke_method(self->surfaces_channel, "backgroundFocus",
+                                  focused, nullptr, nullptr, nullptr);
+  return FALSE;
+}
+
 static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
                              gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
@@ -356,6 +365,12 @@ static void my_application_activate(GApplication* application) {
                                                  FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(self->surfaces_channel,
                                             surfaces_call_cb, self, nullptr);
+  // A mesa só sabe do teclado por aqui: a janela continua `activated` no
+  // foreign-toplevel enquanto o fundo tem o foco
+  g_signal_connect(background_window, "focus-in-event",
+                   G_CALLBACK(background_focus_cb), self);
+  g_signal_connect(background_window, "focus-out-event",
+                   G_CALLBACK(background_focus_cb), self);
   toplevels_init(messenger);
 
   // A sobreposição, os toasts e o OSD ficam só realizados (a view existe

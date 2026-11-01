@@ -97,6 +97,9 @@ class ShellState {
   /// Abre arquivos no app padrão, ou em [withApp] (o do
   /// `org.psito.Launcher`).
   Future<void> Function(List<String> paths, {String? withApp})? openPaths;
+
+  /// Abre o caminho no Quick Look do Files.
+  Future<void> Function(String path)? previewPath;
   final Surfaces surfaces;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.

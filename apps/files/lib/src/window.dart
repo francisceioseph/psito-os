@@ -48,7 +48,16 @@ class _FilesWindowState extends State<FilesWindow> {
     controller.onError = _showError;
     controller.onConfirm = (q, d, a) => showConfirm(context, q, d, a);
     controller.addListener(_changed);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focus.requestFocus();
+      _openQuickLook();
+    });
+  }
+
+  void _openQuickLook() {
+    if (mounted && controller.takeQuickLook()) {
+      unawaited(showQuickLook(context, controller));
+    }
   }
 
   FilesLocation? _lastLocation;
@@ -62,6 +71,7 @@ class _FilesWindowState extends State<FilesWindow> {
       if (_search.text != query) _search.text = query;
     }
     setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openQuickLook());
   }
 
   void _showError(String message) {
