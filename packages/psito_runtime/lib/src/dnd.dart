@@ -34,12 +34,24 @@ class PsitoDnd {
   Stream<int> get dragEnded => _ended.stream;
 
   /// Leva [paths] para fora da view [viewId]. Só funciona com o botão ainda
-  /// apertado: o arrastar do Wayland começa pelo clique.
-  Future<void> startDrag(int viewId, List<String> paths) async {
+  /// apertado: o arrastar do Wayland começa pelo clique. [icon] é um PNG que
+  /// o compositor desenha embaixo do ponteiro, pego em [hotspot] (sem ele, o
+  /// ícone padrão do GTK).
+  Future<void> startDrag(
+    int viewId,
+    List<String> paths, {
+    Uint8List? icon,
+    Offset hotspot = Offset.zero,
+  }) async {
     try {
       await _channel.invokeMethod('startDrag', {
         'view': viewId,
         'uris': [for (final path in paths) Uri.file(path).toString()],
+        if (icon != null) ...{
+          'icon': icon,
+          'x': hotspot.dx.round(),
+          'y': hotspot.dy.round(),
+        },
       });
     } on MissingPluginException {
       // Sem o plugin (nos testes e no laboratório sem o runtime)

@@ -269,6 +269,10 @@ static void my_application_activate(GApplication* application) {
       self, background, GTK_LAYER_SHELL_LAYER_BACKGROUND, "background");
   anchor_all(background_window);
   gtk_layer_set_exclusive_zone(background_window, -1);
+  // A mesa recebe o teclado quando é clicada, e uma janela clicada leva de
+  // volta; o labwc só dá o foco se o modo já for on_demand antes do clique
+  gtk_layer_set_keyboard_mode(background_window,
+                              GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
   gtk_widget_realize(GTK_WIDGET(background));
   FlEngine* engine = fl_view_get_engine(background);
 

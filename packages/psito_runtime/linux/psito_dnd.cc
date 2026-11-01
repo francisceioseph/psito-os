@@ -7,7 +7,8 @@
 //              "leave" {view}
 //              "drop" {view, x, y, uris, action} -> bool
 //              "dragEnd" {view} (de um arrastar que começou nesta view)
-//   Dart -> C: "startDrag" {view, uris}
+//   Dart -> C: "startDrag" {view, uris, icon?, x?, y?} (icon: um PNG, com o
+//              ponto de pega em x, y)
 // Enquanto o arrastar do GTK anda, a view não recebe mais os eventos do
 // ponteiro, e o Draggable do Flutter que começou tudo fica parado. Por isso,
 // quando o arrastar volta para a própria view, os movimentos e o soltar vão
@@ -308,7 +309,52 @@ static void drag_end_cb(GtkWidget*, GdkDragContext*, gpointer data) {
                                   nullptr);
 }
 
-static void start_drag(ViewDnd* d, FlValue* uris) {
+// Lê o PNG da memória para o cairo
+struct PngReader {
+  const uint8_t* data;
+  size_t length;
+  size_t offset;
+};
+
+static cairo_status_t read_png(void* closure, unsigned char* out,
+                               unsigned int length) {
+  PngReader* reader = static_cast<PngReader*>(closure);
+  if (reader->offset + length > reader->length) return CAIRO_STATUS_READ_ERROR;
+  memcpy(out, reader->data + reader->offset, length);
+  reader->offset += length;
+  return CAIRO_STATUS_SUCCESS;
+}
+
+// O ícone que o compositor desenha embaixo do ponteiro; sem um PNG válido,
+// o padrão do GTK
+static void set_icon(GdkDragContext* context, FlValue* icon, FlValue* x,
+                     FlValue* y) {
+  if (icon == nullptr || fl_value_get_type(icon) != FL_VALUE_TYPE_UINT8_LIST) {
+    gtk_drag_set_icon_default(context);
+    return;
+  }
+  PngReader reader = {fl_value_get_uint8_list(icon), fl_value_get_length(icon),
+                      0};
+  cairo_surface_t* surface =
+      cairo_image_surface_create_from_png_stream(read_png, &reader);
+  if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
+    cairo_surface_destroy(surface);
+    gtk_drag_set_icon_default(context);
+    return;
+  }
+  auto coordinate = [](FlValue* value) {
+    return value != nullptr && fl_value_get_type(value) == FL_VALUE_TYPE_INT
+               ? static_cast<double>(fl_value_get_int(value))
+               : 0.0;
+  };
+  // O GTK põe o ponto de pega no avesso do deslocamento da superfície
+  cairo_surface_set_device_offset(surface, -coordinate(x), -coordinate(y));
+  gtk_drag_set_icon_surface(context, surface);
+  cairo_surface_destroy(surface);
+}
+
+static void start_drag(ViewDnd* d, FlValue* uris, FlValue* icon, FlValue* x,
+                       FlValue* y) {
   size_t count = fl_value_get_length(uris);
   g_strfreev(d->source_uris);
   d->released = false;
@@ -325,7 +371,7 @@ static void start_drag(ViewDnd* d, FlValue* uris) {
       static_cast<GdkDragAction>(GDK_ACTION_COPY | GDK_ACTION_MOVE |
                                  GDK_ACTION_LINK),
       1, nullptr, -1, -1);
-  if (context != nullptr) gtk_drag_set_icon_default(context);
+  if (context != nullptr) set_icon(context, icon, x, y);
 }
 
 static void method_call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
@@ -348,7 +394,9 @@ static void method_call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
                                  nullptr);
     return;
   }
-  start_drag(d, uris);
+  start_drag(d, uris, fl_value_lookup_string(args, "icon"),
+             fl_value_lookup_string(args, "x"),
+             fl_value_lookup_string(args, "y"));
   fl_method_call_respond_success(call, nullptr, nullptr);
 }
 
