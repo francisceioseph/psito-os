@@ -13,7 +13,9 @@ import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_entry.dart';
+import 'package:system_shell/shell/clipboard_history.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
+import 'package:system_shell/widgets/clipboard_panel.dart';
 import 'package:system_shell/widgets/desktop_background.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
@@ -245,6 +247,7 @@ class _TopBarView extends StatelessWidget {
           listenable: Listenable.merge([
             state.notifications,
             state.settings,
+            state.clipboard,
             services.network.state,
             services.audio.state,
             services.battery.state,
@@ -270,6 +273,8 @@ class _TopBarView extends StatelessWidget {
                 battery: services.battery.state.value,
                 showBatteryPercentage: settings.showBatteryPercentage,
                 onBatteryTap: () => state.toggle(ShellOverlay.battery),
+                clipboardCount: state.clipboard.entries.length,
+                onClipboardTap: () => state.toggle(ShellOverlay.clipboard),
                 onPowerTap: () => state.toggle(ShellOverlay.power),
                 now: services.time.now,
                 unreadCount: state.notifications.unreadCount,
@@ -862,6 +867,14 @@ class _OverlayView extends StatelessWidget {
           state: services.battery.state,
           onClose: state.closeOverlay,
         ),
+        ShellOverlay.clipboard => ClipboardPanel(
+          history: state.clipboard,
+          onPick: (index) {
+            state.closeOverlay();
+            state.recopy(index);
+          },
+          onClose: state.closeOverlay,
+        ),
         ShellOverlay.power => PowerPanel(
           capabilities: services.session.capabilities,
           onSuspend: () {
@@ -908,10 +921,16 @@ class _OsdView extends StatelessWidget {
     Surface.osd,
     alignment: Alignment.bottomCenter,
     builder: (context, _) => ListenableBuilder(
-      listenable: Listenable.merge([state.osd, state.services.audio.state]),
-      builder: (context, _) => state.osd.value
-          ? VolumeOsd(state: state.services.audio.state.value)
-          : const SizedBox.shrink(),
+      listenable: Listenable.merge([
+        state.osd,
+        state.osdClip,
+        state.services.audio.state,
+      ]),
+      builder: (context, _) => switch ((state.osd.value, state.osdClip.value)) {
+        (false, _) => const SizedBox.shrink(),
+        (true, final ClipEntry entry) => ClipboardOsd(entry: entry),
+        (true, null) => VolumeOsd(state: state.services.audio.state.value),
+      },
     ),
   );
 }

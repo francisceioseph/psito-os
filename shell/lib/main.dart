@@ -47,6 +47,7 @@ Future<void> main() async {
     sandbox: ShellState.sandboxFor(Platform.environment),
     autostart: Autostart(Platform.environment),
   );
+  state.clipboardKeeper.listen(state.clipboard);
   final viewIds = await state.surfaces.viewIds();
   state.applyDockSettings();
   runWidget(ShellViews(state: state, viewIds: viewIds));

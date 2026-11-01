@@ -252,6 +252,12 @@ const psitoShortcuts = [
     'Alt+Shift+PageUp / PageDown',
   ),
   PsitoShortcut('Silenciar', 'Tecla de mudo', 'Alt+Shift+M'),
+  PsitoShortcut('Abrir a área de transferência', 'Super+V', 'Alt+Shift+V'),
+  PsitoShortcut(
+    'Copiar de novo o item 1 a 5 da área de transferência',
+    'Super+1 a 5',
+    'Alt+Shift+1 a 5',
+  ),
   PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
 ];
 

@@ -240,4 +240,46 @@ void main() {
     expect(state.maySetSettings('foot'), isTrue);
     expect(state.maySetSettings(null), isTrue);
   });
+
+  group('a área de transferência', () {
+    Map<String, Uint8List> text(String value) => {
+      'text/plain;charset=utf-8': Uint8List.fromList(value.codeUnits),
+    };
+
+    test('o atalho copia de novo e avisa no OSD', () {
+      addTearDown(state.clipboard.clear);
+      state.clipboard.copied(text('a'));
+      state.clipboard.copied(text('b'));
+      state.run(ShellAction.clipboard2);
+      expect(state.clipboard.entries.first.preview, 'a');
+      expect(state.osdClip.value?.preview, 'a');
+      expect(state.osd.value, isTrue);
+      expect(surfaceCalls.last, isMethodCall('show', arguments: 'osd'));
+    });
+
+    test('uma posição vazia não faz nada', () {
+      state.run(ShellAction.clipboard3);
+      expect(state.osd.value, isFalse);
+    });
+
+    test('o painel abre com o teclado, para escolher pelo número', () {
+      state.run(ShellAction.clipboard);
+      expect(state.overlay.value, ShellOverlay.clipboard);
+      expect(
+        surfaceCalls.last,
+        isMethodCall('showOverlay', arguments: 'exclusive'),
+      );
+      state.run(ShellAction.clipboard);
+      expect(state.overlay.value, isNull);
+    });
+
+    test('o volume tira o item do OSD', () {
+      addTearDown(state.clipboard.clear);
+      state.clipboard.copied(text('a'));
+      state.run(ShellAction.clipboard1);
+      expect(state.osdClip.value, isNotNull);
+      state.run(ShellAction.volumeMute);
+      expect(state.osdClip.value, isNull);
+    });
+  });
 }

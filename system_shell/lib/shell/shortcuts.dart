@@ -18,7 +18,22 @@ enum ShellAction {
   volumeUp,
   volumeDown,
   volumeMute,
+  clipboard,
+  clipboard1,
+  clipboard2,
+  clipboard3,
+  clipboard4,
+  clipboard5,
 }
+
+/// As ações de copiar de novo, na ordem do histórico.
+const clipboardSlots = [
+  ShellAction.clipboard1,
+  ShellAction.clipboard2,
+  ShellAction.clipboard3,
+  ShellAction.clipboard4,
+  ShellAction.clipboard5,
+];
 
 const _arrowUp = LogicalKeyboardKey.arrowUp;
 const _arrowDown = LogicalKeyboardKey.arrowDown;
@@ -45,6 +60,17 @@ const shellBindings = <SingleActivator, ShellAction>{
   SingleActivator(LogicalKeyboardKey.audioVolumeDown, includeRepeats: true):
       ShellAction.volumeDown,
   SingleActivator(LogicalKeyboardKey.audioVolumeMute): ShellAction.volumeMute,
+  SingleActivator(LogicalKeyboardKey.keyV, meta: true): ShellAction.clipboard,
+  SingleActivator(LogicalKeyboardKey.digit1, meta: true):
+      ShellAction.clipboard1,
+  SingleActivator(LogicalKeyboardKey.digit2, meta: true):
+      ShellAction.clipboard2,
+  SingleActivator(LogicalKeyboardKey.digit3, meta: true):
+      ShellAction.clipboard3,
+  SingleActivator(LogicalKeyboardKey.digit4, meta: true):
+      ShellAction.clipboard4,
+  SingleActivator(LogicalKeyboardKey.digit5, meta: true):
+      ShellAction.clipboard5,
 
   // VM
   SingleActivator(LogicalKeyboardKey.space, control: true):
@@ -73,6 +99,18 @@ const shellBindings = <SingleActivator, ShellAction>{
   ): ShellAction.volumeDown,
   SingleActivator(LogicalKeyboardKey.keyM, alt: true, shift: true):
       ShellAction.volumeMute,
+  SingleActivator(LogicalKeyboardKey.keyV, alt: true, shift: true):
+      ShellAction.clipboard,
+  SingleActivator(LogicalKeyboardKey.digit1, alt: true, shift: true):
+      ShellAction.clipboard1,
+  SingleActivator(LogicalKeyboardKey.digit2, alt: true, shift: true):
+      ShellAction.clipboard2,
+  SingleActivator(LogicalKeyboardKey.digit3, alt: true, shift: true):
+      ShellAction.clipboard3,
+  SingleActivator(LogicalKeyboardKey.digit4, alt: true, shift: true):
+      ShellAction.clipboard4,
+  SingleActivator(LogicalKeyboardKey.digit5, alt: true, shift: true):
+      ShellAction.clipboard5,
 };
 
 ShellAction? resolveShortcut(KeyEvent event, HardwareKeyboard keyboard) {

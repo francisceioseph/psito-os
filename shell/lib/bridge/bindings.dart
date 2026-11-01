@@ -43,7 +43,13 @@ bool shellHandles(ShellAction action) => switch (action) {
   ShellAction.switchPrev ||
   ShellAction.volumeUp ||
   ShellAction.volumeDown ||
-  ShellAction.volumeMute => true,
+  ShellAction.volumeMute ||
+  ShellAction.clipboard ||
+  ShellAction.clipboard1 ||
+  ShellAction.clipboard2 ||
+  ShellAction.clipboard3 ||
+  ShellAction.clipboard4 ||
+  ShellAction.clipboard5 => true,
   ShellAction.closeWindow ||
   ShellAction.maximize ||
   ShellAction.snapLeft ||

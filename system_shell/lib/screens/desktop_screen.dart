@@ -227,6 +227,14 @@ class _DesktopScreenState extends State<DesktopScreen> {
         final audio = _services.audio;
         audio.setMuted(!audio.state.value.muted);
         _showVolumeOsd();
+      case ShellAction.clipboard ||
+          ShellAction.clipboard1 ||
+          ShellAction.clipboard2 ||
+          ShellAction.clipboard3 ||
+          ShellAction.clipboard4 ||
+          ShellAction.clipboard5:
+        // O histórico é do shell, que lê o compositor
+        break;
     }
   }
 

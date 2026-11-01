@@ -11,6 +11,7 @@ import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
+import 'package:system_shell/shell/clipboard_history.dart';
 import 'package:system_shell/shell/notification_center.dart';
 import 'package:system_shell/shell/settings_store.dart';
 import 'package:system_shell/shell/shortcuts.dart';
@@ -18,6 +19,7 @@ import 'package:system_shell/shell/window_switcher.dart';
 
 import 'app_icon.dart';
 import 'autostart.dart';
+import 'clipboard_keeper.dart';
 import 'desk.dart';
 import 'desktop_entries.dart';
 import 'dock.dart';
@@ -27,7 +29,15 @@ import 'surfaces.dart';
 import 'toplevels.dart';
 
 /// O que a sobreposição mostra; só uma coisa por vez, como no system_shell.
-enum ShellOverlay { launcher, notifications, network, volume, battery, power }
+enum ShellOverlay {
+  launcher,
+  notifications,
+  network,
+  volume,
+  battery,
+  power,
+  clipboard,
+}
 
 /// Ações de energia que pedem confirmação.
 enum PowerAction { powerOff, reboot }
@@ -42,6 +52,7 @@ class ShellState {
     this.osdDuration = const Duration(milliseconds: 1500),
     this.sandbox,
     this.autostart,
+    this.clipboardKeeper = const ClipboardKeeper(),
   }) : dock = dock ?? DockStore.memory(defaultDock) {
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
@@ -82,6 +93,18 @@ class ShellState {
   final SettingsStore settings;
   final SystemServices services;
   final ToplevelList toplevels;
+
+  final ClipboardKeeper clipboardKeeper;
+
+  /// As últimas cópias de qualquer app.
+  late final clipboard = ClipboardHistory(
+    now: services.time.now,
+    offer: (formats) => unawaited(clipboardKeeper.offer(formats)),
+    clearSystem: () => unawaited(clipboardKeeper.clear()),
+  );
+
+  /// O item que um atalho acabou de copiar de novo, no lugar do volume no OSD.
+  final osdClip = ValueNotifier<ClipEntry?>(null);
 
   /// Os itens fixados na dock (o dock.json).
   final DockStore dock;
@@ -347,6 +370,15 @@ class ShellState {
         _switch(reverse: false);
       case ShellAction.switchPrev:
         _switch(reverse: true);
+      case ShellAction.clipboard:
+        switcher.cancel();
+        toggle(ShellOverlay.clipboard);
+      case ShellAction.clipboard1 ||
+          ShellAction.clipboard2 ||
+          ShellAction.clipboard3 ||
+          ShellAction.clipboard4 ||
+          ShellAction.clipboard5:
+        recopy(clipboardSlots.indexOf(action));
       case ShellAction.volumeUp:
         _stepVolume(1);
       case ShellAction.volumeDown:
@@ -433,6 +465,19 @@ class ShellState {
     unawaited(toplevels.activate(int.parse(id)));
   }
 
+  /// Copia de novo o item [index] do histórico, com o aviso na tela.
+  void recopy(int index) {
+    final entry = clipboard.recopy(index);
+    if (entry == null) return;
+    osdClip.value = entry;
+    osd.value = true;
+    _osdTimer?.cancel();
+    _osdTimer = Timer(osdDuration, () {
+      osd.value = false;
+      osdClip.value = null;
+    });
+  }
+
   // Volume
 
   void _stepVolume(int direction) {
@@ -444,6 +489,7 @@ class ShellState {
   }
 
   void _showOsd() {
+    osdClip.value = null;
     osd.value = true;
     _osdTimer?.cancel();
     _osdTimer = Timer(osdDuration, () => osd.value = false);
@@ -540,6 +586,9 @@ class ShellState {
         dockUi.askEmptyTrash.value ||
         deskTrust.value != null ||
         overlay.value == ShellOverlay.launcher ||
+        // Com o teclado, os números escolhem; fechando, o foco volta para a
+        // janela em que se vai colar
+        overlay.value == ShellOverlay.clipboard ||
         switcher.isOpen ||
         drag?.source == DockDragSource.launcher) {
       unawaited(surfaces.showOverlay(OverlayKeyboard.exclusive));

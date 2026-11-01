@@ -20,12 +20,27 @@ add_custom_command(
   DEPENDS "${TOPLEVEL_XML}"
 )
 
+# O do wlr-data-control também (o clipboard_keeper.cc)
+set(CLIPBOARD_XML
+  "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/wlr-data-control-unstable-v1.xml")
+set(CLIPBOARD_PROTOCOL
+  "${CMAKE_CURRENT_BINARY_DIR}/wlr-data-control-unstable-v1")
+add_custom_command(
+  OUTPUT "${CLIPBOARD_PROTOCOL}-client-protocol.h" "${CLIPBOARD_PROTOCOL}-protocol.c"
+  COMMAND ${WAYLAND_SCANNER} client-header "${CLIPBOARD_XML}" "${CLIPBOARD_PROTOCOL}-client-protocol.h"
+  COMMAND ${WAYLAND_SCANNER} private-code "${CLIPBOARD_XML}" "${CLIPBOARD_PROTOCOL}-protocol.c"
+  DEPENDS "${CLIPBOARD_XML}"
+)
+
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "toplevels.cc"
+  "clipboard_keeper.cc"
   "${TOPLEVEL_PROTOCOL}-protocol.c"
   "${TOPLEVEL_PROTOCOL}-client-protocol.h"
+  "${CLIPBOARD_PROTOCOL}-protocol.c"
+  "${CLIPBOARD_PROTOCOL}-client-protocol.h"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 

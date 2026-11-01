@@ -5,6 +5,7 @@ import 'package:psito_services/audio_service.dart';
 import 'package:psito_services/battery_service.dart';
 
 import 'battery_indicator.dart';
+import 'clipboard_panel.dart';
 import 'network_indicator.dart';
 import 'volume_indicator.dart';
 
@@ -40,6 +41,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Ícone de bateria: abre e fecha o painel da bateria.
   final VoidCallback? onBatteryTap;
 
+  /// Quantos itens o histórico da área de transferência tem.
+  final int clipboardCount;
+
+  /// O applet da área de transferência. Null: sem applet (no laboratório, que
+  /// não tem o histórico).
+  final VoidCallback? onClipboardTap;
+
   /// Botão de energia: abre e fecha o menu de energia.
   final VoidCallback? onPowerTap;
 
@@ -62,6 +70,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     this.battery = BatteryState.unavailable,
     this.showBatteryPercentage = true,
     this.onBatteryTap,
+    this.clipboardCount = 0,
+    this.onClipboardTap,
     this.onPowerTap,
     this.now = DateTime.now,
   });
@@ -122,6 +132,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (onClipboardTap != null) ...[
+                ClipboardIndicator(
+                  count: clipboardCount,
+                  onTap: onClipboardTap,
+                ),
+                const SizedBox(width: 8),
+              ],
               // Indicadores de Periféricos / Status
               NetworkIndicator(state: network, onTap: onNetworkTap),
               const SizedBox(width: 8),
