@@ -1,5 +1,6 @@
 // Apoio comum dos testes: app falso e montagem do desktop numa tela 1280×800.
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/l10n/system_localizations.dart';
@@ -96,3 +97,74 @@ final testL10nDelegates = psitoLocalizationsDelegates([
 ]);
 
 final testL10n = lookupSystemLocalizations(const Locale('pt'));
+
+/// Falha, dizendo onde, se algum clique da tela não tem nome para o leitor de
+/// tela. O `labeledTapTargetGuideline` do Flutter faz a mesma conta, mas só
+/// mostra o retângulo.
+Future<void> expectAllLabeled(WidgetTester tester) async {
+  final semantics = tester.ensureSemantics();
+  await tester.pump();
+  final missing = <String>[];
+  var nodes = 0;
+  void visit(SemanticsNode node, Matrix4 parent) {
+    nodes++;
+    final transform = parent.clone();
+    if (node.transform case final own?) transform.multiply(own);
+    node.visitChildren((child) {
+      visit(child, transform);
+      return true;
+    });
+    if (node.isMergedIntoParent || node.isInvisible) return;
+    final data = node.getSemanticsData();
+    final clickable =
+        data.hasAction(SemanticsAction.tap) ||
+        data.hasAction(SemanticsAction.longPress);
+    if (!clickable) return;
+    if (data.label.isNotEmpty ||
+        data.tooltip.isNotEmpty ||
+        data.value.isNotEmpty) {
+      return;
+    }
+    final rect = MatrixUtils.transformRect(transform, node.rect);
+    missing.add('$rect: ${_widgetsAt(tester, rect.center)}');
+  }
+
+  for (final view in tester.binding.renderViews) {
+    final root = view.owner?.semanticsOwner?.rootSemanticsNode;
+    if (root != null) visit(root, Matrix4.identity());
+  }
+  semantics.dispose();
+  // Sem isto, uma árvore vazia passaria
+  expect(nodes, greaterThan(1));
+  expect(missing, isEmpty, reason: 'Cliques sem nome:\n${missing.join('\n')}');
+}
+
+/// Os widgets do projeto no ponto: a pista de onde está o clique sem nome.
+String _widgetsAt(WidgetTester tester, Offset point) {
+  final hit = HitTestResult();
+  tester.binding.hitTestInView(hit, point, tester.view.viewId);
+  for (final entry in hit.path) {
+    final target = entry.target;
+    if (target is! RenderObject) continue;
+    final creator = target.debugCreator;
+    if (creator is! DebugCreator) continue;
+    return creator.element
+        .debugGetDiagnosticChain()
+        .map((e) => e.widget.runtimeType.toString())
+        .where((name) => !name.startsWith('_') && !_framework.hasMatch(name))
+        .take(6)
+        .join(' < ');
+  }
+  return '?';
+}
+
+final _framework = RegExp(
+  r'^(Semantics|Listener|MouseRegion|Focus|Actions|Builder|InkWell|InkResponse|'
+  r'Material|GestureDetector|RawGestureDetector|DefaultTextStyle|PhysicalModel|'
+  r'PhysicalShape|NotificationListener|CustomPaint|ConstrainedBox|Padding|Align|'
+  r'Center|SizedBox|Container|DecoratedBox|Row|Column|Flex|Stack|Expanded|'
+  r'Flexible|Positioned|ClipRRect|ClipRect|IconTheme|Icon|Text|RichText|'
+  r'Opacity|Transform|ColoredBox|AnimatedBuilder|ListenableBuilder|'
+  r'ValueListenableBuilder|KeyedSubtree|RepaintBoundary|LayoutBuilder|MetaData)'
+  r'(<.*)?$',
+);

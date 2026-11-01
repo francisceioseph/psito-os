@@ -125,6 +125,7 @@ class _BackgroundState extends State<_Background> {
         }
       },
       child: GestureDetector(
+        excludeFromSemantics: true,
         behavior: HitTestBehavior.translucent,
         onPanStart: widget.hits == null
             ? null
@@ -560,16 +561,22 @@ class _ListRow extends StatelessWidget {
             SizedBox(
               width: 18,
               child: entry.isDirectory && tab.location is FolderLocation
-                  ? GestureDetector(
-                      onTap: () => tab.toggleExpanded(entry.path),
-                      child: Icon(
-                        tab.expanded.contains(entry.path)
-                            ? Icons.arrow_drop_down_rounded
-                            : Icons.arrow_right_rounded,
-                        size: 18,
-                        color: selected
-                            ? context.palette.scrim
-                            : context.palette.textQuiet,
+                  ? Semantics(
+                      button: true,
+                      label: tab.expanded.contains(entry.path)
+                          ? context.l10n.collapseFolder
+                          : context.l10n.expandFolder,
+                      child: GestureDetector(
+                        onTap: () => tab.toggleExpanded(entry.path),
+                        child: Icon(
+                          tab.expanded.contains(entry.path)
+                              ? Icons.arrow_drop_down_rounded
+                              : Icons.arrow_right_rounded,
+                          size: 18,
+                          color: selected
+                              ? context.palette.scrim
+                              : context.palette.textQuiet,
+                        ),
                       ),
                     )
                   : null,

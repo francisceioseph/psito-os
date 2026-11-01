@@ -43,6 +43,7 @@ void main() {
   ) async {
     final log = await pump(tester, 3);
     expect(find.byType(GridView), findsNothing);
+    await expectAllLabeled(tester);
     final newest = tester.getCenter(find.byKey(const ValueKey('stack-/p/f0')));
     final oldest = tester.getCenter(find.byKey(const ValueKey('stack-/p/f2')));
     expect(newest.dy, greaterThan(oldest.dy));
@@ -56,6 +57,7 @@ void main() {
   ) async {
     final log = await pump(tester, DockStack.fanLimit + 1);
     expect(find.byType(GridView), findsOneWidget);
+    await expectAllLabeled(tester);
     await tester.tap(find.text('Abrir no Files'));
     expect(log, ['close', 'folder']);
   });
@@ -87,6 +89,7 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
+    await expectAllLabeled(tester);
   });
 
   test('o painel abre do lado de dentro e fica na tela', () {

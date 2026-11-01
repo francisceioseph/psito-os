@@ -898,6 +898,42 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Could not start sharing.'**
   String get hotspotFailed;
+
+  /// No description provided for @accentYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get accentYellow;
+
+  /// No description provided for @accentOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get accentOrange;
+
+  /// No description provided for @accentGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get accentGreen;
+
+  /// No description provided for @accentBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get accentBlue;
+
+  /// No description provided for @accentPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get accentPurple;
+
+  /// No description provided for @accentPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get accentPink;
 }
 
 class _SettingsLocalizationsDelegate

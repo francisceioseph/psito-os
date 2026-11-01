@@ -212,34 +212,39 @@ class _PsitoDockState extends State<PsitoDock> {
             return box.localToGlobal(Offset.zero) & box.size;
           }
 
-          return GestureDetector(
-            onTap: () => widget.onTap(tile.key, rect()),
-            onSecondaryTap: widget.onMenu == null
-                ? null
-                : () => widget.onMenu!(tile.key, rect()),
-            onPanStart: drag
-                ? (details) {
-                    setState(() => _hovered = null);
-                    widget.onDragStart!(tile.key, details.globalPosition);
-                  }
-                : null,
-            child: Padding(
-              padding: widget.position.vertical
-                  ? const EdgeInsets.symmetric(vertical: PsitoDock.tileMargin)
-                  : const EdgeInsets.symmetric(
-                      horizontal: PsitoDock.tileMargin,
-                    ),
-              // Como no macOS: o ícone sob o mouse cresce, a partir da borda
-              child: AnimatedScale(
-                scale: isHovered && widget.magnification
-                    ? PsitoDock.magnifiedScale
-                    : 1,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
-                alignment: PsitoDock.edgeAlignment(widget.position),
-                child: (widget.wrapTile ?? _plain)(
-                  tile,
-                  _square(tile, widget.iconSize, isHovered),
+          return Semantics(
+            button: true,
+            label: tile.entry.name,
+            value: tile.badge > 0 ? '${tile.badge}' : null,
+            child: GestureDetector(
+              onTap: () => widget.onTap(tile.key, rect()),
+              onSecondaryTap: widget.onMenu == null
+                  ? null
+                  : () => widget.onMenu!(tile.key, rect()),
+              onPanStart: drag
+                  ? (details) {
+                      setState(() => _hovered = null);
+                      widget.onDragStart!(tile.key, details.globalPosition);
+                    }
+                  : null,
+              child: Padding(
+                padding: widget.position.vertical
+                    ? const EdgeInsets.symmetric(vertical: PsitoDock.tileMargin)
+                    : const EdgeInsets.symmetric(
+                        horizontal: PsitoDock.tileMargin,
+                      ),
+                // Como no macOS: o ícone sob o mouse cresce, a partir da borda
+                child: AnimatedScale(
+                  scale: isHovered && widget.magnification
+                      ? PsitoDock.magnifiedScale
+                      : 1,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  alignment: PsitoDock.edgeAlignment(widget.position),
+                  child: (widget.wrapTile ?? _plain)(
+                    tile,
+                    _square(tile, widget.iconSize, isHovered),
+                  ),
                 ),
               ),
             ),

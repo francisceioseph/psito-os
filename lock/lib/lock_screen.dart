@@ -113,6 +113,7 @@ class _LockScreenState extends State<LockScreen> {
         : null;
     return Scaffold(
       body: GestureDetector(
+        excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
         onTap: _focus.requestFocus,
         child: DecoratedBox(

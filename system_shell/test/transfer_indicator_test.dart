@@ -36,6 +36,7 @@ void main() {
       onCancel: () => cancelled++,
     );
     expect(find.text('Copiando "a.txt"'), findsOneWidget);
+    await expectAllLabeled(tester);
     expect(
       tester
           .widget<CircularProgressIndicator>(

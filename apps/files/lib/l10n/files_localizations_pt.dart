@@ -382,4 +382,10 @@ class FilesLocalizationsPt extends FilesLocalizations {
 
   @override
   String get search => 'Buscar';
+
+  @override
+  String get expandFolder => 'Expandir a pasta';
+
+  @override
+  String get collapseFolder => 'Recolher a pasta';
 }

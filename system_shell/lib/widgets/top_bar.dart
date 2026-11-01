@@ -240,27 +240,32 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _buildBell(BuildContext context, Color accent) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: const ValueKey('notifications-bell'),
-        onTap: onNotificationsTap,
-        borderRadius: BorderRadius.circular(6),
-        hoverColor: context.palette.lineSoft,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Badge(
-            isLabelVisible: unreadCount > 0,
-            label: Text('$unreadCount'),
-            backgroundColor: context.palette.cheek,
-            child: Icon(
-              doNotDisturb
-                  ? Icons.notifications_off
-                  : unreadCount > 0
-                  ? Icons.notifications_active
-                  : Icons.notifications_none,
-              size: 16,
-              color: unreadCount > 0 ? accent : context.palette.textSecondary,
+    return Semantics(
+      button: true,
+      label: context.l10n.notifications,
+      value: unreadCount > 0 ? '$unreadCount' : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('notifications-bell'),
+          onTap: onNotificationsTap,
+          borderRadius: BorderRadius.circular(6),
+          hoverColor: context.palette.lineSoft,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text('$unreadCount'),
+              backgroundColor: context.palette.cheek,
+              child: Icon(
+                doNotDisturb
+                    ? Icons.notifications_off
+                    : unreadCount > 0
+                    ? Icons.notifications_active
+                    : Icons.notifications_none,
+                size: 16,
+                color: unreadCount > 0 ? accent : context.palette.textSecondary,
+              ),
             ),
           ),
         ),

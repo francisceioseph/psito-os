@@ -172,48 +172,58 @@ class _Item extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
-    return GestureDetector(
-      onSecondaryTapDown: menu.isEmpty
-          ? null
-          : (d) => showMenu<void>(
-              context: context,
-              position: RelativeRect.fromLTRB(
-                d.globalPosition.dx,
-                d.globalPosition.dy,
-                d.globalPosition.dx,
-                d.globalPosition.dy,
-              ),
-              items: menu,
-            ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            height: 28,
-            margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            decoration: BoxDecoration(
-              color: selected
-                  ? context.palette.text.withValues(alpha: 0.12)
-                  : highlight
-                  ? primary.withValues(alpha: 0.25)
-                  : null,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                ThemedIcon(icon, fallback: fallback, size: 16, color: primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: context.palette.text),
-                  ),
+    return MergeSemantics(
+      child: GestureDetector(
+        onSecondaryTapDown: menu.isEmpty
+            ? null
+            : (d) => showMenu<void>(
+                context: context,
+                position: RelativeRect.fromLTRB(
+                  d.globalPosition.dx,
+                  d.globalPosition.dy,
+                  d.globalPosition.dx,
+                  d.globalPosition.dy,
                 ),
-              ],
+                items: menu,
+              ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Container(
+              height: 28,
+              margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: selected
+                    ? context.palette.text.withValues(alpha: 0.12)
+                    : highlight
+                    ? primary.withValues(alpha: 0.25)
+                    : null,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  ThemedIcon(
+                    icon,
+                    fallback: fallback,
+                    size: 16,
+                    color: primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.palette.text,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

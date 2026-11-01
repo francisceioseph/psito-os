@@ -12,18 +12,23 @@ typedef _Plan = ({List<String> proxy, List<String> bwrap});
 Future<_Plan> _dryRun(
   String permissions, [
   List<String> extra = const [],
+  Map<String, String> env = const {},
 ]) async {
-  final result = await Process.run('bash', [
-    _script,
-    '--app',
-    'org.psito.x',
-    '--permissions',
-    permissions,
-    ...extra,
-    '--dry-run',
-    '--',
-    '/usr/lib/psito/apps/org.psito.x/x',
-  ], environment: _env);
+  final result = await Process.run(
+    'bash',
+    [
+      _script,
+      '--app',
+      'org.psito.x',
+      '--permissions',
+      permissions,
+      ...extra,
+      '--dry-run',
+      '--',
+      '/usr/lib/psito/apps/org.psito.x/x',
+    ],
+    environment: {..._env, ...env},
+  );
   expect(result.exitCode, 0, reason: '${result.stderr}');
   final lines = (result.stdout as String).trim().split('\n');
   final split = lines.indexOf('bwrap:');
@@ -40,6 +45,40 @@ const _update =
     '--call=org.psito.Settings=org.psito.Settings.Update@/org/psito/Settings';
 
 void main() {
+  group('acessibilidade', () {
+    const bus = 'unix:path=/run/user/1000/at-spi/bus_0';
+    const on = {'PSITO_A11Y_BUS': bus};
+
+    test('desligada, o app não vê o barramento', () async {
+      final plan = await _dryRun('');
+      expect(plan.proxy, isNot(contains(bus)));
+      expect(plan.bwrap.join(' '), contains('NO_AT_BRIDGE 1'));
+      expect(plan.bwrap.join(' '), isNot(contains('AT_SPI_BUS_ADDRESS')));
+    });
+
+    test('ligada, passa por um proxy que só deixa se registrar', () async {
+      final plan = await _dryRun('', const [], on);
+      final start = plan.proxy.indexOf(bus);
+      expect(start, greaterThan(0));
+      final a11y = plan.proxy.sublist(start);
+      expect(a11y.sublist(2, 4), ['--filter', '--sloppy-names']);
+      expect(a11y.where((a) => a.startsWith('--talk')), isEmpty);
+      expect(
+        a11y.where((a) => a.startsWith('--call')),
+        everyElement(startsWith('--call=org.a11y.atspi.Registry=')),
+      );
+      // Mandar teclas e ler a árvore dos outros ficam de fora
+      expect(a11y.join(' '), isNot(contains('GenerateKeyboardEvent')));
+      expect(a11y.join(' '), isNot(contains('atspi.Accessible')));
+      expect(plan.bwrap.join(' '), isNot(contains('NO_AT_BRIDGE')));
+      expect(
+        plan.bwrap.join(' '),
+        contains('AT_SPI_BUS_ADDRESS unix:path=/run/user/1000/at-spi/bus'),
+      );
+      expect(plan.bwrap, isNot(contains('/run/user/1000/at-spi/bus_0')));
+    });
+  });
+
   test(
     'sem permissões: sem rede, \$HOME privado e só leitura no D-Bus',
     () async {
@@ -103,9 +142,8 @@ void main() {
     }
     expect((await _dryRun('settings;network')).proxy, contains(talk));
     expect(
-      (await _dryRun('settings')).proxy.where(
-        (arg) => arg.contains('NetworkManager'),
-      ),
+      (await _dryRun('settings')).proxy
+          .where((arg) => arg.contains('NetworkManager')),
       isEmpty,
     );
   });

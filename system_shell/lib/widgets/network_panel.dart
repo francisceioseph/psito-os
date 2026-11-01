@@ -212,6 +212,7 @@ class _NetworkPanelState extends State<NetworkPanel> {
             Positioned.fill(
               top: TopBar.height,
               child: GestureDetector(
+                excludeFromSemantics: true,
                 onTap: widget.onClose,
                 behavior: HitTestBehavior.opaque,
               ),

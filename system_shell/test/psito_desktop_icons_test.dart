@@ -122,6 +122,7 @@ void main() {
 
   testWidgets('o duplo clique abre', (tester) async {
     await pump(tester);
+    await expectAllLabeled(tester);
     await tester.tap(find.text('b'));
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(find.text('b'));

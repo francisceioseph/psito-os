@@ -703,6 +703,18 @@ abstract class FilesLocalizations {
   /// In en, this message translates to:
   /// **'Search'**
   String get search;
+
+  /// No description provided for @expandFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand folder'**
+  String get expandFolder;
+
+  /// No description provided for @collapseFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse folder'**
+  String get collapseFolder;
 }
 
 class _FilesLocalizationsDelegate

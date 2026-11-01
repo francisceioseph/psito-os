@@ -29,6 +29,7 @@ class DesktopBackground extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             InkWell(
+              excludeFromSemantics: true,
               onTap: () {
                 debugPrint('🦜 O Psito foi clicado!');
               },

@@ -52,6 +52,7 @@ void main() {
     await tester.sendKeyEvent(_tab);
     await tester.pump();
     expect(_switcher, findsOneWidget);
+    await expectAllLabeled(tester);
     // Seleção começa na segunda mais recente; Tab de novo vai para a próxima
     await tester.sendKeyEvent(_tab);
     await tester.pump();

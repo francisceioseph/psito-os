@@ -47,6 +47,7 @@ void main() {
     await tester.tap(_bell);
     await tester.pump();
     expect(_panel, findsOneWidget);
+    await expectAllLabeled(tester);
     expect(_title, findsOneWidget);
     expect(find.descendant(of: _bell, matching: find.text('1')), findsNothing);
 

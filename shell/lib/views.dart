@@ -824,6 +824,7 @@ class _OverlayView extends StatelessWidget {
             children: [
               Positioned.fill(
                 child: GestureDetector(
+                  excludeFromSemantics: true,
                   onTap: state.switcher.cancel,
                   behavior: HitTestBehavior.opaque,
                 ),

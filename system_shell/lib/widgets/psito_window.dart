@@ -80,6 +80,7 @@ class PsitoWindow extends StatelessWidget {
 
   List<Widget> _resizeHandles() {
     Widget handle(ResizeEdge edge) => GestureDetector(
+      excludeFromSemantics: true,
       behavior: HitTestBehavior.translucent,
       onPanUpdate: (d) => manager.resize(window.id, edge, d.delta),
     );
@@ -158,6 +159,7 @@ class _TitleBar extends StatelessWidget {
         children: [
           Expanded(
             child: GestureDetector(
+              excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               dragStartBehavior: DragStartBehavior.down,
               onDoubleTap: () => manager.toggleMaximize(window.id),

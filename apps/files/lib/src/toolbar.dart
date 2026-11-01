@@ -384,12 +384,15 @@ class TabStrip extends StatelessWidget {
                           ),
                         ),
                       ),
-                      InkWell(
-                        onTap: () => controller.closeTab(i),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 14,
-                          color: context.palette.textDisabled,
+                      Tooltip(
+                        message: context.l10n.close,
+                        child: InkWell(
+                          onTap: () => controller.closeTab(i),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 14,
+                            color: context.palette.textDisabled,
+                          ),
                         ),
                       ),
                     ],

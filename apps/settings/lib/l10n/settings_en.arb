@@ -133,5 +133,11 @@
   "hotspotActive": "Sharing. Other devices can join now.",
   "hotspotNoUplink": "There is no other connection: whoever joins will not have internet.",
   "hotspotWifiOff": "Turn on Wi-Fi to share.",
-  "hotspotFailed": "Could not start sharing."
+  "hotspotFailed": "Could not start sharing.",
+  "accentYellow": "Yellow",
+  "accentOrange": "Orange",
+  "accentGreen": "Green",
+  "accentBlue": "Blue",
+  "accentPurple": "Purple",
+  "accentPink": "Pink"
 }

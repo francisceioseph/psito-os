@@ -100,5 +100,7 @@
   "sortBy": "Sort by",
   "showHiddenTip": "Show hidden files (Ctrl+H)",
   "actions": "Actions",
-  "search": "Search"
+  "search": "Search",
+  "expandFolder": "Expand folder",
+  "collapseFolder": "Collapse folder"
 }

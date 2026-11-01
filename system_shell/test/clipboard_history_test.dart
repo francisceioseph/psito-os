@@ -207,6 +207,7 @@ void main() {
       expect(find.text('Alt+Shift+1'), findsOneWidget);
       expect(find.text('Alt+Shift+2'), findsOneWidget);
       expect(find.text('Alt+Shift+3'), findsNothing);
+      await expectAllLabeled(tester);
       history.clear();
     });
 

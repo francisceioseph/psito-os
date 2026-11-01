@@ -132,5 +132,11 @@
   "hotspotActive": "Compartilhando. Outros aparelhos já podem entrar.",
   "hotspotNoUplink": "Não há outra conexão: quem entrar ficará sem internet.",
   "hotspotWifiOff": "Ligue o Wi-Fi para compartilhar.",
-  "hotspotFailed": "Não foi possível compartilhar."
+  "hotspotFailed": "Não foi possível compartilhar.",
+  "accentYellow": "Amarelo",
+  "accentOrange": "Laranja",
+  "accentGreen": "Verde",
+  "accentBlue": "Azul",
+  "accentPurple": "Roxo",
+  "accentPink": "Rosa"
 }

@@ -438,4 +438,22 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
 
   @override
   String get hotspotFailed => 'Não foi possível compartilhar.';
+
+  @override
+  String get accentYellow => 'Amarelo';
+
+  @override
+  String get accentOrange => 'Laranja';
+
+  @override
+  String get accentGreen => 'Verde';
+
+  @override
+  String get accentBlue => 'Azul';
+
+  @override
+  String get accentPurple => 'Roxo';
+
+  @override
+  String get accentPink => 'Rosa';
 }

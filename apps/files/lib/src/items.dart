@@ -101,10 +101,16 @@ class ItemGestures extends StatelessWidget {
         if (controller.pendingCollapse == entry.path) tab.tap(entry.path);
         controller.pendingCollapse = null;
       },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onDoubleTap: () => controller.open([entry], newTab: _ctrl),
-        child: child,
+      // O duplo clique abre, e o leitor de tela só conhece o toque
+      child: Semantics(
+        selected: tab.selection.contains(entry.path),
+        onTap: () => controller.open([entry]),
+        child: GestureDetector(
+          excludeFromSemantics: true,
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: () => controller.open([entry], newTab: _ctrl),
+          child: child,
+        ),
       ),
     );
     final data = DragFiles(

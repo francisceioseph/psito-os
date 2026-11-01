@@ -382,4 +382,10 @@ class FilesLocalizationsEn extends FilesLocalizations {
 
   @override
   String get search => 'Search';
+
+  @override
+  String get expandFolder => 'Expand folder';
+
+  @override
+  String get collapseFolder => 'Collapse folder';
 }

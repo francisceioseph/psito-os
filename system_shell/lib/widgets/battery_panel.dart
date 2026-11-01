@@ -31,6 +31,7 @@ class BatteryPanel extends StatelessWidget {
             Positioned.fill(
               top: TopBar.height,
               child: GestureDetector(
+                excludeFromSemantics: true,
                 onTap: onClose,
                 behavior: HitTestBehavior.opaque,
               ),

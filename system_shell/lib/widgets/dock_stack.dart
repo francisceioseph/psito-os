@@ -80,6 +80,7 @@ class DockStack extends StatelessWidget {
           children: [
             Positioned.fill(
               child: GestureDetector(
+                excludeFromSemantics: true,
                 onTap: onClose,
                 onSecondaryTap: onClose,
                 behavior: HitTestBehavior.opaque,
@@ -230,28 +231,31 @@ class _FanRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
-    child: GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 220),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: context.palette.shadow.withValues(alpha: 0.75),
-              borderRadius: BorderRadius.circular(8),
+    child: Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxWidth: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: context.palette.shadow.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13),
+              ),
             ),
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
-            ),
-          ),
-          const SizedBox(width: 10),
-          child,
-        ],
+            const SizedBox(width: 10),
+            child,
+          ],
+        ),
       ),
     ),
   );

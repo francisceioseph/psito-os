@@ -72,24 +72,29 @@ class _Toast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final n = notification;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 320,
-        padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
-        decoration: BoxDecoration(
-          color: context.palette.panel,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: n.color.withValues(alpha: 0.6)),
-          boxShadow: [
-            BoxShadow(
-              color: context.palette.shadow.withValues(alpha: 0.5),
-              blurRadius: 18,
-              spreadRadius: 1,
-            ),
-          ],
+    // liveRegion: o leitor de tela fala a notificação quando ela aparece
+    return Semantics(
+      liveRegion: true,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+          decoration: BoxDecoration(
+            color: context.palette.panel,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: n.color.withValues(alpha: 0.6)),
+            boxShadow: [
+              BoxShadow(
+                color: context.palette.shadow.withValues(alpha: 0.5),
+                blurRadius: 18,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: NotificationTile(notification: n, onClose: onClose),
         ),
-        child: NotificationTile(notification: n, onClose: onClose),
       ),
     );
   }

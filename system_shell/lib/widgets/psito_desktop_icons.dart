@@ -304,6 +304,7 @@ class _PsitoDesktopIconsState extends State<PsitoDesktopIcons> {
                   onPointerUp: (_) => _bandUp(),
                   onPointerCancel: (_) => _bandUp(),
                   child: GestureDetector(
+                    excludeFromSemantics: true,
                     behavior: HitTestBehavior.opaque,
                     onSecondaryTapUp: widget.onMenu == null
                         ? null
@@ -500,24 +501,31 @@ class _Item extends StatelessWidget {
               if (event.buttons & kPrimaryButton != 0) onPress(event.position);
             },
       onPointerUp: editor != null ? null : (_) => onRelease(),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onDoubleTap: editor != null ? null : onOpen,
-        onSecondaryTapUp: editor != null || onMenu == null
-            ? null
-            : (details) => onMenu!(details.globalPosition),
-        child: OverflowBox(
-          alignment: Alignment.topCenter,
-          maxHeight: double.infinity,
-          child: RepaintBoundary(
-            key: boundary,
-            child: _ItemBody(
-              icon: icon,
-              iconSize: iconSize,
-              accent: accent,
-              selected: selected,
-              expanded: expanded,
-              ghost: ghost,
+      // O duplo clique abre, e o leitor de tela só conhece o toque
+      child: Semantics(
+        button: true,
+        selected: selected,
+        onTap: editor != null ? null : onOpen,
+        child: GestureDetector(
+          excludeFromSemantics: true,
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: editor != null ? null : onOpen,
+          onSecondaryTapUp: editor != null || onMenu == null
+              ? null
+              : (details) => onMenu!(details.globalPosition),
+          child: OverflowBox(
+            alignment: Alignment.topCenter,
+            maxHeight: double.infinity,
+            child: RepaintBoundary(
+              key: boundary,
+              child: _ItemBody(
+                icon: icon,
+                iconSize: iconSize,
+                accent: accent,
+                selected: selected,
+                expanded: expanded,
+                ghost: ghost,
+              ),
             ),
           ),
         ),

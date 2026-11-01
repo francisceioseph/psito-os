@@ -436,4 +436,22 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get hotspotFailed => 'Could not start sharing.';
+
+  @override
+  String get accentYellow => 'Yellow';
+
+  @override
+  String get accentOrange => 'Orange';
+
+  @override
+  String get accentGreen => 'Green';
+
+  @override
+  String get accentBlue => 'Blue';
+
+  @override
+  String get accentPurple => 'Purple';
+
+  @override
+  String get accentPink => 'Pink';
 }

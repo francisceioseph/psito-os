@@ -171,32 +171,51 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
+  /// Na ordem do [psitoAccentColors]: quem não vê a cor ouve o nome dela.
+  static List<String> _accentNames(SettingsLocalizations l) => [
+    l.accentYellow,
+    l.accentOrange,
+    l.accentGreen,
+    l.accentBlue,
+    l.accentPurple,
+    l.accentPink,
+  ];
+
   List<Widget> _appearance(PsitoSettings s) => [
     _Label(context.l10n.accentColor),
     Wrap(
       spacing: 12,
       runSpacing: 12,
       children: [
-        for (final color in psitoAccentColors)
-          GestureDetector(
-            key: ValueKey('accent-${color.toARGB32()}'),
-            onTap: () => _update(s.copyWith(accent: color)),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: s.accent == color
-                      ? context.palette.text
-                      : Colors.transparent,
-                  width: 3,
+        for (final (i, color) in psitoAccentColors.indexed)
+          Semantics(
+            button: true,
+            selected: s.accent == color,
+            label: _accentNames(context.l10n)[i],
+            child: GestureDetector(
+              key: ValueKey('accent-${color.toARGB32()}'),
+              onTap: () => _update(s.copyWith(accent: color)),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: s.accent == color
+                        ? context.palette.text
+                        : Colors.transparent,
+                    width: 3,
+                  ),
                 ),
+                child: s.accent == color
+                    ? Icon(
+                        Icons.check,
+                        size: 18,
+                        color: context.palette.onAccent,
+                      )
+                    : null,
               ),
-              child: s.accent == color
-                  ? Icon(Icons.check, size: 18, color: context.palette.onAccent)
-                  : null,
             ),
           ),
       ],
@@ -559,36 +578,42 @@ class _WallpaperCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final colors = wallpaper.colors;
-    return GestureDetector(
-      key: ValueKey('wallpaper-card-${wallpaper.id}'),
+    return Semantics(
+      button: true,
+      selected: selected,
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 112,
-            height: 68,
-            decoration: BoxDecoration(
-              color: colors.first,
-              gradient: colors.length > 1
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: colors,
-                    )
-                  : null,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: selected ? accent : context.palette.line,
-                width: selected ? 2.5 : 1,
+      child: GestureDetector(
+        key: ValueKey('wallpaper-card-${wallpaper.id}'),
+        onTap: onTap,
+        excludeFromSemantics: true,
+        child: Column(
+          children: [
+            Container(
+              width: 112,
+              height: 68,
+              decoration: BoxDecoration(
+                color: colors.first,
+                gradient: colors.length > 1
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: colors,
+                      )
+                    : null,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: selected ? accent : context.palette.line,
+                  width: selected ? 2.5 : 1,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            wallpaper.name(SdkLocalizations.of(context)),
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              wallpaper.name(SdkLocalizations.of(context)),
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }

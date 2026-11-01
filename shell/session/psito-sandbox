@@ -16,6 +16,11 @@
 # $XDG_RUNTIME_DIR/doc/ (a ideia do portal de documentos do Flatpak) e é o
 # caminho que o app recebe. O --dry-run imprime os comandos do
 # proxy e do bwrap, um argumento por linha, e não roda nada.
+#
+# Com a acessibilidade ligada (org.a11y.Status), o app fala com o barramento dela
+# por um proxy que só deixa ele se registrar, como no Flatpak: direto, ele leria
+# a tela dos outros apps e mandaria teclas para eles. Desligada, nada disso abre
+# ($PSITO_A11Y_BUS, para testar, é o endereço que o barramento responderia).
 # Vai no pacote psito-shell, em /usr/bin.
 set -e
 
@@ -116,6 +121,33 @@ if has network; then
     fi
 fi
 
+# Sem subir o barramento só para perguntar
+a11y_bus() {
+    if [ -n "${PSITO_A11Y_BUS:-}" ]; then
+        echo "$PSITO_A11Y_BUS"
+        return
+    fi
+    command -v busctl >/dev/null || return 0
+    local bus=(busctl --user --auto-start=no)
+    [ "$("${bus[@]}" get-property org.a11y.Bus /org/a11y/bus org.a11y.Status IsEnabled 2>/dev/null)" = "b true" ] || return 0
+    "${bus[@]}" call org.a11y.Bus /org/a11y/bus org.a11y.Bus GetAddress 2>/dev/null |
+        sed -n 's/^s "\(.*\)"$/\1/p'
+}
+A11Y_BUS="$(a11y_bus)"
+if [ -n "$A11Y_BUS" ]; then
+    REGISTRY=org.a11y.atspi.Registry
+    EVENTS=org.a11y.atspi.DeviceEventController
+    EVENTS_PATH=/org/a11y/atspi/registry/deviceeventcontroller
+    proxy+=("$A11Y_BUS" "$SOCKETS/a11y" --filter --sloppy-names
+        "--call=$REGISTRY=org.a11y.atspi.Socket.Embed@/org/a11y/atspi/accessible/root"
+        "--call=$REGISTRY=org.a11y.atspi.Socket.Unembed@/org/a11y/atspi/accessible/root"
+        "--call=$REGISTRY=$REGISTRY.GetRegisteredEvents@/org/a11y/atspi/registry"
+        "--call=$REGISTRY=$EVENTS.GetKeystrokeListeners@$EVENTS_PATH"
+        "--call=$REGISTRY=$EVENTS.GetDeviceEventListeners@$EVENTS_PATH"
+        "--call=$REGISTRY=$EVENTS.NotifyListenersSync@$EVENTS_PATH"
+        "--call=$REGISTRY=$EVENTS.NotifyListenersAsync@$EVENTS_PATH")
+fi
+
 sandbox=(bwrap
     --unshare-all
     --die-with-parent --new-session --cap-drop ALL
@@ -138,6 +170,12 @@ sandbox=(bwrap
     --symlink ../run /var/run
 )
 has network && sandbox+=(--share-net)
+if [ -n "$A11Y_BUS" ]; then
+    sandbox+=(--bind "$SOCKETS/a11y" "$RUN/at-spi/bus"
+        --setenv AT_SPI_BUS_ADDRESS "unix:path=$RUN/at-spi/bus")
+else
+    sandbox+=(--setenv NO_AT_BRIDGE 1)
+fi
 if has files:home; then
     sandbox+=(--bind "$HOME" "$HOME")
 else
@@ -152,7 +190,6 @@ sandbox+=(--chdir "$HOME"
     --unsetenv DISPLAY
     --unsetenv DBUS_SYSTEM_BUS_ADDRESS
     --setenv DBUS_SESSION_BUS_ADDRESS "unix:path=$RUN/bus"
-    --setenv NO_AT_BRIDGE 1
     --setenv PSITO_APP_ID "$APP"
     -- "$@")
 
@@ -185,7 +222,8 @@ trap cleanup EXIT
 # O systemctl stop do escopo manda TERM: sem isto o bash sai sem o trap EXIT
 trap 'exit 143' TERM INT HUP
 for _ in $(seq 100); do
-    [ -S "$SOCKETS/bus" ] && [ -S "$SOCKETS/system_bus" ] && break
+    [ -S "$SOCKETS/bus" ] && [ -S "$SOCKETS/system_bus" ] &&
+        { [ -z "$A11Y_BUS" ] || [ -S "$SOCKETS/a11y" ]; } && break
     kill -0 "$PROXY" 2>/dev/null || { echo "psito-sandbox: o proxy do D-Bus saiu" >&2; exit 1; }
     sleep 0.02
 done

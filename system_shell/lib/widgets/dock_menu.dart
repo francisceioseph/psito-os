@@ -171,6 +171,7 @@ class DockMenu extends StatelessWidget {
           children: [
             Positioned.fill(
               child: GestureDetector(
+                excludeFromSemantics: true,
                 onTap: onClose,
                 onSecondaryTap: onClose,
                 behavior: HitTestBehavior.opaque,

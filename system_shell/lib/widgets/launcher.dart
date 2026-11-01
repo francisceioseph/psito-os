@@ -93,6 +93,7 @@ class _LauncherState extends State<Launcher> {
           // Fundo escurecido: clicar fora fecha
           Positioned.fill(
             child: GestureDetector(
+              excludeFromSemantics: true,
               onTap: widget.onClose,
               child: ColoredBox(
                 color: context.palette.shadow.withValues(alpha: 0.45),
@@ -186,39 +187,42 @@ class _LauncherState extends State<Launcher> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = index),
       onExit: (_) => setState(() => _hovered = null),
-      child: GestureDetector(
-        onTap: () => widget.onLaunch(app),
-        onSecondaryTapUp: widget.menuFor == null
-            ? null
-            : (details) =>
-                  setState(() => _menu = (app, details.globalPosition)),
-        onPanStart: widget.onDragStart == null
-            ? null
-            : (_) => widget.onDragStart!(app),
-        child: AnimatedContainer(
-          key: ValueKey('launcher-${app.id}'),
-          duration: const Duration(milliseconds: 150),
-          width: _tileSize,
-          height: _tileSize,
-          decoration: BoxDecoration(
-            color: app.color.withValues(alpha: highlighted ? 0.25 : 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? app.color : context.palette.lineSoft,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              app.icon(36),
-              const SizedBox(height: 8),
-              Text(
-                app.name,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
+          onTap: () => widget.onLaunch(app),
+          onSecondaryTapUp: widget.menuFor == null
+              ? null
+              : (details) =>
+                    setState(() => _menu = (app, details.globalPosition)),
+          onPanStart: widget.onDragStart == null
+              ? null
+              : (_) => widget.onDragStart!(app),
+          child: AnimatedContainer(
+            key: ValueKey('launcher-${app.id}'),
+            duration: const Duration(milliseconds: 150),
+            width: _tileSize,
+            height: _tileSize,
+            decoration: BoxDecoration(
+              color: app.color.withValues(alpha: highlighted ? 0.25 : 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? app.color : context.palette.lineSoft,
+                width: selected ? 2 : 1,
               ),
-            ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                app.icon(36),
+                const SizedBox(height: 8),
+                Text(
+                  app.name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ),
       ),
