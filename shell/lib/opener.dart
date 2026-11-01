@@ -83,8 +83,9 @@ class Opener {
     final caller = callerId == null ? null : entry(callerId);
     if (!_sandboxed(caller)) return normal;
     if (_systemPath(normal)) return normal;
+    if (_removable(caller!, normal)) return normal;
     if (isWithin(home, normal) && !isWithin(runtimeDir, normal)) {
-      if (caller!.permissions.contains('files:home')) return normal;
+      if (caller.permissions.contains('files:home')) return normal;
       final rest = normal.substring(home.length);
       return '${dataDir(caller.id)}$rest';
     }
@@ -95,10 +96,15 @@ class Opener {
   static bool _systemPath(String path) =>
       isWithin('/usr', path) || isWithin('/etc', path);
 
+  /// Um disco externo, que o sandbox com `files:removable` vê como é. Montar
+  /// por cima, com o `--file`, seguraria o disco: ele não sairia mais.
+  static bool _removable(DesktopEntry app, String path) =>
+      app.permissions.contains('files:removable') && isWithin('/media', path);
+
   /// Se o app vê [path] sem o shell montar nada.
   bool visibleTo(DesktopEntry app, String path) {
     if (!_sandboxed(app)) return true;
-    if (_systemPath(path)) return true;
+    if (_systemPath(path) || _removable(app, path)) return true;
     return app.permissions.contains('files:home') &&
         isWithin(home, path) &&
         !isWithin(runtimeDir, path);

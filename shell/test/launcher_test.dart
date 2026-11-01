@@ -20,7 +20,7 @@ Name=Files
 Exec=/usr/lib/psito/apps/org.psito.files/psito_files %U
 MimeType=inode/directory;
 X-Psito-App=files
-X-Psito-Permissions=files:home;
+X-Psito-Permissions=files:home;files:removable;
 ''');
 final _notepad = _entry('org.psito.notepad', '''
 Name=Notepad
@@ -114,6 +114,18 @@ void main() {
       );
     });
     tearDown(() => tmp.deleteSync(recursive: true));
+
+    test('um disco externo só é visto com files:removable', () {
+      const disk = '/media/ana/PENDRIVE';
+      expect(opener.fromCaller('org.psito.files', '$disk/a'), '$disk/a');
+      expect(opener.fromCaller('org.psito.notepad', '$disk/a'), isNull);
+      // Montar por cima, com o --file, seguraria o disco
+      final plan = opener.plan([disk], withApp: 'org.psito.files').single;
+      expect(plan.files, isEmpty);
+      expect(plan.paths, [disk]);
+      final other = opener.plan(['$disk/a.txt'], withApp: 'org.psito.notepad');
+      expect(other.single.files.single.$1, '$disk/a.txt');
+    });
 
     test('o caminho que o chamador vê, pelas permissões', () {
       final home = tmp.path;
