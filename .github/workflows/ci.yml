@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.4
+          channel: stable
+          cache: true
+      - name: Dependencies of the tests
+        run: sudo apt-get update && sudo apt-get install -y dbus shared-mime-info
+      - name: Packages
+        run: |
+          for dir in packages/*/ system_shell/ shell/ apps/*/ examples/*/; do
+            (cd "$dir" && flutter pub get)
+          done
+      - name: Analyze
+        run: ./check.sh
+      - name: The generated translations match the ARB files
+        run: git diff --exit-code -- '*/l10n/*.dart'
+      - name: Test
+        run: TEST_MEM=0 ./test.sh
