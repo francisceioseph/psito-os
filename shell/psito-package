@@ -6,8 +6,9 @@ BINARY=psito_shell
 DESCRIPTION="Shell do Psito OS (cliente layer-shell do labwc)"
 # O terminal dos apps com Terminal=true, os ícones SVG e as pastas do usuário.
 # O dnsmasq-base e o nftables são o DHCP e o NAT do ponto de acesso, e o
-# at-spi2-core e o libatk-adaptor levam a árvore dos apps ao leitor de tela
-DEPENDS="labwc, wlr-randr, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor"
+# at-spi2-core e o libatk-adaptor levam a árvore dos apps ao leitor de tela.
+# O udisks2 monta os discos externos, com o dosfstools e o exfatprogs para eles
+DEPENDS="labwc, wlr-randr, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor, udisks2, dosfstools, exfatprogs"
 FILES=(
     session/psito-session:/usr/bin/psito-session
     session/psito-shell-start:/usr/bin/psito-shell-start

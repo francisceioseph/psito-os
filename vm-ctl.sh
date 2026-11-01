@@ -2,6 +2,9 @@
 # Comandos ao monitor do QEMU da VM em execução (aberto pelo run.sh).
 #   ./vm-ctl.sh link off|on   derruba ou religa a rede (set_link net0)
 #   ./vm-ctl.sh wakeup        acorda a VM suspensa (system_wakeup)
+#   ./vm-ctl.sh usb-add <img> liga um pendrive virtual (cria a imagem, de 64 MB, se
+#                             não existir; quem formata é a VM: mkfs.vfat /dev/sdb)
+#   ./vm-ctl.sh usb-del       puxa o pendrive, sem ejetar
 #   ./vm-ctl.sh raw "<cmd>"   qualquer comando do monitor
 set -e
 cd "$(dirname "$0")"
@@ -9,7 +12,7 @@ cd "$(dirname "$0")"
 MONITOR="${MONITOR:-qemu/monitor.sock}"
 
 usage() {
-    sed -n '2,5p' "$0" | sed 's/^# \?//'
+    sed -n '2,7p' "$0" | sed 's/^# \?//'
     exit 1
 }
 
@@ -19,6 +22,14 @@ case "$1" in
         CMD="set_link net0 $2"
         ;;
     wakeup) CMD="system_wakeup" ;;
+    usb-add)
+        [ -n "$2" ] || usage
+        [ -e "$2" ] || qemu-img create -q -f raw "$2" 64M
+        IMAGE="$(realpath "$2")"
+        CMD="drive_add 0 if=none,id=psitousb,format=raw,file=$IMAGE
+device_add usb-storage,id=psitousbdev,drive=psitousb,removable=on"
+        ;;
+    usb-del) CMD="device_del psitousbdev" ;;
     raw)
         [ -n "$2" ] || usage
         CMD="$2"

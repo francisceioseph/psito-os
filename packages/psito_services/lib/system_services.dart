@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 
 import 'audio_service.dart';
 import 'battery_service.dart';
+import 'disks_service.dart';
 import 'network_service.dart';
 import 'session_service.dart';
 import 'system_info_service.dart';
@@ -22,6 +23,7 @@ class SystemServices {
   final BatteryService battery;
   final SessionService session;
   final TimeService time;
+  final DisksService disks;
 
   /// Completa quando todos terminaram a primeira carga, com ou sem sucesso.
   final Future<void> ready;
@@ -37,6 +39,7 @@ class SystemServices {
     required this.battery,
     required this.session,
     required this.time,
+    required this.disks,
     required this.ready,
     this._ownedBus,
   });
@@ -48,6 +51,7 @@ class SystemServices {
     BatteryService? battery,
     SessionService? session,
     TimeService? time,
+    DisksService? disks,
   }) : this._(
          systemInfo: systemInfo ?? FakeSystemInfoService(),
          network: network ?? FakeNetworkService(),
@@ -55,6 +59,7 @@ class SystemServices {
          battery: battery ?? FakeBatteryService(),
          session: session ?? FakeSessionService(),
          time: time ?? FakeTimeService(),
+         disks: disks ?? FakeDisksService(),
          ready: Future.value(),
        );
 
@@ -80,6 +85,7 @@ class SystemServices {
     final battery = UPowerBatteryService(bus);
     final session = LogindSessionService(bus);
     final time = TimedatedTimeService(bus);
+    final disks = UDisks2Service(bus);
     final ready = Future.wait([
       systemInfo.ready,
       network.ready,
@@ -87,6 +93,7 @@ class SystemServices {
       battery.ready,
       session.ready,
       time.ready,
+      disks.ready,
     ]);
     ready.then((_) {
       String status(bool ok) => ok ? 'ok' : 'unavailable';
@@ -107,6 +114,7 @@ class SystemServices {
       battery: battery,
       session: session,
       time: time,
+      disks: disks,
       ready: ready,
       ownedBus: systemBus == null ? bus : null,
     );
@@ -119,6 +127,7 @@ class SystemServices {
     await battery.dispose();
     await session.dispose();
     await time.dispose();
+    await disks.dispose();
     await _ownedBus?.close();
   }
 }

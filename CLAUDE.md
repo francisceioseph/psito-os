@@ -51,7 +51,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
     - `audio_service` (PipeWire pelo `wpctl` e pelo `pactl subscribe`, só do shell);
     - `battery_service` (UPower) e `session_service` (logind: desligar, reiniciar, suspender), também só do shell;
     - `time_service` (timedated: fuso e NTP);
-    - `accounts_service` (AccountsService: as contas, só para as Configurações).
+    - `accounts_service` (AccountsService: as contas, só para as Configurações);
+    - `disks_service` (UDisks2: os discos externos, só do shell).
   - `settings_client`: o cliente do `org.psito.Settings` (`Get`, `Update`, sinal `Changed`), que o shell publica (`shell/lib/settings_bus.dart`).
   - O estado de cada serviço é um tipo do SDK (`PsitoSystemInfo`, `PsitoNetworkState`), que os apps leem pelo `PsitoAppContext`.
   - Os serviços reais são testados num barramento D-Bus privado (`test/dbus_test_bus.dart`).
@@ -108,7 +109,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `./install-app.sh <projeto>`: compila, empacota e instala um app de fora (`examples/hello_psito`) na VM, sem tocar no shell.
 - `./provision.sh`: prepara a VM (labwc, `gtk-layer-shell`, Flutter 3.47.4, os serviços da fase 2 e o greetd com login automático). A sessão vem com o `deploy.sh`. Pode ser rodado de novo.
 - `./run.sh`: sobe a VM (SSH em `localhost:2222`, usuário `psito`, 3 GB), com tablet USB, placa de som (`AUDIO=pipewire|pa|none`) e monitor em `qemu/monitor.sock`
-- `./vm-ctl.sh link off|on`, `wakeup` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede.
+- `./vm-ctl.sh link off|on`, `wakeup`, `usb-add <imagem>`, `usb-del` ou `raw "<cmd>"`: comandos ao monitor do QEMU da VM em execução. Por exemplo, `link off` derruba a rede, e `usb-add` liga um pendrive virtual.
 - Spike (fase 3):
   - `spike/vm.sh <script da raiz>` roda `create-disk.sh`, `install-os.sh`, `provision.sh` ou `run.sh` na VM do spike; `spike/vm.sh ssh` entra nela. Depois do `provision.sh`, rode `spike/provision.sh`.
   - `spike/session.sh weston|labwc|wayfire|zenith|stop|status` sobe um compositor no tty1; `spike/client.sh <cmd>` abre um cliente nele; `spike/probe/build.sh` compila o probe; `VM_PORT=2223 ./build.sh` e `./deploy.sh` instalam o shell nela, e o `autostart` do labwc e do Wayfire sobe ele.

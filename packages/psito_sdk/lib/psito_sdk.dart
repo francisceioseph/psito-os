@@ -873,6 +873,112 @@ class PsitoNetworkState {
   );
 }
 
+/// Um disco externo, ou uma partição dele.
+@immutable
+class PsitoVolume {
+  /// Não muda enquanto o disco está ligado.
+  final String id;
+
+  /// O nome que o disco tem. Pode ser vazio.
+  final String label;
+
+  /// Ex.: /dev/sdb1.
+  final String device;
+
+  /// Null se não está montado.
+  final String? mountPoint;
+
+  /// Em bytes.
+  final int size;
+
+  /// Ex.: vfat, ext4. Vazio num trancado.
+  final String fileSystem;
+  final bool readOnly;
+
+  /// Criptografado e ainda sem a senha.
+  final bool locked;
+
+  /// O volume de dentro de um criptografado.
+  final bool unlocked;
+
+  /// As partições de um mesmo disco têm o mesmo.
+  final String? drive;
+
+  /// Dá para desligar o disco, para tirar com segurança.
+  final bool canEject;
+
+  const PsitoVolume({
+    required this.id,
+    required this.label,
+    required this.device,
+    this.mountPoint,
+    this.size = 0,
+    this.fileSystem = '',
+    this.readOnly = false,
+    this.locked = false,
+    this.unlocked = false,
+    this.drive,
+    this.canEject = false,
+  });
+
+  PsitoVolume copyWith({
+    String? Function()? mountPoint,
+    bool? locked,
+    bool? unlocked,
+  }) => PsitoVolume(
+    id: id,
+    label: label,
+    device: device,
+    mountPoint: mountPoint == null ? this.mountPoint : mountPoint(),
+    size: size,
+    fileSystem: fileSystem,
+    readOnly: readOnly,
+    locked: locked ?? this.locked,
+    unlocked: unlocked ?? this.unlocked,
+    drive: drive,
+    canEject: canEject,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoVolume &&
+      other.id == id &&
+      other.label == label &&
+      other.device == device &&
+      other.mountPoint == mountPoint &&
+      other.size == size &&
+      other.fileSystem == fileSystem &&
+      other.readOnly == readOnly &&
+      other.locked == locked &&
+      other.unlocked == unlocked &&
+      other.drive == drive &&
+      other.canEject == canEject;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    label,
+    device,
+    mountPoint,
+    size,
+    fileSystem,
+    readOnly,
+    locked,
+    unlocked,
+    drive,
+    canEject,
+  );
+}
+
+enum PsitoDiskResult {
+  ok,
+
+  /// Tem alguém usando.
+  busy,
+  wrongPassword,
+  failed,
+}
+
 /// Relógio do sistema (systemd-timedated no Linux).
 @immutable
 class PsitoUserAccount {
