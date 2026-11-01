@@ -745,6 +745,10 @@ class PsitoNetworkState {
   /// Null quando não há adaptador de Wi-Fi.
   final PsitoWifiState? wifi;
 
+  /// O endereço que o sistema usa para ver se há internet. Numa rede com portal,
+  /// abrir ele no navegador leva à página de login. Vazio sem essa verificação.
+  final String checkUrl;
+
   const PsitoNetworkState({
     required this.available,
     this.enabled = true,
@@ -753,6 +757,7 @@ class PsitoNetworkState {
     this.primary,
     this.devices = const [],
     this.wifi,
+    this.checkUrl = '',
   });
 
   static const unavailable = PsitoNetworkState(available: false);
@@ -766,7 +771,8 @@ class PsitoNetworkState {
       other.connecting == connecting &&
       other.primary == primary &&
       listEquals(other.devices, devices) &&
-      other.wifi == wifi;
+      other.wifi == wifi &&
+      other.checkUrl == checkUrl;
 
   @override
   int get hashCode => Object.hash(
@@ -777,6 +783,7 @@ class PsitoNetworkState {
     primary,
     Object.hashAll(devices),
     wifi,
+    checkUrl,
   );
 }
 

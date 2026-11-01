@@ -18,11 +18,15 @@ class NetworkPanel extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback? onOpenSettings;
 
+  /// Abre a página de login de uma rede com portal.
+  final VoidCallback? onOpenPortal;
+
   const NetworkPanel({
     super.key,
     required this.service,
     required this.onClose,
     this.onOpenSettings,
+    this.onOpenPortal,
   });
 
   static String connectivityLabel(SystemLocalizations l, PsitoConnectivity c) =>
@@ -283,6 +287,14 @@ class _NetworkPanelState extends State<NetworkPanel> {
                 style: TextStyle(fontSize: 12, color: palette.textSecondary),
               ),
             ],
+            if (s.connectivity == PsitoConnectivity.portal &&
+                s.checkUrl.isNotEmpty)
+              if (widget.onOpenPortal case final open?)
+                TextButton(
+                  key: const ValueKey('network-portal'),
+                  onPressed: open,
+                  child: Text(context.l10n.networkPortalLogin),
+                ),
             Divider(height: 24, color: palette.lineSoft),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

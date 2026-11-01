@@ -303,4 +303,7 @@ class SystemLocalizationsEn extends SystemLocalizations {
 
   @override
   String get logout => 'Log out';
+
+  @override
+  String get networkPortalLogin => 'Open the login page';
 }

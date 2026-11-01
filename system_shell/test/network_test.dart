@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/system_services.dart';
+import 'package:system_shell/l10n/l10n.dart';
 import 'package:system_shell/widgets/launcher.dart';
 import 'package:system_shell/widgets/network_panel.dart';
 import 'package:system_shell/widgets/notification_panel.dart';
@@ -162,6 +163,34 @@ void wifiPanelTests() {
   final password = find.byKey(const ValueKey('wifi-password'));
   final connect = find.byKey(const ValueKey('wifi-connect'));
 
+  testWidgets('só a rede com portal mostra o botão de login', (tester) async {
+    var opened = 0;
+    final button = find.byKey(const ValueKey('network-portal'));
+    await _pumpPanel(
+      tester,
+      const PsitoNetworkState(
+        available: true,
+        connectivity: PsitoConnectivity.portal,
+        checkUrl: 'http://portal.test/nm',
+      ),
+      () => opened++,
+    );
+    await tester.tap(button);
+    expect(opened, 1);
+
+    await _pumpPanel(
+      tester,
+      const PsitoNetworkState(
+        available: true,
+        connectivity: PsitoConnectivity.full,
+        checkUrl: 'http://portal.test/nm',
+      ),
+      () => opened++,
+    );
+    expect(button, findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('abrir procura redes e lista pelo sinal', (tester) async {
     final network = await open(tester);
     expect(network.scans, 1);
@@ -261,6 +290,32 @@ void wifiPanelTests() {
     expect(find.byKey(const ValueKey('wifi-switch')), findsNothing);
     await _closePanelAndSettle(tester);
   });
+}
+
+Future<void> _pumpPanel(
+  WidgetTester tester,
+  PsitoNetworkState state,
+  VoidCallback onOpenPortal,
+) async {
+  final network = FakeNetworkService(state);
+  addTearDown(network.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: psitoTheme(PsitoSettings.defaults.accent),
+      localizationsDelegates: psitoLocalizationsDelegates(const [
+        SystemLocalizations.delegate,
+      ]),
+      supportedLocales: psitoLocales,
+      home: Scaffold(
+        body: NetworkPanel(
+          service: network,
+          onClose: () {},
+          onOpenPortal: onOpenPortal,
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
 }
 
 // Os timers do painel só somem com ele fechado

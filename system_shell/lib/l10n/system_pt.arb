@@ -84,5 +84,6 @@
   "powerOffNow": "Desligar agora",
   "rebootNow": "Reiniciar agora",
   "lock": "Bloquear",
-  "logout": "Sair"
+  "logout": "Sair",
+  "networkPortalLogin": "Abrir a página de login"
 }

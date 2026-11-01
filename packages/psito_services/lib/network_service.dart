@@ -273,7 +273,7 @@ class NetworkManagerService implements NetworkService {
     _state.value = PsitoNetworkState(
       available: true,
       enabled: _nm.networkingEnabled,
-      connectivity: _connectivity(_nm.connectivity),
+      connectivity: _overallConnectivity(),
       connecting:
           _nm.state == NetworkManagerState.connecting ||
           primary?.state == NetworkManagerActiveConnectionState.activating,
@@ -295,6 +295,7 @@ class NetworkManagerService implements NetworkService {
             ),
       devices: devices,
       wifi: _wifiState(),
+      checkUrl: _nm.connectivityCheckUri,
     );
   }
 
@@ -304,6 +305,18 @@ class NetworkManagerService implements NetworkService {
       device.interface != 'lo' &&
       device.state != NetworkManagerDeviceState.unmanaged &&
       device.deviceType != NetworkManagerDeviceType.wifiP2p;
+
+  // Com outro dispositivo `limited`, o estado geral fica `limited` mesmo com o
+  // Wi-Fi em `portal`: um cabo sem saída esconderia o login
+  PsitoConnectivity _overallConnectivity() {
+    final overall = _connectivity(_nm.connectivity);
+    final askingLogin = _nm.devices.any(
+      (d) => d.ip4Connectivity == NetworkManagerConnectivityState.portal,
+    );
+    return overall != PsitoConnectivity.full && askingLogin
+        ? PsitoConnectivity.portal
+        : overall;
+  }
 
   /// O primeiro rádio que o NetworkManager gerencia.
   NetworkManagerDevice? get _wifiDevice {
@@ -794,6 +807,7 @@ class FakeNetworkService implements NetworkService {
       primary: s.primary,
       devices: s.devices,
       wifi: wifi,
+      checkUrl: s.checkUrl,
     );
   }
 

@@ -103,6 +103,7 @@ class ShellState {
       );
     });
     notifications.addListener(_syncToasts);
+    services.network.state.addListener(_watchPortal);
     toplevels.addListener(_windowsChanged);
     osd.addListener(() => _setShown(Surface.osd, osd.value));
   }
@@ -445,6 +446,49 @@ class ShellState {
     }
   }
 
+  bool _onPortal = false;
+
+  /// Avisa uma vez a cada vez que a rede passa a pedir login.
+  void _watchPortal() {
+    final portal =
+        services.network.state.value.connectivity == PsitoConnectivity.portal;
+    if (portal && !_onPortal) {
+      notifications.add(
+        app: appFor(
+          'psito-network',
+          name: l10n.networkApp,
+          icon: 'network-wireless',
+        ),
+        title: l10n.portalTitle,
+        body: l10n.portalBody,
+        onOpen: openPortalLogin,
+      );
+    }
+    _onPortal = portal;
+  }
+
+  /// Abre um endereço. Os testes trocam.
+  late void Function(String url) openUrl = _openInBrowser;
+
+  void _openInBrowser(String url) {
+    final browser = appsForType?.call('x-scheme-handler/http').firstOrNull;
+    if (browser == null) {
+      debugPrint('🦜 Nenhum navegador para abrir $url');
+      return;
+    }
+    unawaited(
+      browser.launch(sandbox: sandbox, command: [...browser.command, url]),
+    );
+  }
+
+  /// A página de login da rede: o portal desvia para ela qualquer endereço sem
+  /// criptografia, e o que o sistema usa na verificação é um desses.
+  void openPortalLogin() {
+    closeOverlay();
+    final url = services.network.state.value.checkUrl;
+    if (url.isNotEmpty) openUrl(url);
+  }
+
   /// Abre as Configurações na seção de rede, fechando o painel.
   void openNetworkSettings() {
     closeOverlay();
@@ -728,6 +772,7 @@ class ShellState {
   void openNotification(ShellNotification n) {
     closeOverlay();
     onNotificationTapped?.call(n.id);
+    if (n.onOpen case final open?) return open();
     final windows = [
       for (final w in toplevels.windows)
         if (w.appId == n.appId) w,

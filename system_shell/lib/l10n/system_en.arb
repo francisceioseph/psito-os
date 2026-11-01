@@ -84,5 +84,6 @@
   "powerOffNow": "Shut down now",
   "rebootNow": "Restart now",
   "lock": "Lock",
-  "logout": "Log out"
+  "logout": "Log out",
+  "networkPortalLogin": "Open the login page"
 }

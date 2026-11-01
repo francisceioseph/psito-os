@@ -20,6 +20,9 @@ class ShellNotification {
   final String? body;
   final DateTime time;
 
+  /// O que o clique faz, no lugar de trazer o app para frente.
+  final VoidCallback? onOpen;
+
   const ShellNotification({
     required this.id,
     this.windowId,
@@ -27,6 +30,7 @@ class ShellNotification {
     required this.title,
     this.body,
     required this.time,
+    this.onOpen,
   });
 
   String get appId => app.id;
@@ -90,6 +94,7 @@ class NotificationCenter extends ChangeNotifier {
     String? body,
     String? windowId,
     int? replaces,
+    VoidCallback? onOpen,
   }) {
     final old = replaces == null
         ? -1
@@ -101,6 +106,7 @@ class NotificationCenter extends ChangeNotifier {
       title: title,
       body: body,
       time: DateTime.now(),
+      onOpen: onOpen,
     );
 
     if (old >= 0) {

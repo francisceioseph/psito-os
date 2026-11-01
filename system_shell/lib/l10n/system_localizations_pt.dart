@@ -303,4 +303,7 @@ class SystemLocalizationsPt extends SystemLocalizations {
 
   @override
   String get logout => 'Sair';
+
+  @override
+  String get networkPortalLogin => 'Abrir a página de login';
 }

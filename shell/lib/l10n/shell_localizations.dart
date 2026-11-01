@@ -517,6 +517,24 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'Log out'**
   String get logoutAction;
+
+  /// No description provided for @networkApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Network'**
+  String get networkApp;
+
+  /// No description provided for @portalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This network asks you to log in'**
+  String get portalTitle;
+
+  /// No description provided for @portalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Click to open the login page in the browser.'**
+  String get portalBody;
 }
 
 class _ShellLocalizationsDelegate

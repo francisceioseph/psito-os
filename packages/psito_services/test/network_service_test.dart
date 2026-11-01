@@ -26,6 +26,7 @@ class _FakeNM {
   late final FakeDBusObject manager;
   late final FakeDBusObject device;
   late final FakeDBusObject connection;
+  late final FakeDBusObject ip4;
   final List<FakeDBusObject> others = [];
 
   _FakeNM({int? wifiStrength}) {
@@ -72,6 +73,7 @@ class _FakeNM {
       'State': const DBusUint32(70),
       'NetworkingEnabled': const DBusBoolean(true),
     });
+    ip4 = ip;
     others.addAll([ip, loopback]);
     if (wifi) {
       others.add(
@@ -157,6 +159,49 @@ void main() {
     });
     await until(() => !service.state.value.enabled);
     expect(service.state.value.enabled, isFalse);
+  });
+
+  test('um dispositivo em portal não some atrás de outro limitado', () async {
+    final nm = await start();
+    await nm.manager.change(_nm, {'Connectivity': const DBusUint32(3)});
+    await until(
+      () => service.state.value.connectivity == PsitoConnectivity.limited,
+    );
+    await nm.device.change(_device, {'Ip4Connectivity': const DBusUint32(2)});
+    await until(
+      () => service.state.value.connectivity == PsitoConnectivity.portal,
+    );
+    // Com internet por outro caminho, ninguém precisa do login
+    await nm.manager.change(_nm, {'Connectivity': const DBusUint32(4)});
+    await until(
+      () => service.state.value.connectivity == PsitoConnectivity.full,
+    );
+    expect(service.state.value.connectivity, PsitoConnectivity.full);
+  });
+
+  test('os detalhes vêm dos IPs e do dispositivo', () async {
+    final nm = await start();
+    await nm.ip4.change(_ip4, {
+      'Gateway': const DBusString('10.0.2.2'),
+      'NameserverData': DBusArray(DBusSignature('a{sv}'), [
+        DBusDict.stringVariant({'address': const DBusString('10.0.2.3')}),
+      ]),
+    });
+    await nm.device.change(_device, {
+      'HwAddress': const DBusString('52:54:00:12:34:56'),
+    });
+    await until(() => service.state.value.devices.single.mac != null);
+    final ens3 = service.state.value.devices.single;
+    expect(ens3.gateway, '10.0.2.2');
+    expect(ens3.dns, ['10.0.2.3']);
+    expect(ens3.mac, '52:54:00:12:34:56');
+  });
+
+  test('o que ninguém usa não entra na lista', () async {
+    final nm = await start();
+    await nm.device.change(_device, {'State': const DBusUint32(10)});
+    await until(() => service.state.value.devices.isEmpty);
+    expect(service.state.value.devices, isEmpty);
   });
 
   test('Wi-Fi traz o sinal do ponto de acesso', () async {

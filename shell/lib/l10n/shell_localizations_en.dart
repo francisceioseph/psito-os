@@ -239,4 +239,13 @@ class ShellLocalizationsEn extends ShellLocalizations {
 
   @override
   String get logoutAction => 'Log out';
+
+  @override
+  String get networkApp => 'Network';
+
+  @override
+  String get portalTitle => 'This network asks you to log in';
+
+  @override
+  String get portalBody => 'Click to open the login page in the browser.';
 }

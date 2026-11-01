@@ -9,6 +9,8 @@ import 'package:psito_shell/notifications_server.dart';
 import 'package:psito_shell/shell_state.dart';
 import 'package:psito_shell/surfaces.dart';
 import 'package:psito_shell/toplevels.dart';
+import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/network_service.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/settings_store.dart';
 import 'package:system_shell/shell/shortcuts.dart';
@@ -291,6 +293,45 @@ void main() {
 
     state.notifications.dismissToast(id);
     expect(surfaceCalls.last, isMethodCall('hide', arguments: 'toasts'));
+  });
+
+  group('rede com portal de login', () {
+    const portal = PsitoNetworkState(
+      available: true,
+      connectivity: PsitoConnectivity.portal,
+      checkUrl: 'http://portal.test/nm',
+    );
+    const full = PsitoNetworkState(
+      available: true,
+      connectivity: PsitoConnectivity.full,
+      checkUrl: 'http://portal.test/nm',
+    );
+
+    test('avisa uma vez, e o clique abre o endereço no navegador', () async {
+      final opened = <String>[];
+      state.openUrl = opened.add;
+      final network = state.services.network as FakeNetworkService;
+      network.set(portal);
+      expect(state.notifications.history.single.title, 'Esta rede pede login');
+      network.set(portal);
+      expect(state.notifications.history, hasLength(1));
+
+      state.openNotification(state.notifications.history.single);
+      expect(opened, ['http://portal.test/nm']);
+
+      // Sair e cair em outro portal avisa de novo
+      network.set(full);
+      expect(state.notifications.history, hasLength(1));
+      network.set(portal);
+      expect(state.notifications.history, hasLength(2));
+    });
+
+    test('sem endereço não abre nada', () {
+      final opened = <String>[];
+      state.openUrl = opened.add;
+      state.openPortalLogin();
+      expect(opened, isEmpty);
+    });
   });
 
   test('um .desktop novo aparece sem recarregar à mão', () async {

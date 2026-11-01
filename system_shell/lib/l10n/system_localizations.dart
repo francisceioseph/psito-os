@@ -607,6 +607,12 @@ abstract class SystemLocalizations {
   /// In en, this message translates to:
   /// **'Log out'**
   String get logout;
+
+  /// No description provided for @networkPortalLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the login page'**
+  String get networkPortalLogin;
 }
 
 class _SystemLocalizationsDelegate

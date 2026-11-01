@@ -238,4 +238,13 @@ class ShellLocalizationsPt extends ShellLocalizations {
 
   @override
   String get logoutAction => 'Sair';
+
+  @override
+  String get networkApp => 'Rede';
+
+  @override
+  String get portalTitle => 'Esta rede pede login';
+
+  @override
+  String get portalBody => 'Clique para abrir a página de login no navegador.';
 }

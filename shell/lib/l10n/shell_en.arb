@@ -69,5 +69,8 @@
   "polkitCancel": "Cancel",
   "logoutQuestion": "Log out of Psito OS?",
   "logoutBody": "Open apps will be closed.",
-  "logoutAction": "Log out"
+  "logoutAction": "Log out",
+  "networkApp": "Network",
+  "portalTitle": "This network asks you to log in",
+  "portalBody": "Click to open the login page in the browser."
 }
