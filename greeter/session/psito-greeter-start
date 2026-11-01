@@ -1,0 +1,8 @@
+#!/bin/sh
+# O greeter dentro do cage, com o idioma do sistema: o greetd não lê o
+# /etc/default/locale para o usuário do greeter.
+[ -r /etc/default/locale ] && . /etc/default/locale
+export LANG LANGUAGE
+# No plano de cursor do virtio-gpu, o wlroots desenha o cursor de cabeça para baixo
+systemd-detect-virt -q --vm && export WLR_NO_HARDWARE_CURSORS=1
+exec cage -s -- /usr/lib/psito/greeter/psito_greeter

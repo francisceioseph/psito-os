@@ -1,0 +1,8 @@
+# A configuração do greetd no Psito. Não é a /etc/greetd/config.toml, que é do
+# pacote greetd: o greetd-psito.conf aponta para cá.
+[terminal]
+vt = 7
+
+[default_session]
+command = "/usr/bin/psito-greeter-start"
+user = "_greetd"

@@ -13,11 +13,11 @@ cd "$(dirname "$0")"
 
 MODE="${1:-release}"
 VM_PORT="${VM_PORT:-2222}"
-ONLY="${ONLY:-shell lock apps/*/}"
+ONLY="${ONLY:-shell lock greeter apps/*/}"
 EXCLUDES=(--exclude build/ --exclude .dart_tool/ --exclude linux/flutter/ephemeral/)
 
 echo "📦 [Psito OS] Enviando o código..."
-for dir in shell lock apps system_shell packages tools; do
+for dir in shell lock greeter apps system_shell packages tools; do
     ssh -p "$VM_PORT" psito@localhost "mkdir -p psito-src/$dir"
     rsync -az --delete "${EXCLUDES[@]}" -e "ssh -p $VM_PORT" \
         "$dir/" "psito@localhost:psito-src/$dir/"

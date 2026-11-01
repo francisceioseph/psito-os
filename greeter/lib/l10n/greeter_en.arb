@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "passwordHint": "Password",
+  "signIn": "Sign in",
+  "wrongPassword": "Wrong password.",
+  "signInFailed": "Couldn't sign in. {detail}",
+  "startFailed": "Couldn't start the session.",
+  "noUsers": "No user accounts.",
+  "otherUser": "Choose another user",
+  "suspend": "Suspend",
+  "reboot": "Restart",
+  "powerOff": "Shut down"
+}

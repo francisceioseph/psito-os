@@ -36,7 +36,7 @@ fi
 sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" --disable-analytics >/dev/null
 sudo -u "$APP_USER" -H "$FLUTTER_DIR/bin/flutter" precache --linux >/dev/null
 
-echo "🪟 [VM] Sessão: o labwc no tty1..."
+echo "🪟 [VM] Sessão: o greetd com o labwc..."
 # A sessão (psito-session, a unidade psito-shell, o sandbox e os portais) vem
 # do pacote psito-shell, que o deploy.sh instala. O que as versões antigas
 # punham à mão sai, para não ganhar do pacote.
@@ -45,9 +45,18 @@ rm -f /usr/local/bin/flutter-pi /etc/default/psito-os \
     "$CONF/systemd/user/psito-shell.service" \
     "$CONF/xdg-desktop-portal/labwc-portals.conf"
 rm -rf /opt/psito-app /opt/psito
-install -m 644 "$SRC/psito-os.service" /etc/systemd/system/psito-os.service
+# A sessão é do greetd (pacote psito-greeter), com o login automático na VM para
+# os scripts acharem o shell de pé. Antes do primeiro deploy.sh o greetd falha, e
+# é o deploy que sobe ele.
+systemctl disable -q --now psito-os.service 2>/dev/null || true
+rm -f /etc/systemd/system/psito-os.service
+apt-get install -y -qq greetd cage >/dev/null
+install -D -m 644 "$SRC/greetd-autologin.toml" /etc/psito/greetd-autologin.toml
+install -D -m 644 "$SRC/greetd-autologin.conf" /etc/systemd/system/greetd.service.d/zz-autologin.conf
 systemctl daemon-reload
-systemctl enable -q psito-os.service
+systemctl enable -q greetd.service
+systemctl reset-failed greetd.service 2>/dev/null || true
+systemctl restart greetd.service
 
 echo "🌐 [VM] Rede e permissões..."
 # O NetworkManager ignora interfaces do ifupdown: o ens3 sai do interfaces.

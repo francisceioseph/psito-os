@@ -499,6 +499,24 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get polkitCancel;
+
+  /// No description provided for @logoutQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out of Psito OS?'**
+  String get logoutQuestion;
+
+  /// No description provided for @logoutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open apps will be closed.'**
+  String get logoutBody;
+
+  /// No description provided for @logoutAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logoutAction;
 }
 
 class _ShellLocalizationsDelegate

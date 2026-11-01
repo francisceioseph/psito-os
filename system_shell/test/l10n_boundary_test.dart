@@ -37,6 +37,7 @@ final _visible = RegExp(
 final List<Directory> _projects = [
   Directory('../shell'),
   Directory('../lock'),
+  Directory('../greeter'),
   Directory('.'),
   for (final parent in ['../packages', '../apps', '../examples'])
     ...Directory(parent).listSync().whereType<Directory>(),

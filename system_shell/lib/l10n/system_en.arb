@@ -67,5 +67,6 @@
   "mute": "Mute",
   "powerOffNow": "Shut down now",
   "rebootNow": "Restart now",
-  "lock": "Lock"
+  "lock": "Lock",
+  "logout": "Log out"
 }

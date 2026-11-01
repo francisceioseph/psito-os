@@ -67,5 +67,6 @@
   "mute": "Silenciar",
   "powerOffNow": "Desligar agora",
   "rebootNow": "Reiniciar agora",
-  "lock": "Bloquear"
+  "lock": "Bloquear",
+  "logout": "Sair"
 }

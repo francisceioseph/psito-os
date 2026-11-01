@@ -46,7 +46,7 @@ enum ShellOverlay {
 }
 
 /// Ações de energia que pedem confirmação.
-enum PowerAction { powerOff, reboot }
+enum PowerAction { powerOff, reboot, logout }
 
 class ShellState {
   Locale get locale => resolvePsitoLocale(settings.value.language);
@@ -354,7 +354,22 @@ class ShellState {
         services.session.powerOff();
       case PowerAction.reboot:
         services.session.reboot();
+      case PowerAction.logout:
+        logout();
     }
+  }
+
+  /// Sair é encerrar o compositor: o `psito-session` termina, e o greetd volta
+  /// para a tela de login.
+  void Function() logout = _stopCompositor;
+
+  static void _stopCompositor() {
+    final pid = int.tryParse(Platform.environment['LABWC_PID'] ?? '');
+    if (pid == null) {
+      debugPrint('🦜 sair: sem o LABWC_PID');
+      return;
+    }
+    Process.killPid(pid);
   }
 
   DockLayout<DesktopEntry, Toplevel> get dockSections => dockLayout(

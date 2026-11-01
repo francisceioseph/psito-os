@@ -66,5 +66,8 @@
   "polkitPasswordOf": "Senha de {user}",
   "polkitWrongPassword": "Senha incorreta.",
   "polkitAuthenticate": "Autenticar",
-  "polkitCancel": "Cancelar"
+  "polkitCancel": "Cancelar",
+  "logoutQuestion": "Sair do Psito OS?",
+  "logoutBody": "Os apps abertos serão fechados.",
+  "logoutAction": "Sair"
 }

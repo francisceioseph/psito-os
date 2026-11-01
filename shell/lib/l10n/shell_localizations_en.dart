@@ -230,4 +230,13 @@ class ShellLocalizationsEn extends ShellLocalizations {
 
   @override
   String get polkitCancel => 'Cancel';
+
+  @override
+  String get logoutQuestion => 'Log out of Psito OS?';
+
+  @override
+  String get logoutBody => 'Open apps will be closed.';
+
+  @override
+  String get logoutAction => 'Log out';
 }

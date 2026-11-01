@@ -2,7 +2,7 @@
 # A sessão do Psito: o labwc com o shell. Garante a configuração do labwc no
 # home (a ponte do shell edita o rc.xml, então ela não pode ficar no /usr) e
 # sobe o compositor. O que já existe no ~/.config/labwc fica como está.
-# Vai no pacote psito-shell; o psito-os.service da VM chama este script.
+# Vai no pacote psito-shell; quem chama este script é o greetd.
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
 mkdir -p "$CONF"
 for file in /usr/share/psito/labwc/*; do
@@ -13,4 +13,10 @@ done
 xdg-user-dirs-update || true
 # Os portais escolhem a configuração pelo primeiro nome (psito-portals.conf)
 export XDG_CURRENT_DESKTOP=Psito:labwc
-exec labwc "$@"
+export XDG_SESSION_TYPE=wayland
+# No plano de cursor do virtio-gpu, o wlroots desenha o cursor de cabeça para baixo
+systemd-detect-virt -q --vm && export WLR_NO_HARDWARE_CURSORS=1
+systemd-cat -t labwc labwc "$@"
+# O systemd do usuário fica de pé depois da sessão: o shell e os apps saem aqui,
+# para o próximo login não encontrar nada desta
+systemctl --user stop psito-shell.service psito-lock.service 'app-psito-*.scope'

@@ -1,0 +1,13 @@
+{
+  "@@locale": "pt",
+  "passwordHint": "Senha",
+  "signIn": "Entrar",
+  "wrongPassword": "Senha incorreta.",
+  "signInFailed": "Não foi possível entrar. {detail}",
+  "startFailed": "Não foi possível abrir a sessão.",
+  "noUsers": "Nenhuma conta de usuário.",
+  "otherUser": "Escolher outro usuário",
+  "suspend": "Suspender",
+  "reboot": "Reiniciar",
+  "powerOff": "Desligar"
+}

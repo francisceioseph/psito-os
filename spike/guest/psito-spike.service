@@ -1,12 +1,12 @@
 [Unit]
 Description=Psito OS spike: compositor da fase 3
 After=systemd-user-sessions.service multi-user.target
-Conflicts=getty@tty1.service psito-os.service
+Conflicts=getty@tty1.service greetd.service
 
 [Service]
 Type=simple
 User=psito
-# Mesma sessão do logind no tty1 do psito-os.service: o libseat recebe a GPU e o input
+# Uma sessão do logind no tty1: o libseat recebe a GPU e o input
 PAMName=login
 TTYPath=/dev/tty1
 TTYReset=yes

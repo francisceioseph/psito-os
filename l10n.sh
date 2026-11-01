@@ -6,7 +6,7 @@
 cd "$(dirname "$0")"
 
 STATUS=0
-for yaml in packages/*/l10n.yaml system_shell/l10n.yaml shell/l10n.yaml lock/l10n.yaml apps/*/l10n.yaml examples/*/l10n.yaml; do
+for yaml in packages/*/l10n.yaml system_shell/l10n.yaml shell/l10n.yaml lock/l10n.yaml greeter/l10n.yaml apps/*/l10n.yaml examples/*/l10n.yaml; do
     [ -f "$yaml" ] || continue
     dir=$(dirname "$yaml")
     OUT=$(cd "$dir" && flutter gen-l10n 2>&1) || { echo "❌ $dir:"; echo "$OUT"; STATUS=1; }

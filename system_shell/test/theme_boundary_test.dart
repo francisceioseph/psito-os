@@ -20,6 +20,7 @@ void main() {
     for (final root in [
       '../shell',
       '../lock',
+      '../greeter',
       '.',
       for (final parent in ['../apps', '../examples'])
         ...Directory(parent)

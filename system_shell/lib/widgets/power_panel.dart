@@ -16,6 +16,9 @@ class PowerPanel extends StatelessWidget {
 
   /// Sem ele, nada de "Bloquear" (o laboratório não bloqueia).
   final VoidCallback? onLock;
+
+  /// Sair da sessão: só no shell, porque o laboratório não tem sessão.
+  final VoidCallback? onLogout;
   final VoidCallback onSuspend;
   final VoidCallback onReboot;
   final VoidCallback onPowerOff;
@@ -25,6 +28,7 @@ class PowerPanel extends StatelessWidget {
     super.key,
     required this.capabilities,
     this.onLock,
+    this.onLogout,
     required this.onSuspend,
     required this.onReboot,
     required this.onPowerOff,
@@ -64,8 +68,10 @@ class PowerPanel extends StatelessWidget {
 
   Widget _buildPanel(BuildContext context, SessionCapabilities can) {
     final lock = onLock;
+    final logout = onLogout;
     final items = [
       if (lock != null) (Icons.lock_outline, context.l10n.lock, true, lock),
+      if (logout != null) (Icons.logout, context.l10n.logout, true, logout),
       (Icons.bedtime_outlined, context.l10n.suspend, can.canSuspend, onSuspend),
       (Icons.restart_alt, context.l10n.reboot, can.canReboot, onReboot),
       (

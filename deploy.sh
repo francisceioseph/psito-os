@@ -30,13 +30,14 @@ ssh -p "$VM_PORT" psito@localhost '
         $deb -o $debs --runtime ~/psito-src/shell >/dev/null
         $deb -o $debs --system ~/psito-src/shell >/dev/null
         $deb -o $debs --system ~/psito-src/lock >/dev/null
+        $deb -o $debs --system ~/psito-src/greeter >/dev/null
         apps=()
         for dir in ~/psito-src/apps/*/; do
             [ -f $dir/pubspec.yaml ] || continue
             apps+=("$(dpkg-deb -f "$($deb -o $debs $dir)" Package)")
         done
         version=$(sed -n "s/^version: *//p" ~/psito-src/shell/pubspec.yaml)
-        $deb -o $debs --meta psito-desktop "$version" psito-shell psito-lock "${apps[@]}" >/dev/null
+        $deb -o $debs --meta psito-desktop "$version" psito-shell psito-lock psito-greeter "${apps[@]}" >/dev/null
         # O que as versões antigas instalavam à mão ganharia do pacote
         sudo rm -rf /opt/psito /usr/local/bin/psito-shell-start /usr/local/bin/psito-sandbox
         rm -f ~/.config/systemd/user/psito-shell.service \
@@ -51,6 +52,12 @@ ssh -p "$VM_PORT" psito@localhost '
         echo "⚠️  Em $mode o shell vai por cima do pacote, e os apps ficam os instalados."
     fi
     systemctl --user daemon-reload
+    sudo systemctl daemon-reload
+    # A VM recém-provisionada: o greetd falhou sem o greeter instalado
+    if systemctl is-enabled -q greetd.service && ! systemctl is-active -q greetd.service; then
+        sudo systemctl reset-failed greetd.service
+        sudo systemctl restart greetd.service
+    fi
     if systemctl --user is-active -q psito-shell.service; then
         systemctl --user restart psito-shell.service
     fi

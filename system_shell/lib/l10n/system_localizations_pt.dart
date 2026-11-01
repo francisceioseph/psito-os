@@ -252,4 +252,7 @@ class SystemLocalizationsPt extends SystemLocalizations {
 
   @override
   String get lock => 'Bloquear';
+
+  @override
+  String get logout => 'Sair';
 }

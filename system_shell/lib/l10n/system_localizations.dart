@@ -505,6 +505,12 @@ abstract class SystemLocalizations {
   /// In en, this message translates to:
   /// **'Lock'**
   String get lock;
+
+  /// No description provided for @logout.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get logout;
 }
 
 class _SystemLocalizationsDelegate

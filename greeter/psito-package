@@ -1,0 +1,12 @@
+# O pacote psito-greeter (tools/psito-deb --system greeter): a tela de login,
+# um greeter do greetd dentro do cage.
+PACKAGE=psito-greeter
+DEST=/usr/lib/psito/greeter
+BINARY=psito_greeter
+DESCRIPTION="Tela de login do Psito OS (greetd e cage)"
+DEPENDS="greetd, cage"
+FILES=(
+    session/psito-greeter-start:/usr/bin/psito-greeter-start
+    session/greetd.toml:/usr/share/psito/greetd.toml
+    session/greetd-psito.conf:/usr/lib/systemd/system/greetd.service.d/psito.conf
+)

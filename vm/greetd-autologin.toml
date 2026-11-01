@@ -1,0 +1,12 @@
+# O login automático da VM de desenvolvimento: entra uma vez ao ligar, e depois
+# de sair vale a tela de login. Instalado pelo provision-guest.sh.
+[terminal]
+vt = 7
+
+[default_session]
+command = "/usr/bin/psito-greeter-start"
+user = "_greetd"
+
+[initial_session]
+command = "/usr/bin/psito-session"
+user = "psito"

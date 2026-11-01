@@ -829,6 +829,15 @@ class _OverlayView extends StatelessWidget {
           ),
         );
       }
+      if (state.confirm.value == PowerAction.logout) {
+        return DockConfirm(
+          title: state.l10n.logoutQuestion,
+          message: state.l10n.logoutBody,
+          action: state.l10n.logoutAction,
+          onConfirm: () => state.runPower(PowerAction.logout),
+          onCancel: () => state.confirm.value = null,
+        );
+      }
       if (state.confirm.value case final action?) {
         final powerOff = action == PowerAction.powerOff;
         return PowerConfirmDialog(
@@ -935,6 +944,7 @@ class _OverlayView extends StatelessWidget {
         ShellOverlay.power => PowerPanel(
           capabilities: services.session.capabilities,
           onLock: () => unawaited(state.lockSession()),
+          onLogout: () => state.askPower(PowerAction.logout),
           onSuspend: () {
             state.closeOverlay();
             services.session.suspend();

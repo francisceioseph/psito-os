@@ -21,8 +21,8 @@ apt-get install -y -qq gtk-3-examples >/dev/null
 
 echo "⚙️  [spike] Sessão do spike no tty1..."
 # O spike escolhe o compositor pelo session.sh: a sessão do labwc do
-# psito-os.service não sobe sozinha nesta VM
-systemctl disable -q --now psito-os.service 2>/dev/null || true
+# A sessão de uso (o greetd) não sobe sozinha nesta VM
+systemctl disable -q --now greetd.service 2>/dev/null || true
 install -m 644 "$SRC/psito-spike.service" /etc/systemd/system/psito-spike.service
 install -d -m 755 /etc/psito-spike
 install -m 644 "$SRC/weston.ini" /etc/psito-spike/weston.ini

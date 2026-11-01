@@ -252,4 +252,7 @@ class SystemLocalizationsEn extends SystemLocalizations {
 
   @override
   String get lock => 'Lock';
+
+  @override
+  String get logout => 'Log out';
 }
