@@ -37,6 +37,7 @@ import 'package:system_shell/widgets/window_switcher_overlay.dart';
 import 'app_icon.dart';
 import 'desk.dart';
 import 'dock.dart';
+import 'polkit_dialog.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
 import 'surfaces.dart';
@@ -789,9 +790,17 @@ class _OverlayView extends StatelessWidget {
       state.dockUi.askEmptyTrash,
       state.deskMenu,
       state.deskTrust,
+      state.polkit.current,
     ]),
     builder: (context, _) {
       final accent = Theme.of(context).colorScheme.primary;
+      if (state.polkit.current.value case final request?) {
+        return PolkitDialog(
+          key: ValueKey(request.cookie),
+          request: request,
+          l10n: state.l10n,
+        );
+      }
       if (state.switcher.isOpen) {
         return Focus(
           autofocus: true,

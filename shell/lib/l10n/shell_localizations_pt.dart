@@ -212,4 +212,21 @@ class ShellLocalizationsPt extends ShellLocalizations {
 
   @override
   String get trustAndOpen => 'Confiar e abrir';
+
+  @override
+  String get polkitTitle => 'Autenticação necessária';
+
+  @override
+  String polkitPasswordOf(Object user) {
+    return 'Senha de $user';
+  }
+
+  @override
+  String get polkitWrongPassword => 'Senha incorreta.';
+
+  @override
+  String get polkitAuthenticate => 'Autenticar';
+
+  @override
+  String get polkitCancel => 'Cancelar';
 }

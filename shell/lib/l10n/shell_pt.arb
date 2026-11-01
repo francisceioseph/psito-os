@@ -61,5 +61,10 @@
   "emptyTrashBody": "Os itens da lixeira serão apagados de vez.",
   "emptyAction": "Esvaziar",
   "trustQuestion": "Confiar neste atalho?",
-  "trustAndOpen": "Confiar e abrir"
+  "trustAndOpen": "Confiar e abrir",
+  "polkitTitle": "Autenticação necessária",
+  "polkitPasswordOf": "Senha de {user}",
+  "polkitWrongPassword": "Senha incorreta.",
+  "polkitAuthenticate": "Autenticar",
+  "polkitCancel": "Cancelar"
 }

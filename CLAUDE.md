@@ -12,6 +12,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
   - "Mostrar a área de trabalho" (`ShellState.toggleDesktop`, `Super+D` ou `Alt+Shift+D`): minimiza as janelas pelo foreign-toplevel, e repetir traz de volta as mesmas, na ordem do foco. Uma janela aberta ou ativada nesse meio esquece a lista. O `HotCorner` da top bar (`desktopHotCorner`, desligado por padrão) faz o mesmo.
   - O autostart do XDG (`autostart.dart`): o `~/.config/autostart` e o `/etc/xdg/autostart` abrem uma vez por sessão do compositor (a marca em `$XDG_RUNTIME_DIR/psito/autostart-done`), porque o labwc não abre. O "Abrir ao iniciar a sessão" da dock grava lá.
   - O compositor chama o shell pelo D-Bus da sessão (`org.psito.Shell.Run '<ShellAction>'`), e o shell é o servidor `org.freedesktop.Notifications`.
+  - O agente do polkit (`polkit_agent.dart`, `polkit_dialog.dart`): registrado para a sessão gráfica que o logind diz, porque a unidade do shell não está nela. O diálogo vai na sobreposição, a senha vai direto ao `polkit-agent-helper-1`, e só o dono do `org.freedesktop.PolicyKit1` pode pedir. Valem os padrões do polkit, sem regras próprias, e o fuso e o NTP pedem a senha.
   - `lib/bridge/`: a ponte. A `shellBindings` vira os atalhos do labwc (seção `<keyboard>` do `rc.xml` e `--reconfigure`) ou do Wayfire (IPC), e as cores viram a moldura e o tema GTK (`~/.config/gtk-3.0` e `gtk-4.0`).
   - Os apps vêm dos `.desktop` instalados (`desktop_entries.dart`), que o shell vigia: um pacote instalado ou removido aparece sem reiniciar. Os do Psito têm o manifesto (`X-Psito-App`, `X-Psito-Color`, `X-Psito-Permissions`); todos têm o ícone do tema.
   - Cada app abre num escopo próprio (`systemd-run --user --scope`, unidade `app-psito-<id>-<aleatório>.scope`, com o log em `journalctl --user -u <unidade>`). Os do Psito passam pelo `psito-sandbox` com as permissões do manifesto (`PSITO_SANDBOX=0` no ambiente do shell desliga).
@@ -87,7 +88,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - `tools/`:
   - `psito-deb [-o pasta] [--runtime|--system] <projeto>` e `--meta <nome> <versão> <pacote>...`: empacota um app (`psito-app-<id>`, sem o `libflutter`, com o `RUNPATH` para o runtime via `patchelf`), o `psito-flutter-runtime` (`/usr/lib/psito/flutter/<versão>/`), um componente do sistema descrito no `psito-package` do projeto (o shell) ou um metapacote (`psito-desktop`). Roda na VM, a partir do bundle de release;
   - `measure-apps.sh`: memória e tempo até o primeiro quadro dos apps, com e sem sandbox e com bundles separados (`ssh -p 2222 psito@localhost 'bash -s' < tools/measure-apps.sh`).
-- `vm/`: arquivos instalados na VM pelo `provision.sh`: o `psito-os.service` (o `psito-session` no tty1), o script do guest e `polkit/` (as permissões D-Bus do usuário `psito`). A sessão vem do pacote `psito-shell`
+- `vm/`: arquivos instalados na VM pelo `provision.sh`: o `psito-os.service` (o `psito-session` no tty1), o script do guest. A sessão vem do pacote `psito-shell`
 - Raiz: scripts do host (QEMU, build, deploy). `qemu/` e `debian/` guardam o disco e a ISO (ignorados no git).
 
 ## Comandos (host)

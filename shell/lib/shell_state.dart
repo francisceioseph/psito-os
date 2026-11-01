@@ -30,6 +30,7 @@ import 'idle.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
+import 'polkit_agent.dart';
 import 'surfaces.dart';
 import 'toplevels.dart';
 
@@ -75,6 +76,7 @@ class ShellState {
     dockUi.askEmptyTrash.addListener(_syncOverlay);
     deskMenu.addListener(_syncOverlay);
     deskTrust.addListener(_syncOverlay);
+    polkit.current.addListener(_syncOverlay);
     // O que segura a dock na tela, com o ocultar sozinha
     for (final listenable in [
       dockUi.hovered,
@@ -139,6 +141,9 @@ class ShellState {
 
   /// A pergunta de um atalho não confiável.
   final deskTrust = ValueNotifier<DeskTrustRequest?>(null);
+
+  /// O agente do polkit: os pedidos de senha de administrador.
+  final polkit = PolkitAgent();
 
   /// O autostart do XDG. Null: sem o "Abrir ao iniciar a sessão" (testes).
   final Autostart? autostart;
@@ -275,6 +280,7 @@ class ShellState {
 
   Future<void> lockSession() async {
     closeOverlay();
+    polkit.cancelAll();
     await startLock();
   }
 
@@ -723,7 +729,8 @@ class ShellState {
   // o da dock só é desenhado nela
   void _syncOverlay() {
     final drag = dockUi.drag.value;
-    if (confirm.value != null ||
+    if (polkit.current.value != null ||
+        confirm.value != null ||
         dockUi.askEmptyTrash.value ||
         deskTrust.value != null ||
         overlay.value == ShellOverlay.launcher ||

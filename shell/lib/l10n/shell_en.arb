@@ -61,5 +61,10 @@
   "emptyTrashBody": "The items in the trash will be deleted for good.",
   "emptyAction": "Empty",
   "trustQuestion": "Trust this shortcut?",
-  "trustAndOpen": "Trust and open"
+  "trustAndOpen": "Trust and open",
+  "polkitTitle": "Authentication required",
+  "polkitPasswordOf": "Password for {user}",
+  "polkitWrongPassword": "Wrong password.",
+  "polkitAuthenticate": "Authenticate",
+  "polkitCancel": "Cancel"
 }

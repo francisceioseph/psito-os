@@ -21,6 +21,7 @@ import 'desk.dart';
 import 'launcher_bus.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
+import 'polkit_agent.dart';
 import 'settings_bus.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
@@ -138,6 +139,7 @@ Future<void> main() async {
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Launcher ($e)');
   }
+  unawaited(_publishPolkit(state, settings));
   final server = NotificationsServer(
     onNotify: state.notify,
     onClose: state.notifications.close,
@@ -152,5 +154,31 @@ Future<void> main() async {
     await publishNotifications(DBusClient.session(), server);
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o servidor de notificações ($e)');
+  }
+}
+
+/// O agente do polkit. Sem ele as ações que pedem senha só são recusadas, e o
+/// resto do shell não muda.
+Future<void> _publishPolkit(ShellState state, SettingsStore settings) async {
+  String locale() => polkitLocale(
+    settings.value.language,
+    Platform.environment['LANG'] ?? '',
+  );
+  try {
+    final registration = await PolkitRegistration.publish(
+      DBusClient.system(),
+      state.polkit,
+      locale(),
+    );
+    settings.addListener(() {
+      unawaited(
+        registration.setLocale(locale()).catchError((Object e) {
+          debugPrint('🦜 polkit: sem trocar o idioma ($e)');
+        }),
+      );
+    });
+    debugPrint('🦜 polkit: agente registrado');
+  } on Exception catch (e) {
+    debugPrint('🦜 polkit: sem o agente ($e)');
   }
 }

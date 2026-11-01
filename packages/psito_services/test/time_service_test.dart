@@ -74,11 +74,11 @@ void main() {
     expect(calls.map((c) => c.name), ['SetTimezone', 'SetNTP']);
     expect(calls[0].values, [
       const DBusString('Europe/Lisbon'),
-      const DBusBoolean(false),
+      const DBusBoolean(true),
     ]);
     expect(calls[1].values, [
       const DBusBoolean(false),
-      const DBusBoolean(false),
+      const DBusBoolean(true),
     ]);
   });
 

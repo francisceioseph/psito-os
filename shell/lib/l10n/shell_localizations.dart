@@ -469,6 +469,36 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'Trust and open'**
   String get trustAndOpen;
+
+  /// No description provided for @polkitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication required'**
+  String get polkitTitle;
+
+  /// No description provided for @polkitPasswordOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Password for {user}'**
+  String polkitPasswordOf(Object user);
+
+  /// No description provided for @polkitWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get polkitWrongPassword;
+
+  /// No description provided for @polkitAuthenticate.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate'**
+  String get polkitAuthenticate;
+
+  /// No description provided for @polkitCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get polkitCancel;
 }
 
 class _ShellLocalizationsDelegate

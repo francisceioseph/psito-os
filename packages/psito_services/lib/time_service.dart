@@ -140,7 +140,8 @@ class TimedatedTimeService implements TimeService {
     try {
       await _object.callMethod(interface, method, [
         ...args,
-        const DBusBoolean(false),
+        // Interativo: quem pede a senha é o agente do polkit no shell
+        const DBusBoolean(true),
       ], replySignature: DBusSignature(''));
     } catch (e) {
       debugPrint('🦜 Erro no $method: $e');

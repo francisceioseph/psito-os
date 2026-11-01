@@ -65,8 +65,8 @@ iface lo inet loopback
 IFACES
     NEED_REBOOT=1
 fi
-install -d -m 755 /etc/polkit-1/rules.d
-install -m 644 "$SRC/polkit/50-psito.rules" /etc/polkit-1/rules.d/50-psito.rules
+# Saiu quando o shell ganhou o agente do polkit: valem os padrões
+rm -f /etc/polkit-1/rules.d/50-psito.rules
 
 if [ "$NEED_REBOOT" = 1 ]; then
     systemd-run -q --on-active=3 systemctl reboot

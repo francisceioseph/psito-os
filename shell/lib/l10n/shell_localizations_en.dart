@@ -213,4 +213,21 @@ class ShellLocalizationsEn extends ShellLocalizations {
 
   @override
   String get trustAndOpen => 'Trust and open';
+
+  @override
+  String get polkitTitle => 'Authentication required';
+
+  @override
+  String polkitPasswordOf(Object user) {
+    return 'Password for $user';
+  }
+
+  @override
+  String get polkitWrongPassword => 'Wrong password.';
+
+  @override
+  String get polkitAuthenticate => 'Authenticate';
+
+  @override
+  String get polkitCancel => 'Cancel';
 }
