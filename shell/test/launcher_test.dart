@@ -28,6 +28,12 @@ Exec=/usr/lib/psito/apps/org.psito.notepad/psito_notepad %f
 MimeType=text/plain;
 X-Psito-App=notepad
 ''');
+final _settings = _entry('org.psito.settings', '''
+Name=Settings
+Exec=/usr/lib/psito/apps/org.psito.settings/psito_settings
+X-Psito-App=settings
+X-Psito-Permissions=settings;network;
+''');
 final _firefox = _entry('firefox-esr', '''
 Name=Firefox
 Exec=/usr/lib/firefox-esr/firefox-esr %u
@@ -190,12 +196,13 @@ void main() {
           env: {'HOME': dir.path, 'XDG_RUNTIME_DIR': '/run/user/1000'},
           mime: MimeDatabase.empty(),
           sandbox: '/sb',
-          apps: () => [_firefox, _files, _notepad],
+          apps: () => [_firefox, _files, _notepad, _settings],
           mimeApps: MimeApps.empty,
         ),
         callerOf: (_) async => caller,
         launch: (plan) async => launched.add(plan),
         setDefault: (mime, app) async => defaults.add((mime, app)),
+        importVpn: (path) async => path.contains('ruim') ? null : 'uuid-1',
         isConnected: (sender) => shellBus.nameHasOwner(sender),
         waitLimit: const Duration(milliseconds: 300),
       );
@@ -243,6 +250,21 @@ void main() {
       expect(plan.paths, ['$psitoQuickLookPrefix$path']);
       expect(plan.commands.single, contains('$psitoQuickLookPrefix$path'));
       expect(plan.commands.single, isNot(contains(path)));
+    });
+
+    test('importar uma VPN é só de quem tem settings', () async {
+      final client = LauncherClient(appBus);
+      caller = 'org.psito.settings';
+      expect(await client.importVpn('/home/ana/x.conf'), 'uuid-1');
+      await expectLater(
+        client.importVpn('/home/ana/ruim.conf'),
+        throwsA(anything),
+      );
+      caller = 'org.psito.notepad';
+      await expectLater(
+        client.importVpn('/home/ana/x.conf'),
+        throwsA(anything),
+      );
     });
 
     test('o caminho que o app não vê e o padrão sem files:home', () async {

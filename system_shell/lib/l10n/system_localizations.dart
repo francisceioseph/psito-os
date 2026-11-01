@@ -613,6 +613,18 @@ abstract class SystemLocalizations {
   /// In en, this message translates to:
   /// **'Open the login page'**
   String get networkPortalLogin;
+
+  /// No description provided for @kindVpn.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN'**
+  String get kindVpn;
+
+  /// No description provided for @vpnFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not turn on {name}.'**
+  String vpnFailed(String name);
 }
 
 class _SystemLocalizationsDelegate

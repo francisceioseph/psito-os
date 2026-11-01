@@ -83,7 +83,8 @@ proxy=(xdg-dbus-proxy
     "--call=${SETTINGS[0]}=${SETTINGS[1]}.Get@${SETTINGS[2]}"
     "--broadcast=${SETTINGS[0]}=${SETTINGS[1]}.Changed@${SETTINGS[2]}"
 )
-has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[2]}")
+has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[2]}"
+    "--call=${LAUNCHER[0]}=${LAUNCHER[1]}.ImportVpn@${LAUNCHER[2]}")
 # O padrão de cada tipo é do usuário: só quem vê os arquivos dele
 has files:home && proxy+=("--call=${LAUNCHER[0]}=${LAUNCHER[1]}.SetDefault@${LAUNCHER[2]}")
 has notifications && proxy+=(--talk=org.freedesktop.Notifications)

@@ -42,6 +42,7 @@ class NetworkPanel extends StatefulWidget {
       switch (kind) {
         PsitoNetworkKind.ethernet => l.kindEthernet,
         PsitoNetworkKind.wifi => l.kindWifi,
+        PsitoNetworkKind.vpn => l.kindVpn,
         PsitoNetworkKind.other => l.network,
       };
 
@@ -314,6 +315,16 @@ class _NetworkPanelState extends State<NetworkPanel> {
               ),
               if (wifi.enabled) ..._wifiList(context, wifi),
             ],
+            if (s.enabled)
+              for (final vpn in s.vpns) _vpnRow(context, vpn),
+            if (_vpnFailed != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  context.l10n.vpnFailed(_vpnFailed!),
+                  style: TextStyle(fontSize: 12, color: palette.danger),
+                ),
+              ),
             if (widget.onOpenSettings case final open?) ...[
               Divider(height: 16, color: palette.lineSoft),
               TextButton(
@@ -327,6 +338,38 @@ class _NetworkPanelState extends State<NetworkPanel> {
       ),
     );
   }
+
+  /// A VPN que acabou de falhar ao ligar.
+  String? _vpnFailed;
+
+  /// A que está ligando. Desligar no meio da tentativa não é uma falha.
+  String? _vpnTurningOn;
+
+  Future<void> _setVpn(PsitoVpn vpn, bool active) async {
+    setState(() {
+      _vpnFailed = null;
+      _vpnTurningOn = active ? vpn.uuid : null;
+    });
+    final ok = await widget.service.setVpnActive(vpn.uuid, active);
+    if (!mounted || ok || !active || _vpnTurningOn != vpn.uuid) return;
+    setState(() => _vpnFailed = vpn.name);
+  }
+
+  // Ligando, o interruptor já fica ligado e desliga, para cancelar: a tentativa
+  // pode levar um minuto
+  Widget _vpnRow(BuildContext context, PsitoVpn vpn) => SwitchListTile(
+    key: ValueKey('vpn-${vpn.uuid}'),
+    contentPadding: EdgeInsets.zero,
+    dense: true,
+    secondary: Icon(
+      Icons.vpn_key,
+      size: 16,
+      color: context.palette.textSecondary,
+    ),
+    title: Text(vpn.name),
+    value: vpn.active || vpn.busy,
+    onChanged: (value) => unawaited(_setVpn(vpn, value)),
+  );
 
   List<Widget> _wifiList(BuildContext context, PsitoWifiState wifi) {
     final l = context.l10n;

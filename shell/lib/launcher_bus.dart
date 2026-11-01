@@ -6,6 +6,8 @@
 // - AppsFor(s mime) → a(sssb): o id, o nome, o ícone e se é o padrão (sem
 //   tipo, todos os apps que recebem arquivos);
 // - SetDefault(s mime, s app): o padrão do usuário (mimeapps.list);
+// - ImportVpn(s path) → s: guarda a VPN de um arquivo e devolve o uuid. Fica aqui
+//   porque, no sandbox, o `nmcli` não carrega o plugin do OpenVPN;
 // - NextOpen() → as: um app de instância única (o Files) espera aqui pelos
 //   arquivos que o shell entregaria a ele, em vez de abrir outro processo;
 // - OfferDrag(as paths): quem começa um arrastar diz o que está levando;
@@ -19,6 +21,7 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/launcher_client.dart';
+import 'package:psito_services/network_connections.dart';
 import 'package:psito_fs/psito_fs.dart';
 
 import 'opener.dart';
@@ -35,6 +38,9 @@ class LauncherBusObject extends DBusObject {
 
   /// Grava o padrão do usuário.
   final Future<void> Function(String mime, String appId) setDefault;
+
+  /// Guarda uma VPN e devolve o uuid dela, ou null se o arquivo foi recusado.
+  final Future<String?> Function(String path) importVpn;
 
   /// Se quem mandou a mensagem ainda está no barramento. Um app que caiu
   /// esperando no `NextOpen` não recebe mais nada: os arquivos iam se perder.
@@ -61,6 +67,7 @@ class LauncherBusObject extends DBusObject {
     required this.callerOf,
     required this.launch,
     required this.setDefault,
+    this.importVpn = importVpnFile,
     this.isConnected = _always,
     this.waitLimit = const Duration(seconds: 20),
     this.offerLimit = const Duration(minutes: 2),
@@ -192,6 +199,12 @@ class LauncherBusObject extends DBusObject {
           }
           await setDefault(values[0].asString(), appId);
           return DBusMethodSuccessResponse();
+        case 'ImportVpn' when methodCall.signature == DBusSignature('s'):
+          if (!_mayChangeSettings(caller)) return _denied();
+          final uuid = await importVpn(values[0].asString());
+          return uuid == null
+              ? DBusMethodErrorResponse.failed('the file was refused')
+              : DBusMethodSuccessResponse([DBusString(uuid)]);
         case 'OfferDrag' when methodCall.signature == DBusSignature('as'):
           final seen = values[0].asStringArray().toList();
           final real = _fromCaller(caller, seen);
@@ -247,6 +260,13 @@ class LauncherBusObject extends DBusObject {
     return app.permissions.contains('files:home');
   }
 
+  /// A segunda trava do `ImportVpn`, além do filtro do sandbox.
+  bool _mayChangeSettings(String? caller) {
+    final app = caller == null ? null : opener.entry(caller);
+    if (app == null || app.psitoApp == null) return true;
+    return app.permissions.contains('settings');
+  }
+
   DBusMethodErrorResponse _denied() => DBusMethodErrorResponse.accessDenied(
     'the app cannot see that path or lacks the permission',
   );
@@ -284,6 +304,10 @@ class LauncherBusObject extends DBusObject {
           DBusIntrospectMethod(
             'AppsFor',
             args: [arg('s', 'mime'), arg('a(sssb)', 'apps', out: true)],
+          ),
+          DBusIntrospectMethod(
+            'ImportVpn',
+            args: [arg('s', 'path'), arg('s', 'uuid', out: true)],
           ),
           DBusIntrospectMethod(
             'SetDefault',

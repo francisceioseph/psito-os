@@ -85,5 +85,8 @@
   "rebootNow": "Restart now",
   "lock": "Lock",
   "logout": "Log out",
-  "networkPortalLogin": "Open the login page"
+  "networkPortalLogin": "Open the login page",
+  "kindVpn": "VPN",
+  "vpnFailed": "Could not turn on {name}.",
+  "@vpnFailed": {"placeholders": {"name": {"type": "String"}}}
 }

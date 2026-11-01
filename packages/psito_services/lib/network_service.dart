@@ -37,6 +37,9 @@ abstract class NetworkService {
 
   Future<void> disconnectWifi();
 
+  /// Liga ou desliga uma VPN guardada e devolve se deu certo.
+  Future<bool> setVpnActive(String uuid, bool active);
+
   Future<void> dispose();
 }
 
@@ -90,6 +93,9 @@ class NetworkManagerService implements NetworkService {
 
   /// As conexões de Wi-Fi guardadas, por nome da rede.
   Map<String, List<DBusObjectPath>> _saved = const {};
+
+  /// As VPNs guardadas, por uuid.
+  Map<String, ({String name, DBusObjectPath path})> _savedVpns = const {};
 
   /// Completa depois da primeira leitura, com ou sem sucesso.
   late final Future<void> ready;
@@ -145,6 +151,7 @@ class NetworkManagerService implements NetworkService {
 
   Future<void> _loadSaved() async {
     final saved = <String, List<DBusObjectPath>>{};
+    final vpns = <String, ({String name, DBusObjectPath path})>{};
     try {
       final list =
           await DBusRemoteObject(
@@ -160,6 +167,14 @@ class NetworkManagerService implements NetworkService {
       final paths = list.returnValues[0].asObjectPathArray();
       for (final path in paths) {
         final settings = await _connectionSettings(path);
+        final connection = settings['connection'];
+        if (_isVpnType(connection?['type']?.asString() ?? '')) {
+          vpns[connection!['uuid']!.asString()] = (
+            name: connection['id']?.asString() ?? '',
+            path: path,
+          );
+          continue;
+        }
         final ssid = settings['802-11-wireless']?['ssid'];
         if (ssid == null) continue;
         final name = _ssidName(ssid.asByteArray().toList());
@@ -170,6 +185,7 @@ class NetworkManagerService implements NetworkService {
       return;
     }
     _saved = saved;
+    _savedVpns = vpns;
     if (_connected) _publish();
   }
 
@@ -263,8 +279,31 @@ class NetworkManagerService implements NetworkService {
     mac: _nonEmpty(device.hwAddress),
   );
 
+  static bool _isVpnType(String type) => type == 'vpn' || type == 'wireguard';
+
+  List<PsitoVpn> _vpnList() {
+    final active = {for (final c in _nm.activeConnections) c.uuid: c.state};
+    return [
+      for (final MapEntry(key: uuid, value: vpn) in _savedVpns.entries)
+        PsitoVpn(
+          uuid: uuid,
+          name: vpn.name,
+          active: active[uuid] == NetworkManagerActiveConnectionState.activated,
+          busy: switch (active[uuid]) {
+            NetworkManagerActiveConnectionState.activating ||
+            NetworkManagerActiveConnectionState.deactivating => true,
+            _ => false,
+          },
+        ),
+    ]..sort((a, b) => a.name.compareTo(b.name));
+  }
+
   void _publish() {
-    final primary = _nm.primaryConnection;
+    // Com a VPN como rota padrão, o que interessa é a rede por baixo dela
+    final primary = switch (_nm.primaryConnection) {
+      final c? when _isVpnType(c.type) => null,
+      final c => c,
+    };
     final primaryDevice = primary?.devices.firstOrNull;
     final devices = [
       for (final device in _nm.devices)
@@ -284,7 +323,8 @@ class NetworkManagerService implements NetworkService {
                 .where(
                   (d) =>
                       d.state == PsitoDeviceState.connected &&
-                      d.connection != null,
+                      d.connection != null &&
+                      d.kind != PsitoNetworkKind.other,
                 )
                 .firstOrNull
           : _describeDevice(
@@ -296,6 +336,7 @@ class NetworkManagerService implements NetworkService {
       devices: devices,
       wifi: _wifiState(),
       checkUrl: _nm.connectivityCheckUri,
+      vpns: _vpnList(),
     );
   }
 
@@ -411,6 +452,7 @@ class NetworkManagerService implements NetworkService {
   static PsitoNetworkKind _kindOfConnection(String type) => switch (type) {
     '802-3-ethernet' => PsitoNetworkKind.ethernet,
     '802-11-wireless' => PsitoNetworkKind.wifi,
+    'vpn' || 'wireguard' => PsitoNetworkKind.vpn,
     _ => PsitoNetworkKind.other,
   };
 
@@ -714,6 +756,44 @@ class NetworkManagerService implements NetworkService {
   }
 
   @override
+  Future<bool> setVpnActive(String uuid, bool active) async {
+    final vpn = _savedVpns[uuid];
+    if (vpn == null) return false;
+    final manager = DBusRemoteObject(_bus, name: busName, path: managerPath);
+    final none = DBusObjectPath('/');
+    try {
+      if (active) {
+        final reply = await manager.callMethod(busName, 'ActivateConnection', [
+          vpn.path,
+          none,
+          none,
+        ], replySignature: DBusSignature('o'));
+        return await _waitForActivation(reply.returnValues[0].asObjectPath());
+      }
+      final list = await manager.getProperty(
+        busName,
+        'ActiveConnections',
+        signature: DBusSignature('ao'),
+      );
+      for (final path in list.asObjectPathArray()) {
+        final id = await DBusRemoteObject(
+          _bus,
+          name: busName,
+          path: path,
+        ).getProperty(_activeInterface, 'Uuid', signature: DBusSignature('s'));
+        if (id.asString() != uuid) continue;
+        await manager.callMethod(busName, 'DeactivateConnection', [
+          path,
+        ], replySignature: DBusSignature(''));
+      }
+      return true;
+    } catch (e) {
+      debugPrint('🦜 Erro ao ${active ? 'ligar' : 'desligar'} a VPN: $e');
+      return false;
+    }
+  }
+
+  @override
   Future<void> dispose() async {
     for (final sub in [..._structure, ..._objects]) {
       await sub.cancel();
@@ -746,6 +826,7 @@ class FakeNetworkService implements NetworkService {
     connectivity: PsitoConnectivity.full,
     primary: ethernet,
     devices: [ethernet],
+    vpns: [PsitoVpn(uuid: 'trabalho', name: 'Trabalho')],
     wifi: PsitoWifiState(
       networks: [
         PsitoWifiNetwork(
@@ -808,6 +889,7 @@ class FakeNetworkService implements NetworkService {
       devices: s.devices,
       wifi: wifi,
       checkUrl: s.checkUrl,
+      vpns: s.vpns,
     );
   }
 
@@ -893,6 +975,31 @@ class FakeNetworkService implements NetworkService {
   @override
   Future<void> disconnectWifi() async =>
       _setNetworks((n) => _copy(n, active: false, saved: n.saved));
+
+  @override
+  Future<bool> setVpnActive(String uuid, bool active) async {
+    final s = _state.value;
+    if (!s.vpns.any((v) => v.uuid == uuid)) return false;
+    _state.value = PsitoNetworkState(
+      available: s.available,
+      enabled: s.enabled,
+      connectivity: s.connectivity,
+      connecting: s.connecting,
+      primary: s.primary,
+      devices: s.devices,
+      wifi: s.wifi,
+      checkUrl: s.checkUrl,
+      vpns: [
+        for (final v in s.vpns)
+          PsitoVpn(
+            uuid: v.uuid,
+            name: v.name,
+            active: v.uuid == uuid ? active : v.active,
+          ),
+      ],
+    );
+    return true;
+  }
 
   @override
   Future<void> dispose() async => _state.dispose();

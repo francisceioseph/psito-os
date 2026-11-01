@@ -424,6 +424,7 @@ class _SettingsViewState extends State<SettingsView> {
         return NetworkSection(
           network: network,
           connections: widget.appContext.networkConnections,
+          pickFile: widget.appContext.pickFile,
         );
       },
     ),

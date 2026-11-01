@@ -131,6 +131,14 @@ abstract class PsitoAppContext {
 
   /// Abre os arquivos soltos na janela numa janela nova do app, que vê só eles.
   Future<bool> openDropped(List<String> paths);
+
+  /// O seletor de arquivos do sistema. Devolve o caminho, ou null se a pessoa
+  /// cancelou. [patterns] são filtros como `*.conf`. O caminho é o de fora do
+  /// sandbox: o app só lê o arquivo se as permissões dele deixarem ver.
+  Future<String?> pickFile({
+    required String title,
+    List<String> patterns = const [],
+  });
 }
 
 /// Um app que abre um tipo de arquivo, para o "Abrir com".
@@ -581,7 +589,7 @@ class PsitoSettings {
 
 enum PsitoConnectivity { unknown, none, portal, limited, full }
 
-enum PsitoNetworkKind { ethernet, wifi, other }
+enum PsitoNetworkKind { ethernet, wifi, vpn, other }
 
 enum PsitoDeviceState {
   /// Sem cabo ou sem rádio.
@@ -700,6 +708,35 @@ class PsitoWifiNetwork {
   int get hashCode => Object.hash(ssid, strength, security, active, saved);
 }
 
+/// Uma VPN guardada.
+@immutable
+class PsitoVpn {
+  final String uuid;
+  final String name;
+  final bool active;
+
+  /// Ligando ou desligando.
+  final bool busy;
+
+  const PsitoVpn({
+    required this.uuid,
+    required this.name,
+    this.active = false,
+    this.busy = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoVpn &&
+      other.uuid == uuid &&
+      other.name == name &&
+      other.active == active &&
+      other.busy == busy;
+
+  @override
+  int get hashCode => Object.hash(uuid, name, active, busy);
+}
+
 /// O rádio de Wi-Fi, quando há um.
 @immutable
 class PsitoWifiState {
@@ -749,6 +786,9 @@ class PsitoNetworkState {
   /// abrir ele no navegador leva à página de login. Vazio sem essa verificação.
   final String checkUrl;
 
+  /// Por nome.
+  final List<PsitoVpn> vpns;
+
   const PsitoNetworkState({
     required this.available,
     this.enabled = true,
@@ -758,6 +798,7 @@ class PsitoNetworkState {
     this.devices = const [],
     this.wifi,
     this.checkUrl = '',
+    this.vpns = const [],
   });
 
   static const unavailable = PsitoNetworkState(available: false);
@@ -772,7 +813,8 @@ class PsitoNetworkState {
       other.primary == primary &&
       listEquals(other.devices, devices) &&
       other.wifi == wifi &&
-      other.checkUrl == checkUrl;
+      other.checkUrl == checkUrl &&
+      listEquals(other.vpns, vpns);
 
   @override
   int get hashCode => Object.hash(
@@ -784,6 +826,7 @@ class PsitoNetworkState {
     Object.hashAll(devices),
     wifi,
     checkUrl,
+    Object.hashAll(vpns),
   );
 }
 
@@ -973,6 +1016,10 @@ abstract class PsitoNetworkConnections {
 
   /// Apaga a conexão, com a senha dela.
   Future<bool> forget(String uuid);
+
+  /// Guarda a VPN de um arquivo do WireGuard (`.conf`) ou do OpenVPN (`.ovpn`),
+  /// sem ligar, e devolve se deu certo.
+  Future<bool> importVpn(String path);
 }
 
 /// O [PsitoAppContext.networkConnections] de quem não pode mexer no sistema.
@@ -989,6 +1036,9 @@ class PsitoNoNetworkConnections implements PsitoNetworkConnections {
 
   @override
   Future<bool> forget(String uuid) async => false;
+
+  @override
+  Future<bool> importVpn(String path) async => false;
 }
 
 class PsitoTimeState {

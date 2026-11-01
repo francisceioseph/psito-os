@@ -191,6 +191,67 @@ void wifiPanelTests() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('a VPN liga pelo painel, e o ícone mostra', (tester) async {
+    final network = await open(tester);
+    final vpn = find.byKey(const ValueKey('vpn-trabalho'));
+    final badge = find.byKey(const ValueKey('network-vpn'));
+    await tester.ensureVisible(vpn);
+    await tester.pump();
+    expect(badge, findsNothing);
+    await tester.tap(vpn);
+    await tester.pump();
+    expect(network.state.value.vpns.single.active, isTrue);
+    expect(badge, findsOneWidget);
+    await _closePanelAndSettle(tester);
+  });
+
+  testWidgets('uma VPN que falha avisa, e cancelar não é falha', (
+    tester,
+  ) async {
+    const busy = PsitoVpn(uuid: 'v', name: 'Longe', busy: true);
+    final network = _SlowVpn(
+      const PsitoNetworkState(available: true, vpns: [busy]),
+    );
+    addTearDown(network.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: psitoTheme(PsitoSettings.defaults.accent),
+        localizationsDelegates: psitoLocalizationsDelegates(const [
+          SystemLocalizations.delegate,
+        ]),
+        supportedLocales: psitoLocales,
+        home: Scaffold(
+          body: NetworkPanel(service: network, onClose: () {}),
+        ),
+      ),
+    );
+    await tester.pump();
+    final tile = find.byKey(const ValueKey('vpn-v'));
+    // Ligando, o interruptor aparece ligado e o toque pede para desligar
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    await tester.tap(tile);
+    await tester.pump();
+    expect(network.asked, [false]);
+
+    network.answer = false;
+    await tester.tap(tile);
+    await tester.pump();
+    expect(find.text('Não foi possível ligar Longe.'), findsNothing);
+
+    network.set(
+      const PsitoNetworkState(
+        available: true,
+        vpns: [PsitoVpn(uuid: 'v', name: 'Longe')],
+      ),
+    );
+    await tester.pump();
+    await tester.tap(tile);
+    await tester.pump();
+    expect(network.asked.last, isTrue);
+    expect(find.text('Não foi possível ligar Longe.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('abrir procura redes e lista pelo sinal', (tester) async {
     final network = await open(tester);
     expect(network.scans, 1);
@@ -290,6 +351,20 @@ void wifiPanelTests() {
     expect(find.byKey(const ValueKey('wifi-switch')), findsNothing);
     await _closePanelAndSettle(tester);
   });
+}
+
+/// Responde o que o teste mandar e guarda o que pediram.
+class _SlowVpn extends FakeNetworkService {
+  _SlowVpn(super.initial);
+
+  bool answer = true;
+  final asked = <bool>[];
+
+  @override
+  Future<bool> setVpnActive(String uuid, bool active) async {
+    asked.add(active);
+    return answer;
+  }
 }
 
 Future<void> _pumpPanel(

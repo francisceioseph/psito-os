@@ -5,6 +5,7 @@
 // notificações pelo servidor do shell.
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/file_chooser_client.dart';
 import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_service.dart';
 import 'package:psito_services/system_info_service.dart';
@@ -56,6 +57,9 @@ class ProcessAppContext implements PsitoAppContext {
   /// O shell que abre os arquivos. Null fora de uma sessão (nos testes).
   final LauncherClient? launcher;
 
+  /// O seletor de arquivos, pelo portal. Null nos testes.
+  final FileChooserClient? fileChooser;
+
   @override
   final List<String> openedPaths;
 
@@ -71,6 +75,7 @@ class ProcessAppContext implements PsitoAppContext {
     this.window = const AppWindow(),
     required this.windowId,
     this.launcher,
+    this.fileChooser,
     this.openedPaths = const [],
     this.openRequests = const Stream.empty(),
   });
@@ -159,4 +164,10 @@ class ProcessAppContext implements PsitoAppContext {
   @override
   Future<bool> openDropped(List<String> paths) async =>
       await launcher?.openDropped(paths) ?? false;
+
+  @override
+  Future<String?> pickFile({
+    required String title,
+    List<String> patterns = const [],
+  }) async => fileChooser?.pickFile(title: title, patterns: patterns);
 }

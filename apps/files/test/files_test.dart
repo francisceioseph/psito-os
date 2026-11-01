@@ -78,6 +78,12 @@ class FakeContext implements PsitoAppContext {
 
   @override
   Future<bool> openDropped(List<String> paths) async => false;
+
+  @override
+  Future<String?> pickFile({
+    required String title,
+    List<String> patterns = const [],
+  }) async => null;
 }
 
 late Directory home;

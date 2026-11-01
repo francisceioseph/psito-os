@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:psito_services/file_chooser_client.dart';
 import 'package:psito_services/launcher_client.dart';
 import 'package:psito_services/network_connections.dart';
 import 'package:psito_services/network_service.dart';
@@ -24,7 +25,7 @@ import 'window.dart';
 
 /// Os serviços reais pelo barramento de sistema, ou os falsos com
 /// PSITO_SERVICES=fake (como no shell).
-AppServices startServices(Map<String, String> env) {
+AppServices startServices(Map<String, String> env, {LauncherClient? launcher}) {
   if (env['PSITO_SERVICES'] == 'fake') {
     return AppServices(
       systemInfo: FakeSystemInfoService(),
@@ -40,7 +41,8 @@ AppServices startServices(Map<String, String> env) {
     network: NetworkManagerService(bus),
     time: TimedatedTimeService(bus),
     accounts: () => AccountsdService(bus),
-    networkConnections: () => NetworkManagerConnections(bus),
+    networkConnections: () =>
+        NetworkManagerConnections(bus, importer: launcher?.importVpn),
   );
 }
 
@@ -63,12 +65,13 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
   final context = ProcessAppContext(
     app: app,
     settings: settings,
-    services: startServices(Platform.environment),
+    services: startServices(Platform.environment, launcher: launcher),
     onUpdateSettings: (s) => unawaited(settings.update(s)),
     onNotify: (n) => unawaited(notifier.notify(n)),
     window: window,
     windowId: '${app.id}#$pid',
     launcher: launcher,
+    fileChooser: FileChooserClient(session),
     openedPaths: openedPaths(args),
     // Só um app de instância única recebe os arquivos depois de aberto
     openRequests: app.singleInstance

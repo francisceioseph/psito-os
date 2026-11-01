@@ -114,5 +114,9 @@
   "detailGateway": "Gateway",
   "detailDns": "DNS",
   "detailMac": "Endereço MAC",
-  "connectionForgetConfirm": "Esquecer {name}?"
+  "connectionForgetConfirm": "Esquecer {name}?",
+  "vpnImport": "Importar VPN…",
+  "vpnImportTitle": "Importar VPN (WireGuard ou OpenVPN)",
+  "vpnImported": "VPN guardada. Ela liga pelo ícone de rede na barra superior.",
+  "vpnImportFailed": "Não foi possível importar este arquivo."
 }

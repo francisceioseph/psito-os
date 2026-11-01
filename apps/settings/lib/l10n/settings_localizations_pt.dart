@@ -379,4 +379,17 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
   String connectionForgetConfirm(String name) {
     return 'Esquecer $name?';
   }
+
+  @override
+  String get vpnImport => 'Importar VPN…';
+
+  @override
+  String get vpnImportTitle => 'Importar VPN (WireGuard ou OpenVPN)';
+
+  @override
+  String get vpnImported =>
+      'VPN guardada. Ela liga pelo ícone de rede na barra superior.';
+
+  @override
+  String get vpnImportFailed => 'Não foi possível importar este arquivo.';
 }

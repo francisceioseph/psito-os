@@ -466,4 +466,11 @@ class _WindowContext implements PsitoAppContext {
 
   @override
   Future<bool> openDropped(List<String> paths) async => false;
+
+  // O laboratório não tem portal
+  @override
+  Future<String?> pickFile({
+    required String title,
+    List<String> patterns = const [],
+  }) async => null;
 }

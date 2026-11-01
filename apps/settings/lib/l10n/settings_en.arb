@@ -115,5 +115,9 @@
   "detailDns": "DNS",
   "detailMac": "MAC address",
   "connectionForgetConfirm": "Forget {name}?",
-  "@connectionForgetConfirm": {"placeholders": {"name": {"type": "String"}}}
+  "@connectionForgetConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "vpnImport": "Import VPN…",
+  "vpnImportTitle": "Import VPN (WireGuard or OpenVPN)",
+  "vpnImported": "VPN saved. Turn it on from the network icon in the top bar.",
+  "vpnImportFailed": "Could not import this file."
 }

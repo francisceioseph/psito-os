@@ -3,6 +3,7 @@
 // As conexões guardadas no NetworkManager, para as Configurações. Fica à parte
 // do network_service porque só quem pode mudar o sistema precisa.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
@@ -16,8 +17,8 @@ const _deviceInterface = '$_busName.Device';
 
 typedef NmSettings = Map<String, Map<String, DBusValue>>;
 
-/// O que as Configurações mostram de uma conexão, ou null se não mostram: só o
-/// cabo e o Wi-Fi têm o que mudar aqui (o NetworkManager guarda até o lo).
+/// O que as Configurações mostram de uma conexão, ou null se não mostram: o
+/// NetworkManager guarda até o lo.
 PsitoSavedConnection? savedConnectionFrom(NmSettings settings) {
   final connection = settings['connection'];
   final uuid = connection?['uuid']?.asString();
@@ -25,6 +26,7 @@ PsitoSavedConnection? savedConnectionFrom(NmSettings settings) {
   final kind = switch (connection['type']?.asString()) {
     '802-3-ethernet' => PsitoNetworkKind.ethernet,
     '802-11-wireless' => PsitoNetworkKind.wifi,
+    'vpn' || 'wireguard' => PsitoNetworkKind.vpn,
     _ => null,
   };
   if (kind == null) return null;
@@ -79,7 +81,12 @@ int _dnsLegacy(String address) {
 /// o NetworkManager mantém a guardada) fica como está.
 NmSettings applySavedConnection(NmSettings settings, PsitoSavedConnection c) {
   final ipv4 = {...?settings['ipv4']};
-  if (c.ipv4Method != PsitoIpMethod.other) {
+  // O endereço de uma VPN vem do arquivo dela, às vezes mais de um, e a tela não
+  // mexe nele
+  if (c.ipv4Method != PsitoIpMethod.other && c.kind != PsitoNetworkKind.vpn) {
+    final oldAddresses = _firstAddress(ipv4) == c.address
+        ? ipv4['address-data']
+        : null;
     // Os dois formatos convivem na leitura, e o antigo pode contrariar o novo
     for (final key in [
       'addresses',
@@ -95,13 +102,18 @@ NmSettings applySavedConnection(NmSettings settings, PsitoSavedConnection c) {
       c.ipv4Method == PsitoIpMethod.manual ? 'manual' : 'auto',
     );
     if (c.ipv4Method == PsitoIpMethod.manual) {
-      final [address, prefix] = c.address.split('/');
-      ipv4['address-data'] = DBusArray(DBusSignature('a{sv}'), [
-        DBusDict.stringVariant({
-          'address': DBusString(address),
-          'prefix': DBusUint32(int.parse(prefix)),
-        }),
-      ]);
+      // Sem mudar o primeiro, os outros (de um `nmcli`, digamos) continuam
+      if (oldAddresses != null) {
+        ipv4['address-data'] = oldAddresses;
+      } else {
+        final [address, prefix] = c.address.split('/');
+        ipv4['address-data'] = DBusArray(DBusSignature('a{sv}'), [
+          DBusDict.stringVariant({
+            'address': DBusString(address),
+            'prefix': DBusUint32(int.parse(prefix)),
+          }),
+        ]);
+      }
       if (c.gateway.isNotEmpty) ipv4['gateway'] = DBusString(c.gateway);
     }
     if (c.dns.isNotEmpty) {
@@ -125,7 +137,42 @@ NmSettings applySavedConnection(NmSettings settings, PsitoSavedConnection c) {
   };
 }
 
+/// O uuid na resposta do `nmcli connection import`.
+String? importedUuid(String output) =>
+    RegExp(r'[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}').stringMatch(output);
+
+/// O tipo do `nmcli connection import` para um arquivo.
+String vpnImportType(String path) =>
+    path.toLowerCase().endsWith('.ovpn') ? 'openvpn' : 'wireguard';
+
+/// Importa um arquivo de VPN pelo `nmcli` e devolve o uuid da conexão, ou null
+/// se ele recusou. Num app no sandbox isso não funciona: lá dentro os arquivos do
+/// root são de outro dono, e o `nmcli` não carrega o plugin do OpenVPN. Quem roda
+/// é o shell, pelo `org.psito.Launcher`.
+Future<String?> importVpnFile(
+  String path, {
+  Future<ProcessResult> Function(String, List<String>) run = Process.run,
+}) async {
+  final result = await run('nmcli', [
+    'connection',
+    'import',
+    'type',
+    vpnImportType(path),
+    'file',
+    path,
+  ]);
+  if (result.exitCode != 0) {
+    debugPrint('🦜 nmcli: ${result.stderr}');
+    return null;
+  }
+  return importedUuid('${result.stdout}');
+}
+
 class NetworkManagerConnections implements PsitoNetworkConnections {
+  /// Passa um arquivo de VPN ao NetworkManager e devolve o uuid da conexão.
+  final Future<String?> Function(String path) _import;
+  final String? _user;
+
   static final _managerPath = DBusObjectPath('/org/freedesktop/NetworkManager');
   static final _settingsPath = DBusObjectPath(
     '/org/freedesktop/NetworkManager/Settings',
@@ -149,7 +196,12 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
   /// Completa depois da primeira leitura, com ou sem sucesso.
   late final Future<void> ready;
 
-  NetworkManagerConnections(this._bus) {
+  NetworkManagerConnections(
+    this._bus, {
+    Future<String?> Function(String path)? importer,
+    String? user,
+  }) : _import = importer ?? importVpnFile,
+       _user = user ?? Platform.environment['USER'] {
     void reload(Object? _) => unawaited(_load());
     for (final name in ['NewConnection', 'ConnectionRemoved']) {
       _subscriptions.add(
@@ -173,6 +225,12 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
 
   @override
   ValueListenable<List<PsitoSavedConnection>> get connections => _connections;
+
+  static DBusDict _dict(NmSettings settings) =>
+      DBusDict(DBusSignature('s'), DBusSignature('a{sv}'), {
+        for (final MapEntry(key: group, value: values) in settings.entries)
+          DBusString(group): DBusDict.stringVariant(values),
+      });
 
   DBusRemoteObject _object(DBusObjectPath path) =>
       DBusRemoteObject(_bus, name: _busName, path: path);
@@ -227,10 +285,7 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
     try {
       final settings = applySavedConnection(await _read(path), connection);
       await _object(path).callMethod(_connectionInterface, 'Update', [
-        DBusDict(DBusSignature('s'), DBusSignature('a{sv}'), {
-          for (final MapEntry(key: group, value: values) in settings.entries)
-            DBusString(group): DBusDict.stringVariant(values),
-        }),
+        _dict(settings),
       ], replySignature: DBusSignature(''));
     } catch (e) {
       debugPrint('🦜 Erro gravando a conexão: $e');
@@ -240,25 +295,31 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
     return true;
   }
 
+  /// As conexões ativas de [uuid].
+  Future<List<DBusObjectPath>> _activeOf(String uuid) async {
+    final active = await _object(_managerPath).getProperty(
+      _busName,
+      'ActiveConnections',
+      signature: DBusSignature('ao'),
+    );
+    return [
+      for (final path in active.asObjectPathArray())
+        if ((await _object(path).getProperty(
+              _activeInterface,
+              'Uuid',
+              signature: DBusSignature('s'),
+            )).asString() ==
+            uuid)
+          path,
+    ];
+  }
+
   /// O NetworkManager só usa o que foi gravado na próxima ativação. O `Reapply`
   /// troca sem derrubar, e o que ele recusa vai com uma ativação nova.
   Future<void> _applyIfActive(String uuid, DBusObjectPath connection) async {
-    final manager = _object(_managerPath);
     try {
-      final active = await manager.getProperty(
-        _busName,
-        'ActiveConnections',
-        signature: DBusSignature('ao'),
-      );
-      for (final path in active.asObjectPathArray()) {
-        final object = _object(path);
-        final id = await object.getProperty(
-          _activeInterface,
-          'Uuid',
-          signature: DBusSignature('s'),
-        );
-        if (id.asString() != uuid) continue;
-        final devices = await object.getProperty(
+      for (final path in await _activeOf(uuid)) {
+        final devices = await _object(path).getProperty(
           _activeInterface,
           'Devices',
           signature: DBusSignature('ao'),
@@ -310,6 +371,54 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
     }
   }
 
+  // O `nmcli` entende os dois formatos, mas não tem como dizer de quem é a
+  // conexão nem que ela espere: o WireGuard já vem ligado. Importar não é pedir
+  // para entrar na VPN, então ela é desligada aqui, e passa a esperar pedido
+  @override
+  Future<bool> importVpn(String path) async {
+    final String? uuid;
+    try {
+      uuid = await _import(path);
+    } catch (e) {
+      debugPrint('🦜 Erro importando a VPN: $e');
+      return false;
+    }
+    if (uuid == null) return false;
+    try {
+      final settingsPath = await _settings.callMethod(
+        _settingsInterface,
+        'GetConnectionByUuid',
+        [DBusString(uuid)],
+        replySignature: DBusSignature('o'),
+      );
+      final path = settingsPath.returnValues[0].asObjectPath();
+      final settings = await _read(path);
+      await _object(path).callMethod(_connectionInterface, 'Update', [
+        _dict({
+          ...settings,
+          'connection': {
+            ...?settings['connection'],
+            'autoconnect': const DBusBoolean(false),
+            if (_user case final user? when user.isNotEmpty)
+              'permissions': DBusArray.string(['user:$user']),
+          },
+        }),
+      ], replySignature: DBusSignature(''));
+      for (final active in await _activeOf(uuid)) {
+        await _object(_managerPath).callMethod(
+          _busName,
+          'DeactivateConnection',
+          [active],
+          replySignature: DBusSignature(''),
+        );
+      }
+    } catch (e) {
+      // Guardada ela está, só que do sistema
+      debugPrint('🦜 Erro ajustando a VPN importada: $e');
+    }
+    return true;
+  }
+
   Future<void> dispose() async {
     for (final sub in _subscriptions) {
       await sub.cancel();
@@ -319,6 +428,9 @@ class NetworkManagerConnections implements PsitoNetworkConnections {
 }
 
 class FakeNetworkConnections implements PsitoNetworkConnections {
+  /// Os arquivos importados.
+  final imported = <String>[];
+
   @override
   final ValueNotifier<List<PsitoSavedConnection>> connections;
 
@@ -358,6 +470,22 @@ class FakeNetworkConnections implements PsitoNetworkConnections {
     connections.value = [
       for (final c in connections.value)
         if (c.uuid != uuid) c,
+    ];
+    return true;
+  }
+
+  @override
+  Future<bool> importVpn(String path) async {
+    if (!answer) return false;
+    imported.add(path);
+    connections.value = [
+      ...connections.value,
+      PsitoSavedConnection(
+        uuid: 'vpn-${imported.length}',
+        name: path.split('/').last.split('.').first,
+        kind: PsitoNetworkKind.vpn,
+        autoconnect: false,
+      ),
     ];
     return true;
   }

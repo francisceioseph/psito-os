@@ -378,4 +378,17 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
   String connectionForgetConfirm(String name) {
     return 'Forget $name?';
   }
+
+  @override
+  String get vpnImport => 'Import VPN…';
+
+  @override
+  String get vpnImportTitle => 'Import VPN (WireGuard or OpenVPN)';
+
+  @override
+  String get vpnImported =>
+      'VPN saved. Turn it on from the network icon in the top bar.';
+
+  @override
+  String get vpnImportFailed => 'Could not import this file.';
 }

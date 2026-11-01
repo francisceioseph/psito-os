@@ -495,6 +495,101 @@ void main() {
     });
   });
 
+  group('VPN', () {
+    late FakeDBusObject saved;
+    late FakeDBusObject settings;
+    late FakeDBusObject activeVpn;
+    late _FakeNM nm;
+
+    Future<void> startVpn() async {
+      nm = _FakeNM();
+      saved =
+          FakeDBusObject.single(
+              _path('/Settings/7'),
+              '$_nm.Settings.Connection',
+              {},
+            )
+            ..replies['GetSettings'] = [
+              DBusDict(DBusSignature('s'), DBusSignature('a{sv}'), {
+                const DBusString('connection'): DBusDict.stringVariant({
+                  'uuid': const DBusString('v1'),
+                  'id': const DBusString('Trabalho'),
+                  'type': const DBusString('wireguard'),
+                }),
+              }),
+            ];
+      settings = FakeDBusObject.single(_path('/Settings'), '$_nm.Settings', {})
+        ..replies['ListConnections'] = [
+          DBusArray.objectPath([saved.path]),
+        ];
+      activeVpn = FakeDBusObject.single(_path('/ActiveConnection/7'), _active, {
+        'Id': const DBusString('Trabalho'),
+        'Uuid': const DBusString('v1'),
+        'Type': const DBusString('wireguard'),
+        'State': const DBusUint32(2),
+        'Devices': DBusArray.objectPath(const []),
+        'Ip4Config': _none,
+      });
+      nm.manager.replies['ActivateConnection'] = [activeVpn.path];
+      nm.others.addAll([saved, settings, activeVpn]);
+      await nm.publish(bus);
+      service = NetworkManagerService(bus.shell);
+      await service.ready;
+    }
+
+    test('aparece na lista, desligada', () async {
+      await startVpn();
+      expect(service.state.value.vpns, const [
+        PsitoVpn(uuid: 'v1', name: 'Trabalho'),
+      ]);
+    });
+
+    test('ligar ativa a conexão sem escolher dispositivo', () async {
+      await startVpn();
+      expect(await service.setVpnActive('v1', true), isTrue);
+      final call = nm.manager.calls.singleWhere(
+        (c) => c.name == 'ActivateConnection',
+      );
+      expect(call.values[0], saved.path);
+      expect(call.values[1], DBusObjectPath('/'));
+    });
+
+    test('desligar desativa a conexão certa', () async {
+      await startVpn();
+      await nm.manager.change(_nm, {
+        'ActiveConnections': DBusArray.objectPath([
+          nm.connection.path,
+          activeVpn.path,
+        ]),
+      });
+      nm.connection.interfaces[_active]!['Uuid'] = const DBusString('cabo');
+      await until(() => service.state.value.vpns.single.active);
+      expect(await service.setVpnActive('v1', false), isTrue);
+      final call = nm.manager.calls.singleWhere(
+        (c) => c.name == 'DeactivateConnection',
+      );
+      expect(call.values[0], activeVpn.path);
+    });
+
+    test('uma que não existe não dá certo', () async {
+      await startVpn();
+      expect(await service.setVpnActive('outra', true), isFalse);
+    });
+
+    test('como rota padrão, a principal é a rede por baixo', () async {
+      await startVpn();
+      await nm.manager.change(_nm, {
+        'ActiveConnections': DBusArray.objectPath([
+          nm.connection.path,
+          activeVpn.path,
+        ]),
+        'PrimaryConnection': activeVpn.path,
+      });
+      await until(() => service.state.value.vpns.single.active);
+      expect(service.state.value.primary?.interface, 'ens3');
+    });
+  });
+
   test('motivos de falha', () async {
     service = NetworkManagerService(bus.shell);
     await service.ready;

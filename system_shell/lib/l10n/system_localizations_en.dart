@@ -306,4 +306,12 @@ class SystemLocalizationsEn extends SystemLocalizations {
 
   @override
   String get networkPortalLogin => 'Open the login page';
+
+  @override
+  String get kindVpn => 'VPN';
+
+  @override
+  String vpnFailed(String name) {
+    return 'Could not turn on $name.';
+  }
 }

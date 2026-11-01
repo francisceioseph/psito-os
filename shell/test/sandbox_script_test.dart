@@ -144,6 +144,8 @@ void main() {
       expect(none.proxy, contains(call(method)));
     }
     expect(none.proxy, isNot(contains(call('SetDefault'))));
+    expect(none.proxy, isNot(contains(call('ImportVpn'))));
+    expect((await _dryRun('settings')).proxy, contains(call('ImportVpn')));
     expect((await _dryRun('files:home')).proxy, contains(call('SetDefault')));
   });
 

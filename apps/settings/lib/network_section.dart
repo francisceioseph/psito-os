@@ -27,10 +27,15 @@ class NetworkSection extends StatefulWidget {
   final PsitoNetworkState network;
   final PsitoNetworkConnections connections;
 
+  /// O seletor de arquivos, para importar uma VPN.
+  final Future<String?> Function({required String title, List<String> patterns})
+  pickFile;
+
   const NetworkSection({
     super.key,
     required this.network,
     required this.connections,
+    required this.pickFile,
   });
 
   @override
@@ -40,6 +45,25 @@ class NetworkSection extends StatefulWidget {
 class _NetworkSectionState extends State<NetworkSection> {
   String? _openDevice;
   String? _openConnection;
+
+  /// Null até a primeira importação.
+  bool? _imported;
+  bool _importing = false;
+
+  Future<void> _importVpn() async {
+    final path = await widget.pickFile(
+      title: context.l10n.vpnImportTitle,
+      patterns: const ['*.conf', '*.ovpn'],
+    );
+    if (path == null || !mounted) return;
+    setState(() => _importing = true);
+    final ok = await widget.connections.importVpn(path);
+    if (!mounted) return;
+    setState(() {
+      _importing = false;
+      _imported = ok;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +134,25 @@ class _NetworkSectionState extends State<NetworkSection> {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          key: const ValueKey('vpn-import'),
+          icon: const Icon(Icons.vpn_key),
+          label: Text(l.vpnImport),
+          onPressed: _importing ? null : () => unawaited(_importVpn()),
+        ),
+        if (_imported case final imported?)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              imported ? l.vpnImported : l.vpnImportFailed,
+              style: TextStyle(
+                color: imported
+                    ? context.palette.textSecondary
+                    : context.palette.danger,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -118,6 +161,7 @@ class _NetworkSectionState extends State<NetworkSection> {
 IconData _kindIcon(PsitoNetworkKind kind) => switch (kind) {
   PsitoNetworkKind.ethernet => Icons.lan,
   PsitoNetworkKind.wifi => Icons.wifi,
+  PsitoNetworkKind.vpn => Icons.vpn_key,
   PsitoNetworkKind.other => Icons.settings_ethernet,
 };
 
@@ -244,6 +288,7 @@ class _EditConnectionState extends State<_EditConnection> {
   /// O que está errado no formulário, para não mandar ao NetworkManager.
   String? _problem() {
     final l = context.l10n;
+    if (widget.connection.kind == PsitoNetworkKind.vpn) return null;
     if (int.tryParse(_priority.text.trim()) == null) {
       return l.connectionBadPriority;
     }
@@ -307,80 +352,82 @@ class _EditConnectionState extends State<_EditConnection> {
             value: _autoconnect,
             onChanged: (value) => setState(() => _autoconnect = value),
           ),
-          TextField(
-            key: const ValueKey('connection-priority'),
-            controller: _priority,
-            decoration: InputDecoration(
-              labelText: l.connectionPriority,
-              helperText: l.connectionPriorityHint,
-              helperMaxLines: 3,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<PsitoMetered>(
-            key: const ValueKey('connection-metered'),
-            initialValue: _metered,
-            isExpanded: true,
-            decoration: InputDecoration(labelText: l.connectionMetered),
-            items: [
-              DropdownMenuItem(
-                value: PsitoMetered.auto,
-                child: Text(l.connectionMeteredAuto),
-              ),
-              DropdownMenuItem(
-                value: PsitoMetered.yes,
-                child: Text(l.connectionMeteredYes),
-              ),
-              DropdownMenuItem(
-                value: PsitoMetered.no,
-                child: Text(l.connectionMeteredNo),
-              ),
-            ],
-            onChanged: (value) => setState(() => _metered = value!),
-          ),
-          const SizedBox(height: 8),
-          if (connection.ipv4Method != PsitoIpMethod.other) ...[
-            DropdownButtonFormField<PsitoIpMethod>(
-              key: const ValueKey('connection-method'),
-              initialValue: _method,
-              isExpanded: true,
-              decoration: InputDecoration(labelText: l.connectionIpv4),
-              items: [
-                DropdownMenuItem(
-                  value: PsitoIpMethod.auto,
-                  child: Text(l.connectionIpv4Auto),
-                ),
-                DropdownMenuItem(
-                  value: PsitoIpMethod.manual,
-                  child: Text(l.connectionIpv4Manual),
-                ),
-              ],
-              onChanged: (value) => setState(() => _method = value!),
-            ),
-            if (_method == PsitoIpMethod.manual) ...[
-              TextField(
-                key: const ValueKey('connection-address'),
-                controller: _address,
-                decoration: InputDecoration(
-                  labelText: l.connectionAddress,
-                  hintText: '192.168.0.10/24',
-                ),
-              ),
-              TextField(
-                key: const ValueKey('connection-gateway'),
-                controller: _gateway,
-                decoration: InputDecoration(labelText: l.detailGateway),
-              ),
-            ],
+          if (connection.kind != PsitoNetworkKind.vpn) ...[
             TextField(
-              key: const ValueKey('connection-dns'),
-              controller: _dns,
+              key: const ValueKey('connection-priority'),
+              controller: _priority,
               decoration: InputDecoration(
-                labelText: l.detailDns,
-                helperText: l.connectionDnsHint,
+                labelText: l.connectionPriority,
+                helperText: l.connectionPriorityHint,
                 helperMaxLines: 3,
               ),
             ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<PsitoMetered>(
+              key: const ValueKey('connection-metered'),
+              initialValue: _metered,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l.connectionMetered),
+              items: [
+                DropdownMenuItem(
+                  value: PsitoMetered.auto,
+                  child: Text(l.connectionMeteredAuto),
+                ),
+                DropdownMenuItem(
+                  value: PsitoMetered.yes,
+                  child: Text(l.connectionMeteredYes),
+                ),
+                DropdownMenuItem(
+                  value: PsitoMetered.no,
+                  child: Text(l.connectionMeteredNo),
+                ),
+              ],
+              onChanged: (value) => setState(() => _metered = value!),
+            ),
+            const SizedBox(height: 8),
+            if (connection.ipv4Method != PsitoIpMethod.other) ...[
+              DropdownButtonFormField<PsitoIpMethod>(
+                key: const ValueKey('connection-method'),
+                initialValue: _method,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: l.connectionIpv4),
+                items: [
+                  DropdownMenuItem(
+                    value: PsitoIpMethod.auto,
+                    child: Text(l.connectionIpv4Auto),
+                  ),
+                  DropdownMenuItem(
+                    value: PsitoIpMethod.manual,
+                    child: Text(l.connectionIpv4Manual),
+                  ),
+                ],
+                onChanged: (value) => setState(() => _method = value!),
+              ),
+              if (_method == PsitoIpMethod.manual) ...[
+                TextField(
+                  key: const ValueKey('connection-address'),
+                  controller: _address,
+                  decoration: InputDecoration(
+                    labelText: l.connectionAddress,
+                    hintText: '192.168.0.10/24',
+                  ),
+                ),
+                TextField(
+                  key: const ValueKey('connection-gateway'),
+                  controller: _gateway,
+                  decoration: InputDecoration(labelText: l.detailGateway),
+                ),
+              ],
+              TextField(
+                key: const ValueKey('connection-dns'),
+                controller: _dns,
+                decoration: InputDecoration(
+                  labelText: l.detailDns,
+                  helperText: l.connectionDnsHint,
+                  helperMaxLines: 3,
+                ),
+              ),
+            ],
           ],
           const SizedBox(height: 8),
           SizedBox(

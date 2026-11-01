@@ -790,6 +790,30 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Forget {name}?'**
   String connectionForgetConfirm(String name);
+
+  /// No description provided for @vpnImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import VPN…'**
+  String get vpnImport;
+
+  /// No description provided for @vpnImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import VPN (WireGuard or OpenVPN)'**
+  String get vpnImportTitle;
+
+  /// No description provided for @vpnImported.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN saved. Turn it on from the network icon in the top bar.'**
+  String get vpnImported;
+
+  /// No description provided for @vpnImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not import this file.'**
+  String get vpnImportFailed;
 }
 
 class _SettingsLocalizationsDelegate

@@ -10,8 +10,14 @@ ValueKey<String> _key(String name) => ValueKey(name);
 
 void main() {
   late FakeNetworkConnections connections;
+  String? picked;
+  List<String>? pickedWith;
 
-  setUp(() => connections = FakeNetworkConnections());
+  setUp(() {
+    connections = FakeNetworkConnections();
+    picked = null;
+    pickedWith = null;
+  });
 
   Future<void> pump(WidgetTester tester, {PsitoNetworkState? network}) async {
     tester.view.physicalSize = const Size(800, 1400);
@@ -29,6 +35,10 @@ void main() {
             child: NetworkSection(
               network: network ?? FakeNetworkService.sample,
               connections: connections,
+              pickFile: ({required title, patterns = const []}) async {
+                pickedWith = patterns;
+                return picked;
+              },
             ),
           ),
         ),
@@ -150,5 +160,57 @@ void main() {
     await tester.tap(find.byKey(_key('connection-forget-yes')));
     await tester.pump();
     expect(connections.connections.value.map((c) => c.uuid), ['cabo']);
+  });
+
+  group('VPN', () {
+    Finder import() => find.byKey(_key('vpn-import'));
+
+    testWidgets('importar guarda o arquivo escolhido e avisa', (tester) async {
+      picked = '/home/ana/casa.conf';
+      await pump(tester);
+      await tester.tap(import());
+      await tester.pump();
+      expect(pickedWith, ['*.conf', '*.ovpn']);
+      expect(connections.imported, ['/home/ana/casa.conf']);
+      expect(find.text('casa'), findsOneWidget);
+      expect(find.textContaining('VPN guardada'), findsOneWidget);
+    });
+
+    testWidgets('cancelar o seletor não faz nada', (tester) async {
+      await pump(tester);
+      await tester.tap(import());
+      await tester.pump();
+      expect(connections.imported, isEmpty);
+      expect(find.textContaining('VPN guardada'), findsNothing);
+    });
+
+    testWidgets('arquivo recusado avisa', (tester) async {
+      picked = '/home/ana/ruim.conf';
+      connections.answer = false;
+      await pump(tester);
+      await tester.tap(import());
+      await tester.pump();
+      expect(
+        find.text('Não foi possível importar este arquivo.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('o formulário dela só tem o que vale para uma VPN', (
+      tester,
+    ) async {
+      picked = '/home/ana/casa.conf';
+      await pump(tester);
+      await tester.tap(import());
+      await tester.pump();
+      await open(tester, 'vpn-1');
+      expect(find.byKey(_key('connection-priority')), findsNothing);
+      expect(find.byKey(_key('connection-dns')), findsNothing);
+      expect(find.byKey(_key('connection-forget')), findsOneWidget);
+      await tester.tap(find.byKey(_key('connection-autoconnect')));
+      await tester.tap(find.byKey(_key('connection-save')));
+      await tester.pump();
+      expect(connections.connections.value.last.autoconnect, isTrue);
+    });
   });
 }

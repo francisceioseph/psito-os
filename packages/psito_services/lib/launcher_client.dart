@@ -83,6 +83,15 @@ class LauncherClient {
     ], replySignature: DBusSignature(''));
   }
 
+  /// Importa um arquivo de VPN (só com `settings`) e devolve o uuid da conexão.
+  /// Lança se o shell recusar.
+  Future<String?> importVpn(String path) async {
+    final reply = await _shell.callMethod(launcherInterface, 'ImportVpn', [
+      DBusString(path),
+    ], replySignature: DBusSignature('s'));
+    return reply.returnValues[0].asString();
+  }
+
   /// Diz ao shell o que este app começou a arrastar: é o que deixa um app no
   /// sandbox receber esses arquivos.
   Future<void> offerDrag(List<String> paths) async {

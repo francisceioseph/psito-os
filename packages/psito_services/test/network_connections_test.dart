@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -78,6 +80,21 @@ void main() {
       expect(c.dns, ['1.1.1.1', '8.8.4.4']);
     });
 
+    test('WireGuard e OpenVPN são VPNs', () {
+      for (final type in ['wireguard', 'vpn']) {
+        expect(
+          savedConnectionFrom({
+            'connection': {
+              'uuid': const DBusString('v'),
+              'id': const DBusString('v'),
+              'type': DBusString(type),
+            },
+          })!.kind,
+          PsitoNetworkKind.vpn,
+        );
+      }
+    });
+
     test('um modo que as Configurações não mudam', () {
       final c = savedConnectionFrom(
         _wifi('u1', 'Casa', ipv4: {'method': const DBusString('shared')}),
@@ -149,6 +166,64 @@ void main() {
       expect(settings['ipv4'], {'method': const DBusString('auto')});
     });
 
+    test('o endereço de uma VPN é do arquivo dela', () {
+      final ipv4 = {
+        'method': const DBusString('manual'),
+        'address-data': DBusArray(DBusSignature('a{sv}'), [
+          DBusDict.stringVariant({
+            'address': const DBusString('10.8.0.2'),
+            'prefix': const DBusUint32(24),
+          }),
+          DBusDict.stringVariant({
+            'address': const DBusString('10.9.0.2'),
+            'prefix': const DBusUint32(24),
+          }),
+        ]),
+      };
+      final settings = applySavedConnection(
+        {
+          'connection': {
+            'uuid': const DBusString('v'),
+            'type': const DBusString('wireguard'),
+          },
+          'ipv4': ipv4,
+        },
+        const PsitoSavedConnection(
+          uuid: 'v',
+          name: 'wg',
+          kind: PsitoNetworkKind.vpn,
+          autoconnect: false,
+        ),
+      );
+      expect(settings['ipv4'], ipv4);
+      expect(settings['connection']!['autoconnect'], const DBusBoolean(false));
+    });
+
+    test('sem mudar o primeiro endereço, os outros ficam', () {
+      final addresses = DBusArray(DBusSignature('a{sv}'), [
+        DBusDict.stringVariant({
+          'address': const DBusString('10.0.0.5'),
+          'prefix': const DBusUint32(8),
+        }),
+        DBusDict.stringVariant({
+          'address': const DBusString('10.0.0.6'),
+          'prefix': const DBusUint32(8),
+        }),
+      ]);
+      final settings = applySavedConnection(
+        _wifi(
+          'u1',
+          'Casa',
+          ipv4: {
+            'method': const DBusString('manual'),
+            'address-data': addresses,
+          },
+        ),
+        base.copyWith(ipv4Method: PsitoIpMethod.manual, address: '10.0.0.5/8'),
+      );
+      expect(settings['ipv4']!['address-data'], addresses);
+    });
+
     test('um modo que não mudamos fica como está', () {
       final settings = applySavedConnection(
         _wifi('u1', 'Casa', ipv4: {'method': const DBusString('shared')}),
@@ -166,8 +241,10 @@ void main() {
     late FakeDBusObject settings;
     late FakeDBusObject active;
     late NetworkManagerConnections service;
+    late List<String> imported;
 
     setUp(() async {
+      imported = [];
       bus = await DBusTestBus.start();
       saved = FakeDBusObject.single(
         _path('/Settings/1'),
@@ -234,11 +311,87 @@ void main() {
       expect(device.calls, isEmpty);
     });
 
+    Future<NetworkManagerConnections> importing(String? uuid) async {
+      await service.dispose();
+      return service = NetworkManagerConnections(
+        bus.shell,
+        user: 'ana',
+        importer: (path) async {
+          imported.add(path);
+          return uuid;
+        },
+      );
+    }
+
+    test('a conexão importada fica da conta e desligada', () async {
+      settings.replies['GetConnectionByUuid'] = [saved.path];
+      await importing('11111111-2222-3333-4444-555555555555');
+      expect(await service.importVpn('/home/ana/x.ovpn'), isTrue);
+      expect(imported, ['/home/ana/x.ovpn']);
+      final group = saved.calls
+          .singleWhere((c) => c.name == 'Update')
+          .values[0]
+          .asDict()[const DBusString('connection')]!
+          .asStringVariantDict();
+      expect(group['autoconnect'], const DBusBoolean(false));
+      expect(group['permissions']!.asStringArray(), ['user:ana']);
+    });
+
+    test('importar não deixa a VPN ligada', () async {
+      const uuid = '11111111-2222-3333-4444-555555555555';
+      settings.replies['GetConnectionByUuid'] = [saved.path];
+      active.interfaces['$_nm.Connection.Active']!['Uuid'] = const DBusString(
+        uuid,
+      );
+      await importing(uuid);
+      expect(await service.importVpn('/home/ana/x.conf'), isTrue);
+      final call = manager.calls.singleWhere(
+        (c) => c.name == 'DeactivateConnection',
+      );
+      expect(call.values[0], active.path);
+    });
+
+    test('arquivo recusado não dá certo', () async {
+      await importing(null);
+      expect(await service.importVpn('/home/ana/x.conf'), isFalse);
+    });
+
     test('esquecer apaga', () async {
       expect(await service.forget('u1'), isTrue);
       expect(saved.calls.last.name, 'Delete');
       expect(await service.forget('nenhuma'), isFalse);
     });
+  });
+
+  test('o uuid na resposta do nmcli', () {
+    expect(
+      importedUuid(
+        'Conexão “x” (11111111-2222-3333-4444-555555555555) adicionada.',
+      ),
+      '11111111-2222-3333-4444-555555555555',
+    );
+    expect(importedUuid('erro'), isNull);
+  });
+
+  test('o nmcli recebe o tipo pela extensão', () async {
+    late List<String> args;
+    Future<ProcessResult> Function(String, List<String>) answer(
+      int code,
+      String out,
+    ) => (command, a) async {
+      args = a;
+      return ProcessResult(0, code, out, '');
+    };
+    expect(
+      await importVpnFile(
+        '/home/ana/x.OVPN',
+        run: answer(0, '(11111111-2222-3333-4444-555555555555) added'),
+      ),
+      '11111111-2222-3333-4444-555555555555',
+    );
+    expect(args.sublist(2, 4), ['type', 'openvpn']);
+    expect(await importVpnFile('/home/ana/x.conf', run: answer(1, '')), isNull);
+    expect(args.sublist(2, 4), ['type', 'wireguard']);
   });
 
   test('o falso segue as mesmas regras', () async {

@@ -85,5 +85,7 @@
   "rebootNow": "Reiniciar agora",
   "lock": "Bloquear",
   "logout": "Sair",
-  "networkPortalLogin": "Abrir a página de login"
+  "networkPortalLogin": "Abrir a página de login",
+  "kindVpn": "VPN",
+  "vpnFailed": "Não foi possível ligar {name}."
 }

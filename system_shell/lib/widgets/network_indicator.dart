@@ -34,6 +34,7 @@ class NetworkIndicator extends StatelessWidget {
     final icon = switch (primary.kind) {
       PsitoNetworkKind.wifi => wifiIcon(primary.wifiStrength ?? 100),
       PsitoNetworkKind.ethernet => Icons.lan,
+      PsitoNetworkKind.vpn => Icons.vpn_key,
       PsitoNetworkKind.other => Icons.settings_ethernet,
     };
     final noInternet =
@@ -59,10 +60,25 @@ class NetworkIndicator extends StatelessWidget {
           hoverColor: context.palette.lineSoft,
           child: Padding(
             padding: const EdgeInsets.all(4),
-            child: Icon(
-              icon,
-              size: 16,
-              color: color ?? context.palette.textSecondary,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: color ?? context.palette.textSecondary,
+                ),
+                if (state.vpns.any((v) => v.active))
+                  Padding(
+                    padding: const EdgeInsets.only(left: 2),
+                    child: Icon(
+                      Icons.vpn_lock,
+                      key: const ValueKey('network-vpn'),
+                      size: 14,
+                      color: context.palette.textSecondary,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
