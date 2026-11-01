@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:system_shell/l10n/system_localizations.dart';
+import 'package:system_shell/shell/app_registry.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/app.dart';
 import 'package:system_shell/screens/desktop_screen.dart';
@@ -47,7 +49,13 @@ Future<void> pumpDesktop(
   SystemServices? services,
 }) async {
   _useDesktopView(tester);
-  await tester.pumpWidget(MaterialApp(home: DesktopScreen(services: services)));
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testL10nDelegates,
+      supportedLocales: psitoLocales,
+      home: DesktopScreen(services: services),
+    ),
+  );
 }
 
 /// Segura [modifiers], aperta [key] e solta tudo.
@@ -80,3 +88,11 @@ Future<SettingsStore> pumpOS(
   await tester.pumpWidget(PsitoOSApp(settings: store, services: system));
   return store;
 }
+
+/// O que o `PsitoOSApp` registra, para os widgets testados fora dele.
+final testL10nDelegates = psitoLocalizationsDelegates([
+  SystemLocalizations.delegate,
+  for (final app in registeredApps) ...app.localizationsDelegates,
+]);
+
+final testL10n = lookupSystemLocalizations(const Locale('pt'));

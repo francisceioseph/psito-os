@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 
-Future<void> _pumpBar(WidgetTester tester, TopBar bar) =>
-    tester.pumpWidget(MaterialApp(home: Scaffold(body: bar)));
+import 'helpers.dart';
+
+import 'package:psito_sdk/psito_sdk.dart';
+
+Future<void> _pumpBar(WidgetTester tester, TopBar bar) => tester.pumpWidget(
+  MaterialApp(
+    localizationsDelegates: testL10nDelegates,
+    supportedLocales: psitoLocales,
+    home: Scaffold(body: bar),
+  ),
+);
 
 final _bell = find.byKey(const ValueKey('notifications-bell'));
 

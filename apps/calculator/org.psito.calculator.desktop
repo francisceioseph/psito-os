@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Calculator
+Name[pt]=Calculadora
 Exec=/usr/lib/psito/apps/org.psito.calculator/psito_calculator
 Icon=org.psito.calculator
 StartupWMClass=org.psito.calculator

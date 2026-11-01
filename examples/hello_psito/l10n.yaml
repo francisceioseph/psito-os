@@ -1,0 +1,5 @@
+arb-dir: lib/l10n
+template-arb-file: hello_en.arb
+output-localization-file: hello_localizations.dart
+output-class: HelloLocalizations
+nullable-getter: false

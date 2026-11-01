@@ -1,0 +1,10 @@
+{
+  "@@locale": "pt",
+  "appName": "Bloco de notas",
+  "welcome": "Bem-vindo ao Psito Notepad!\n\nEscreva suas anotações aqui...",
+  "statusSessionOnly": "Nota só nesta sessão",
+  "statusSaving": "Salvando...",
+  "statusSaved": "Salvo em {file}",
+  "clear": "Limpar",
+  "hint": "Digite algo..."
+}

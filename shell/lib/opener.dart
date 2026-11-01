@@ -31,7 +31,7 @@ class NoAppException implements Exception {
   const NoAppException(this.path);
 
   @override
-  String toString() => 'Nenhum app abre "${baseName(path)}".';
+  String toString() => 'NoAppException($path)';
 }
 
 class Opener {

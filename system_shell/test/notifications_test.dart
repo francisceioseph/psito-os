@@ -85,14 +85,14 @@ void main() {
 
     await tester.tap(find.byTooltip('Minimizar'));
     await tester.pump();
-    expect(find.text('Clock'), findsNothing);
+    expect(find.text('Relógio'), findsNothing);
 
     await tester.tap(_bell);
     await tester.pump();
     await tester.tap(find.descendant(of: _panel, matching: _title));
     await tester.pump();
     expect(_panel, findsNothing);
-    expect(find.text('Clock'), findsOneWidget);
+    expect(find.text('Relógio'), findsOneWidget);
   });
 
   testWidgets('clicar no painel reabre o app se a janela fechou', (
@@ -104,13 +104,13 @@ void main() {
 
     await tester.tap(find.byTooltip('Fechar'));
     await tester.pump();
-    expect(find.text('Clock'), findsNothing);
+    expect(find.text('Relógio'), findsNothing);
 
     await tester.tap(_bell);
     await tester.pump();
     await tester.tap(find.descendant(of: _panel, matching: _title));
     await tester.pump();
-    expect(find.text('Clock'), findsOneWidget);
+    expect(find.text('Relógio'), findsOneWidget);
   });
 
   testWidgets('abrir o launcher fecha o painel', (tester) async {

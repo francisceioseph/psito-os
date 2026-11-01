@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Clock
+Name[pt]=Relógio
 Exec=/usr/lib/psito/apps/org.psito.clock/psito_clock
 Icon=org.psito.clock
 StartupWMClass=org.psito.clock

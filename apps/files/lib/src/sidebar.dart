@@ -13,6 +13,8 @@ import 'package:psito_fs/psito_fs.dart';
 import 'items.dart';
 import 'tab.dart';
 
+import 'package:psito_files/l10n/l10n.dart';
+
 class Sidebar extends StatelessWidget {
   const Sidebar({super.key});
 
@@ -43,8 +45,10 @@ class Sidebar extends StatelessWidget {
                     config.addFavorite(path);
                   }
                 },
-                builder: (context, candidates, _) =>
-                    _Section('Favoritos', highlight: candidates.isNotEmpty),
+                builder: (context, candidates, _) => _Section(
+                  context.l10n.favorites,
+                  highlight: candidates.isNotEmpty,
+                ),
               ),
             ),
             SliverReorderableList(
@@ -67,11 +71,11 @@ class Sidebar extends StatelessWidget {
                       menu: [
                         PopupMenuItem(
                           onTap: () => config.removeFavorite(path),
-                          child: const Text('Remover da barra lateral'),
+                          child: Text(context.l10n.removeFromSidebar),
                         ),
                         PopupMenuItem(
                           onTap: () => controller.newTab(FolderLocation(path)),
-                          child: const Text('Abrir em nova aba'),
+                          child: Text(context.l10n.openInNewTab),
                         ),
                       ],
                     ),
@@ -79,14 +83,14 @@ class Sidebar extends StatelessWidget {
                 );
               },
             ),
-            const SliverToBoxAdapter(child: _Section('Locais')),
+            SliverToBoxAdapter(child: _Section(context.l10n.places)),
             SliverToBoxAdapter(
               child: FolderDropTarget(
                 path: '/',
                 child: _Item(
                   icon: const ['drive-harddisk', 'computer'],
                   fallback: Icons.computer_rounded,
-                  label: 'Computador',
+                  label: context.l10n.placeComputer,
                   selected: isCurrent('/'),
                   onTap: () => tab.go(const FolderLocation('/')),
                 ),
@@ -100,14 +104,14 @@ class Sidebar extends StatelessWidget {
                 builder: (context, candidates, _) => _Item(
                   icon: const ['user-trash'],
                   fallback: Icons.delete_outline_rounded,
-                  label: 'Lixeira',
+                  label: context.l10n.placeTrash,
                   selected: current is TrashLocation,
                   highlight: candidates.isNotEmpty,
                   onTap: () => tab.go(const TrashLocation()),
                   menu: [
                     PopupMenuItem(
                       onTap: controller.emptyTrashAsked,
-                      child: const Text('Esvaziar a lixeira...'),
+                      child: Text(context.l10n.emptyTrashEllipsis),
                     ),
                   ],
                 ),

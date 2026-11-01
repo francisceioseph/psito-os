@@ -54,13 +54,12 @@ class DeskItem {
 /// Um copiar ou mover da mesa em andamento.
 class _DeskJob {
   final FileJob job;
-  final String label;
   JobProgress progress = const JobProgress();
 
   /// Passou de [DeskController.jobDelay]: o que é rápido não pisca na top bar.
   bool visible = false;
 
-  _DeskJob(this.job, this.label);
+  _DeskJob(this.job);
 }
 
 /// Uma ação que o Ctrl+Z desfaz, com as células de antes dela.
@@ -254,7 +253,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         final parsed = DesktopEntry.parse(
           entry.name.substring(0, entry.name.length - '.desktop'.length),
           await File(entry.path).readAsString(),
-          locale: env['LANG'],
+          locale: state.entriesLocale,
           path: entry.path,
         );
         if (parsed != null) out[entry.name] = parsed;
@@ -292,9 +291,9 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         ? const []
         : [
             if (_settings.desktopShowHome)
-              const DeskItem(key: DeskItem.homeKey, name: 'Pasta pessoal'),
+              DeskItem(key: DeskItem.homeKey, name: state.l10n.home),
             if (_settings.desktopShowTrash)
-              const DeskItem(key: DeskItem.trashKey, name: 'Lixeira'),
+              DeskItem(key: DeskItem.trashKey, name: state.l10n.trash),
             for (final entry in _entries) _itemFor(entry),
           ];
     _arrange();
@@ -505,7 +504,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       final (_, undo) = await renameEntry(entry.path, name);
       _pushUndo(undo, _cellsOf([key]));
     } on Exception catch (e) {
-      _warn('Sem como renomear', _message(e));
+      _warn(state.l10n.cantRename, _message(e));
       return;
     }
     // Antes do reload: o nome novo não pode cair na primeira célula livre
@@ -520,12 +519,12 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       final text = await file.readAsString();
       await file.writeAsString(renamedDeskShortcut(text, name));
       _pushUndo(
-        FsUndo('Renomear', () async {
+        FsUndo(FsAction.rename, () async {
           await file.writeAsString(text);
         }),
       );
     } on FileSystemException catch (e) {
-      _warn('Sem como renomear', e.message);
+      _warn(state.l10n.cantRename, e.message);
     }
     await reload();
   }
@@ -538,10 +537,14 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     final String path;
     try {
       final FsUndo undo;
-      (path, undo) = await createFolder(dir, trash: state.dockUi.trash);
+      (path, undo) = await createFolder(
+        dir,
+        name: state.filesUi.newFolderName,
+        trash: state.dockUi.trash,
+      );
       _pushUndo(undo);
     } on Exception catch (e) {
-      _warn('Sem como criar a pasta', _message(e));
+      _warn(state.l10n.cantCreateFolder, _message(e));
       return;
     }
     await _placeAt(baseName(path), at);
@@ -563,7 +566,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       final (_, undo) = await trashEntries(trash, paths);
       _pushUndo(undo, cells);
     } on Exception catch (e) {
-      _warn('Sem como mover para a lixeira', _message(e));
+      _warn(state.l10n.cantTrash, _message(e));
     }
     await reload();
   }
@@ -571,7 +574,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   // Desfazer
 
   bool get canUndo => _undo.isNotEmpty;
-  String? get undoLabel => _undo.lastOrNull?.undo.label;
+  String? get undoLabel => switch (_undo.lastOrNull) {
+    final last? => state.filesUi.fsAction(last.undo.action),
+    null => null,
+  };
 
   void _pushUndo(FsUndo undo, [Map<String, DeskCell> cells = const {}]) {
     _undo.add(_DeskUndo(undo, cells));
@@ -588,7 +594,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     try {
       await last.undo.run();
     } on Exception catch (e) {
-      _warn('Sem como desfazer', _message(e));
+      _warn(state.l10n.cantUndo, _message(e));
     }
     await store.put(last.cells);
     _arriving.removeWhere((name, _) => last.cells.containsKey(name));
@@ -607,7 +613,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   ];
 
   /// O desfazer de algo novo que apareceu em [path]: vai para a lixeira.
-  FsUndo _undoCreate(String label, String path) => FsUndo(label, () async {
+  FsUndo _undoCreate(FsAction action, String path) => FsUndo(action, () async {
     if (FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound) {
       await state.dockUi.trash?.trash(path);
     }
@@ -679,7 +685,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       clip.cut ? JobKind.move : JobKind.copy,
       sources,
       dir,
-      failure: 'Sem como colar',
+      failure: state.l10n.cantPaste,
     );
   }
 
@@ -696,12 +702,18 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         ? _cellsOf(_namesHere(sources))
         : const <String, DeskCell>{};
     final result = await _track(
-      FileJob.start(kind, sources, destination: folder),
-      kind == JobKind.move ? 'Movendo' : 'Copiando',
+      FileJob.start(
+        kind,
+        sources,
+        destination: folder,
+        copyWord: state.filesUi.copyWord,
+      ),
     );
     // O dispose cancela os trabalhos, e este volta depois dele
     if (_disposed) return;
-    if (result.errors.isNotEmpty) _warn(failure, result.errors.join('\n'));
+    if (result.errors.isNotEmpty) {
+      _warn(failure, state.filesUi.fsErrors(result.errors));
+    }
     final trash = state.dockUi.trash;
     if (result.done.isNotEmpty && trash != null) {
       _pushUndo(FileJob.undoFor(kind, result, trash), left);
@@ -719,8 +731,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   }
 
   /// Acompanha [job] na top bar até terminar.
-  Future<JobResult> _track(FileJob job, String label) async {
-    final running = _DeskJob(job, label);
+  Future<JobResult> _track(FileJob job) async {
+    final running = _DeskJob(job);
     _jobs.add(running);
     final delay = Timer(jobDelay, () {
       running.visible = true;
@@ -748,9 +760,11 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     }
     final p = first.progress;
     final what = p.current == null ? '' : ' "${p.current}"';
-    final more = visible.length > 1 ? ' (e mais ${visible.length - 1})' : '';
+    final more = visible.length > 1
+        ? ' ${state.l10n.transferMore(visible.length - 1)}'
+        : '';
     state.deskTransfer.value = TransferStatus(
-      '${first.label}$what$more',
+      '${state.filesUi.jobLabel(first.job.kind)}$what$more',
       p.totalItems == 0 ? null : p.fraction,
     );
   }
@@ -800,7 +814,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (moved.isEmpty) return;
     final auto = _settings.desktopAutoArrange;
     _pushUndo(
-      FsUndo('Mover', () async {
+      FsUndo(FsAction.move, () async {
         if (!auto) return;
         await state.settings.update(
           state.settings.value.copyWith(desktopAutoArrange: true),
@@ -918,7 +932,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
           action == DropAction.move ? JobKind.move : JobKind.copy,
           sources,
           folder,
-          failure: 'Sem como trazer para a mesa',
+          failure: state.l10n.cantBringToDesk,
           arriving: arriving.keys.toSet(),
         ),
       );
@@ -959,10 +973,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
       await File(source).copy(path);
       await _trust(path);
     } on Exception catch (e) {
-      _warn('Sem como criar o atalho', '$e');
+      _warn(state.l10n.cantCreateShortcut, '$e');
       return;
     }
-    _pushUndo(_undoCreate('Criar atalho', path));
+    _pushUndo(_undoCreate(FsAction.createShortcut, path));
     await _placeAt(name, at);
     await reload();
     _selection.only(name);
@@ -984,7 +998,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (dir == null) return;
     final name = uniqueName(
       dir,
-      template == null ? 'Novo documento.txt' : baseName(template),
+      template == null ? state.l10n.newDocumentFile : baseName(template),
     );
     final path = joinPath(dir, name);
     try {
@@ -994,10 +1008,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         await File(template).copy(path);
       }
     } on FileSystemException catch (e) {
-      _warn('Sem como criar o documento', e.message);
+      _warn(state.l10n.cantCreateDocument, e.message);
       return;
     }
-    _pushUndo(_undoCreate('Novo documento', path));
+    _pushUndo(_undoCreate(FsAction.newDocument, path));
     await _placeAt(name, at);
     await reload();
     startRename(name);
@@ -1007,7 +1021,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   /// vêm primeiro. Por nome, vale o que a mesa mostra: o `Name=` de um atalho, e
   /// não o nome do arquivo.
   void arrangeBy(FsSortKey key) {
-    _pushUndo(FsUndo('Organizar', () async {}), {..._cells});
+    _pushUndo(FsUndo(FsAction.arrange, () async {}), {..._cells});
     final fixed = [
       for (final item in _items)
         if (item.entry == null) item.key,
@@ -1035,7 +1049,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
 
   /// "Limpar": tira os buracos, na ordem em que estão.
   void cleanUp() {
-    _pushUndo(FsUndo('Limpar', () async {}), {..._cells});
+    _pushUndo(FsUndo(FsAction.cleanUp, () async {}), {..._cells});
     _pack(deskOrder(_cells));
   }
 
@@ -1054,17 +1068,21 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (path == null || preview == null) return;
     unawaited(
       preview(path).catchError((Object e) {
-        _warn('Sem como pré-visualizar', '$e');
+        _warn(state.l10n.cantPreview, '$e');
       }),
     );
   }
 
-  String _message(Exception e) => e is FsError ? e.message : '$e';
+  String _message(Exception e) =>
+      e is FsError ? state.filesUi.fsError(e) : '$e';
 
   void _settingsChanged() {
     final old = _settings, now = state.settings.value;
     _settings = now;
-    if (old.desktopShowIcons != now.desktopShowIcons ||
+    if (old.language != now.language) {
+      // Os atalhos têm o nome no idioma, e as células ficam
+      unawaited(reload());
+    } else if (old.desktopShowIcons != now.desktopShowIcons ||
         old.desktopShowHome != now.desktopShowHome ||
         old.desktopShowTrash != now.desktopShowTrash ||
         old.desktopAutoArrange != now.desktopAutoArrange) {
@@ -1099,7 +1117,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     if (open == null) return;
     unawaited(
       open([path], withApp: withApp).catchError((Object e) {
-        _warn('Sem como abrir', '$e');
+        _warn(state.l10n.cantOpen, '$e');
       }),
     );
   }
@@ -1109,7 +1127,10 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   Future<void> _openShortcut(DeskItem item, DesktopEntry shortcut) async {
     final path = item.entry!.path;
     if (item.broken) {
-      _warn('Atalho quebrado', 'O programa de "${item.name}" não existe mais.');
+      _warn(
+        state.l10n.shortcutBroken,
+        state.l10n.shortcutBrokenBody(item.name),
+      );
     } else if (deskShortcutTrusted(item.entry!) &&
         (await Process.run('test', ['-O', path])).exitCode == 0) {
       await _launchShortcut(shortcut);
@@ -1125,7 +1146,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     try {
       await _trust(path);
     } on FileSystemException catch (e) {
-      _warn('Sem como confiar no atalho', e.message);
+      _warn(state.l10n.cantTrust, e.message);
       return;
     }
     await reload();
@@ -1154,9 +1175,9 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     );
     final item = key == null ? null : _item(key);
     if (item == null) {
-      _showMenu('Área de trabalho', at, _deskMenu(clip, at));
+      _showMenu(state.l10n.desktop, at, _deskMenu(clip, at));
     } else if (selected.length > 1) {
-      _showMenu('${selected.length} itens', at, _selectionMenu());
+      _showMenu(state.l10n.itemCount(selected.length), at, _selectionMenu());
     } else {
       _showMenu(item.name, at, _itemMenu(item, at));
     }
@@ -1172,43 +1193,43 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     final auto = _settings.desktopAutoArrange;
     final terminal = _terminal;
     return [
-      DockMenuItem('Nova pasta', () => unawaited(newFolder(at: at))),
+      DockMenuItem(state.l10n.newFolder, () => unawaited(newFolder(at: at))),
       DockMenuItem(
-        'Novo documento…',
+        state.l10n.newDocumentEllipsis,
         () => unawaited(_templatesMenu(at)),
         keepsOpen: true,
       ),
       DockMenuItem(
-        count > 1 ? 'Colar $count itens' : 'Colar',
+        count > 1 ? state.l10n.pasteItems(count) : state.l10n.paste,
         () => unawaited(paste()),
         enabled: count > 0,
       ),
       DockMenuItem(
-        canUndo ? 'Desfazer $undoLabel' : 'Desfazer',
+        canUndo ? state.filesUi.undoAction(undoLabel!) : state.l10n.undo,
         () => unawaited(undo()),
         enabled: canUndo,
       ),
       DockMenuItem(
-        'Organizar por…',
+        state.l10n.arrangeBy,
         () => _arrangeMenu(at),
         keepsOpen: true,
         separated: true,
         enabled: !auto,
       ),
-      DockMenuItem('Limpar', cleanUp, enabled: !auto),
+      DockMenuItem(state.l10n.cleanUp, cleanUp, enabled: !auto),
       DockMenuItem(
-        'Abrir no Files',
+        state.l10n.openInFiles,
         () => _openPath(dir ?? home),
         separated: true,
       ),
       if (terminal != null)
         DockMenuItem(
-          'Abrir o terminal aqui',
+          state.l10n.openTerminalHere,
           () => unawaited(terminal.launch(workingDirectory: dir ?? home)),
         ),
       if (state.installed('org.psito.settings') case final settings?)
         DockMenuItem(
-          'Mudar o papel de parede',
+          state.l10n.changeWallpaper,
           () => unawaited(
             settings.launch(
               sandbox: state.sandbox,
@@ -1231,11 +1252,11 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     return null;
   }
 
-  void _arrangeMenu(Offset at) => _showMenu('Organizar por', at, [
-    DockMenuItem('Nome', () => arrangeBy(FsSortKey.name)),
-    DockMenuItem('Tipo', () => arrangeBy(FsSortKey.kind)),
-    DockMenuItem('Data', () => arrangeBy(FsSortKey.modified)),
-    DockMenuItem('Tamanho', () => arrangeBy(FsSortKey.size)),
+  void _arrangeMenu(Offset at) => _showMenu(state.l10n.arrangeByTitle, at, [
+    DockMenuItem(state.l10n.sortName, () => arrangeBy(FsSortKey.name)),
+    DockMenuItem(state.l10n.sortKind, () => arrangeBy(FsSortKey.kind)),
+    DockMenuItem(state.l10n.sortDate, () => arrangeBy(FsSortKey.modified)),
+    DockMenuItem(state.l10n.sortSize, () => arrangeBy(FsSortKey.size)),
   ]);
 
   /// Os modelos da pasta `TEMPLATES`, como no GNOME.
@@ -1254,8 +1275,11 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
         debugPrint('🦜 mesa: sem os modelos de $dir ($e)');
       }
     }
-    _showMenu('Novo documento', at, [
-      DockMenuItem('Documento vazio', () => unawaited(newDocument(at: at))),
+    _showMenu(state.l10n.newDocument, at, [
+      DockMenuItem(
+        state.l10n.emptyDocument,
+        () => unawaited(newDocument(at: at)),
+      ),
       for (final (i, template) in templates.indexed)
         DockMenuItem(
           splitExtension(template.name).$1,
@@ -1268,50 +1292,56 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   /// O que vale para vários itens.
   List<DockMenuItem> _selectionMenu() => [
     DockMenuItem(
-      'Abrir',
+      state.l10n.open,
       () => deskOrder(_cells).where(selected.contains).forEach(open),
     ),
     ..._fileActions(),
   ];
 
   List<DockMenuItem> _fileActions() => [
-    DockMenuItem('Copiar', copySelected, separated: true),
-    DockMenuItem('Recortar', () => copySelected(cut: true)),
-    DockMenuItem('Mover para a lixeira', () => unawaited(trashSelected())),
+    DockMenuItem(state.l10n.copy, copySelected, separated: true),
+    DockMenuItem(state.l10n.cut, () => copySelected(cut: true)),
+    DockMenuItem(state.l10n.moveToTrash, () => unawaited(trashSelected())),
   ];
 
   List<DockMenuItem> _itemMenu(DeskItem item, Offset at) {
     if (item.key == DeskItem.trashKey) {
       return [
-        DockMenuItem('Abrir', () => open(item.key)),
+        DockMenuItem(state.l10n.open, () => open(item.key)),
         if (state.dockUi.trashFull.value)
           DockMenuItem(
-            'Esvaziar a lixeira',
+            state.l10n.emptyTrash,
             () => state.dockUi.askEmptyTrash.value = true,
           ),
       ];
     }
     final entry = item.entry;
-    if (entry == null) return [DockMenuItem('Abrir', () => open(item.key))];
+    if (entry == null) {
+      return [DockMenuItem(state.l10n.open, () => open(item.key))];
+    }
     final dockItem = _dockItem(item);
     return [
-      DockMenuItem('Abrir', () => open(item.key)),
+      DockMenuItem(state.l10n.open, () => open(item.key)),
       if (item.shortcut == null)
         DockMenuItem(
-          'Abrir com…',
+          state.l10n.openWithEllipsis,
           () => _openWithMenu(item, at, mime.typeOf(entry.path)),
           keepsOpen: true,
         ),
-      DockMenuItem('Renomear', () => startRename(item.key), separated: true),
+      DockMenuItem(
+        state.l10n.renameAction,
+        () => startRename(item.key),
+        separated: true,
+      ),
       ..._fileActions(),
       DockMenuItem(
-        'Mostrar no Files',
+        state.l10n.showInFiles,
         () => _openPath(dirName(entry.path)),
         separated: true,
       ),
       if (dockItem != null && !state.dock.contains(dockItem))
         DockMenuItem(
-          'Fixar na Dock',
+          state.l10n.pinToDock,
           () => unawaited(state.dock.pin(dockItem)),
         ),
     ];
@@ -1320,12 +1350,12 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
   void _openWithMenu(DeskItem item, Offset at, String type) {
     final path = item.entry!.path;
     final apps = state.appsForType?.call(type) ?? const <DesktopEntry>[];
-    _showMenu('Abrir com', at, [
+    _showMenu(state.l10n.openWith, at, [
       for (final app in apps)
         DockMenuItem(app.name, () => _openPath(path, withApp: app.id)),
       if (type.isNotEmpty)
         DockMenuItem(
-          'Outro…',
+          state.l10n.otherEllipsis,
           () => _openWithMenu(item, at, ''),
           keepsOpen: true,
           separated: apps.isNotEmpty,
@@ -1347,7 +1377,7 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
 
   void _warn(String title, String body) {
     state.notifications.add(
-      app: state.appFor('Área de trabalho', name: 'Área de trabalho'),
+      app: state.appFor('desktop', name: state.l10n.desktop),
       title: title,
       body: body,
     );

@@ -4,21 +4,36 @@
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
-enum _Section {
-  appearance('Aparência', Icons.palette_outlined),
-  dock('Dock', Icons.call_to_action_outlined),
-  desktop('Área de trabalho', Icons.desktop_windows_outlined),
-  dateTime('Data e hora', Icons.schedule),
-  network('Rede', Icons.lan_outlined),
-  notifications('Notificações', Icons.notifications_none),
-  power('Energia', Icons.battery_std_outlined),
-  shortcuts('Atalhos', Icons.keyboard_outlined),
-  about('Sobre', Icons.info_outline);
+import 'l10n/l10n.dart';
 
-  final String label;
+enum _Section {
+  appearance(Icons.palette_outlined),
+  dock(Icons.call_to_action_outlined),
+  desktop(Icons.desktop_windows_outlined),
+  dateTime(Icons.schedule),
+  network(Icons.lan_outlined),
+  notifications(Icons.notifications_none),
+  power(Icons.battery_std_outlined),
+  shortcuts(Icons.keyboard_outlined),
+  language(Icons.language),
+  about(Icons.info_outline);
+
   final IconData icon;
 
-  const _Section(this.label, this.icon);
+  const _Section(this.icon);
+
+  String label(SettingsLocalizations l) => switch (this) {
+    appearance => l.sectionAppearance,
+    language => l.sectionLanguage,
+    dock => l.sectionDock,
+    desktop => l.sectionDesktop,
+    dateTime => l.sectionDateTime,
+    network => l.sectionNetwork,
+    notifications => l.sectionNotifications,
+    power => l.sectionPower,
+    shortcuts => l.sectionShortcuts,
+    about => l.sectionAbout,
+  };
 }
 
 class SettingsView extends StatefulWidget {
@@ -76,7 +91,7 @@ class _SettingsViewState extends State<SettingsView> {
               padding: EdgeInsets.all(compact ? 12 : 24),
               children: [
                 Text(
-                  _section.label,
+                  _section.label(context.l10n),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -85,6 +100,7 @@ class _SettingsViewState extends State<SettingsView> {
                 const SizedBox(height: 16),
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
+                  _Section.language => _language(settings),
                   _Section.dock => _dock(settings),
                   _Section.desktop => _desktop(settings),
                   _Section.dateTime => _dateTime(settings),
@@ -120,7 +136,7 @@ class _SettingsViewState extends State<SettingsView> {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: compact
                     ? IconButton(
-                        tooltip: section.label,
+                        tooltip: section.label(context.l10n),
                         isSelected: section == _section,
                         color: section == _section ? accent : null,
                         icon: Icon(section.icon, size: 18),
@@ -135,7 +151,7 @@ class _SettingsViewState extends State<SettingsView> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         leading: Icon(section.icon, size: 18),
-                        title: Text(section.label),
+                        title: Text(section.label(context.l10n)),
                         onTap: () => setState(() => _section = section),
                       ),
               ),
@@ -146,7 +162,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   List<Widget> _appearance(PsitoSettings s) => [
-    const _Label('Cor de destaque'),
+    _Label(context.l10n.accentColor),
     Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -174,7 +190,7 @@ class _SettingsViewState extends State<SettingsView> {
       ],
     ),
     const SizedBox(height: 24),
-    const _Label('Papel de parede'),
+    _Label(context.l10n.wallpaper),
     Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -190,25 +206,25 @@ class _SettingsViewState extends State<SettingsView> {
   ];
 
   List<Widget> _dock(PsitoSettings s) => [
-    const _Label('Tamanho dos ícones'),
+    _Label(context.l10n.iconSize),
     _DockSizeSlider(
       value: s.dockIconSize,
       onChanged: (v) => _update(s.copyWith(dockIconSize: v)),
     ),
     SwitchListTile(
-      title: const Text('Ampliação'),
-      subtitle: const Text('O ícone sob o mouse cresce.'),
+      title: Text(context.l10n.magnification),
+      subtitle: Text(context.l10n.magnificationHint),
       value: s.dockMagnification,
       onChanged: (v) => _update(s.copyWith(dockMagnification: v)),
     ),
     const SizedBox(height: 16),
-    const _Label('Posição na tela'),
+    _Label(context.l10n.screenPosition),
     SegmentedButton<PsitoDockPosition>(
       segments: [
         for (final position in PsitoDockPosition.values)
           ButtonSegment(
             value: position,
-            label: Text(position.label),
+            label: Text(position.label(SdkLocalizations.of(context))),
             icon: Icon(switch (position) {
               PsitoDockPosition.bottom => Icons.border_bottom,
               PsitoDockPosition.left => Icons.border_left,
@@ -223,10 +239,8 @@ class _SettingsViewState extends State<SettingsView> {
     ),
     const SizedBox(height: 8),
     SwitchListTile(
-      title: const Text('Ocultar automaticamente'),
-      subtitle: const Text(
-        'A dock some e volta quando o ponteiro encosta na borda.',
-      ),
+      title: Text(context.l10n.autoHide),
+      subtitle: Text(context.l10n.autoHideHint),
       value: s.dockAutoHide,
       onChanged: (v) => _update(s.copyWith(dockAutoHide: v)),
     ),
@@ -234,43 +248,37 @@ class _SettingsViewState extends State<SettingsView> {
 
   List<Widget> _desktop(PsitoSettings s) => [
     SwitchListTile(
-      title: const Text('Mostrar os ícones'),
-      subtitle: const Text('Os arquivos da pasta Área de Trabalho, na mesa.'),
+      title: Text(context.l10n.desktopShowIcons),
+      subtitle: Text(context.l10n.desktopShowIconsHint),
       value: s.desktopShowIcons,
       onChanged: (v) => _update(s.copyWith(desktopShowIcons: v)),
     ),
     if (s.desktopShowIcons) ...[
       const SizedBox(height: 16),
-      const _Label('Tamanho dos ícones'),
+      _Label(context.l10n.iconSize),
       _DockSizeSlider(
         value: s.desktopIconSize,
         onChanged: (v) => _update(s.copyWith(desktopIconSize: v)),
       ),
       SwitchListTile(
-        title: const Text('Pasta pessoal'),
+        title: Text(context.l10n.desktopHome),
         value: s.desktopShowHome,
         onChanged: (v) => _update(s.copyWith(desktopShowHome: v)),
       ),
       SwitchListTile(
-        title: const Text('Lixeira'),
+        title: Text(context.l10n.desktopTrash),
         value: s.desktopShowTrash,
         onChanged: (v) => _update(s.copyWith(desktopShowTrash: v)),
       ),
       SwitchListTile(
-        title: const Text('Organizar automaticamente'),
-        subtitle: const Text(
-          'Os ícones ficam em ordem de nome, sem buracos. Mover um ícone '
-          'desliga, para ele ficar onde foi solto.',
-        ),
+        title: Text(context.l10n.desktopAutoArrange),
+        subtitle: Text(context.l10n.desktopAutoArrangeHint),
         value: s.desktopAutoArrange,
         onChanged: (v) => _update(s.copyWith(desktopAutoArrange: v)),
       ),
       SwitchListTile(
-        title: const Text('Canto para mostrar a área de trabalho'),
-        subtitle: const Text(
-          'Levar o ponteiro ao canto de cima à direita da tela minimiza as '
-          'janelas, e de novo traz elas de volta.',
-        ),
+        title: Text(context.l10n.desktopHotCorner),
+        subtitle: Text(context.l10n.desktopHotCornerHint),
         value: s.desktopHotCorner,
         onChanged: (v) => _update(s.copyWith(desktopHotCorner: v)),
       ),
@@ -279,13 +287,13 @@ class _SettingsViewState extends State<SettingsView> {
 
   List<Widget> _dateTime(PsitoSettings s) => [
     SwitchListTile(
-      title: const Text('Formato 24 horas'),
+      title: Text(context.l10n.use24h),
       subtitle: Text(s.use24h ? '16:41' : '4:41 PM'),
       value: s.use24h,
       onChanged: (v) => _update(s.copyWith(use24h: v)),
     ),
     SwitchListTile(
-      title: const Text('Mostrar segundos'),
+      title: Text(context.l10n.showSeconds),
       value: s.showSeconds,
       onChanged: (v) => _update(s.copyWith(showSeconds: v)),
     ),
@@ -294,21 +302,19 @@ class _SettingsViewState extends State<SettingsView> {
       valueListenable: widget.appContext.time,
       builder: (context, time, _) {
         if (!time.available) {
-          return const _Note(
-            'Data e hora do sistema indisponíveis (timedated)',
-          );
+          return _Note(context.l10n.timeUnavailable);
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SwitchListTile(
-              title: const Text('Ajustar automaticamente'),
+              title: Text(context.l10n.ntp),
               subtitle: Text(
                 !time.ntp
-                    ? 'Desligado'
+                    ? context.l10n.ntpOff
                     : time.ntpSynchronized
-                    ? 'Sincronizado com a internet'
-                    : 'Aguardando sincronização',
+                    ? context.l10n.ntpSynced
+                    : context.l10n.ntpWaiting,
               ),
               value: time.ntp,
               onChanged: time.canNtp ? widget.appContext.setNtp : null,
@@ -317,14 +323,14 @@ class _SettingsViewState extends State<SettingsView> {
               _timezonePicker(time.timezone)
             else
               ListTile(
-                title: const Text('Fuso horário'),
+                title: Text(context.l10n.timezone),
                 subtitle: Text(timezoneLabel(time.timezone)),
                 trailing: TextButton(
                   onPressed: () => setState(() => _pickingTimezone = true),
-                  child: const Text('Alterar'),
+                  child: Text(context.l10n.change),
                 ),
               ),
-            const _Note('Com o ajuste automático ligado, a hora vem da rede.'),
+            _Note(context.l10n.ntpHint),
           ],
         );
       },
@@ -340,16 +346,16 @@ class _SettingsViewState extends State<SettingsView> {
             Expanded(
               child: TextField(
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   prefixIcon: Icon(Icons.search, size: 18),
-                  hintText: 'Buscar fuso (ex.: sao paulo)',
+                  hintText: context.l10n.timezoneSearch,
                   isDense: true,
                 ),
                 onChanged: (q) => setState(() => _timezoneQuery = q),
               ),
             ),
             IconButton(
-              tooltip: 'Cancelar',
+              tooltip: context.l10n.cancel,
               icon: const Icon(Icons.close, size: 18),
               onPressed: () => setState(() {
                 _pickingTimezone = false;
@@ -398,27 +404,23 @@ class _SettingsViewState extends State<SettingsView> {
       valueListenable: widget.appContext.network,
       builder: (context, network, _) {
         if (!network.available) {
-          return const _Note('NetworkManager indisponível');
+          return _Note(context.l10n.networkManagerUnavailable);
         }
         if (network.devices.isEmpty) {
-          return const _Note('Nenhum dispositivo de rede');
+          return _Note(context.l10n.noNetworkDevice);
         }
         return Column(
           children: [for (final device in network.devices) _DeviceTile(device)],
         );
       },
     ),
-    const _Note(
-      'Para ligar ou desligar a rede, use o ícone de rede na barra superior.',
-    ),
+    _Note(context.l10n.networkHint),
   ];
 
   List<Widget> _notifications(PsitoSettings s) => [
     SwitchListTile(
-      title: const Text('Não perturbe'),
-      subtitle: const Text(
-        'As notificações vão para o painel, sem aparecer na tela.',
-      ),
+      title: Text(context.l10n.doNotDisturb),
+      subtitle: Text(context.l10n.doNotDisturbHint),
       value: s.doNotDisturb,
       onChanged: (v) => _update(s.copyWith(doNotDisturb: v)),
     ),
@@ -426,10 +428,8 @@ class _SettingsViewState extends State<SettingsView> {
 
   List<Widget> _power(PsitoSettings s) => [
     SwitchListTile(
-      title: const Text('Mostrar porcentagem da bateria'),
-      subtitle: const Text(
-        'O ícone de bateria só aparece em computadores com bateria.',
-      ),
+      title: Text(context.l10n.showBatteryPercentage),
+      subtitle: Text(context.l10n.batteryHint),
       value: s.showBatteryPercentage,
       onChanged: (v) => _update(s.copyWith(showBatteryPercentage: v)),
     ),
@@ -444,10 +444,14 @@ class _SettingsViewState extends State<SettingsView> {
       },
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
       children: [
-        const TableRow(
-          children: [_Label('Ação'), _Label('Nativo'), _Label('VM')],
+        TableRow(
+          children: [
+            _Label(context.l10n.shortcutAction),
+            _Label(context.l10n.shortcutNative),
+            _Label('VM'),
+          ],
         ),
-        for (final sc in psitoShortcuts)
+        for (final sc in psitoShortcuts(SdkLocalizations.of(context)))
           TableRow(
             children: [
               _Cell(sc.action),
@@ -458,43 +462,50 @@ class _SettingsViewState extends State<SettingsView> {
       ],
     ),
     const SizedBox(height: 12),
-    const _Note(
-      'Super e Alt+Tab ficam com o sistema do computador e não chegam à VM; '
-      'por isso cada ação tem uma combinação alternativa. As duas valem ao '
-      'mesmo tempo. Em Alternar janelas, segure o modificador e aperte Tab '
-      'para escolher; Shift volta.',
-    ),
+    _Note(context.l10n.shortcutsNote),
+  ];
+
+  List<Widget> _language(PsitoSettings s) => [
+    for (final (code, label) in [
+      ('', context.l10n.languageSystem),
+      // Cada idioma com o nome dele, para quem não lê o que está na tela
+      ('en', 'English'),
+      ('pt', 'Português'),
+    ])
+      ListTile(
+        title: Text(label),
+        selected: s.language == code,
+        trailing: s.language == code ? const Icon(Icons.check, size: 18) : null,
+        onTap: () => _update(s.copyWith(language: code)),
+      ),
+    const SizedBox(height: 12),
+    _Note(context.l10n.languageNote),
   ];
 
   List<Widget> _about() => [
     const _Cell('Psito OS v0.0.1'),
-    const _Cell(
-      'Shell em Flutter como cliente Wayland do labwc, '
-      'com cada app no seu processo.',
-    ),
+    _Cell(context.l10n.aboutDescription),
     const SizedBox(height: 16),
     ValueListenableBuilder(
       valueListenable: widget.appContext.systemInfo,
       builder: (context, info, _) {
         if (!info.available) {
-          return const _Note(
-            'Informações do sistema indisponíveis (hostnamed)',
-          );
+          return _Note(context.l10n.systemInfoUnavailable);
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _InfoRow('Nome do computador', info.hostname),
-            _InfoRow('Sistema', info.osName),
+            _InfoRow(context.l10n.computerName, info.hostname),
+            _InfoRow(context.l10n.system, info.osName),
             _InfoRow('Kernel', info.kernel),
             if (info.hardware case final hardware?)
-              _InfoRow('Hardware', hardware),
+              _InfoRow(context.l10n.hardware, hardware),
           ],
         );
       },
     ),
     const SizedBox(height: 12),
-    const _Note('Configurações salvas em ~/.config/psito/settings.json'),
+    _Note(context.l10n.settingsPath),
   ];
 }
 
@@ -538,7 +549,10 @@ class _WallpaperCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(wallpaper.name, style: const TextStyle(fontSize: 12)),
+          Text(
+            wallpaper.name(SdkLocalizations.of(context)),
+            style: const TextStyle(fontSize: 12),
+          ),
         ],
       ),
     );
@@ -632,18 +646,19 @@ class _DeviceTile extends StatelessWidget {
 
   const _DeviceTile(this.device);
 
-  static String stateLabel(PsitoDeviceState state) => switch (state) {
-    PsitoDeviceState.connected => 'Conectado',
-    PsitoDeviceState.connecting => 'Conectando…',
-    PsitoDeviceState.disconnected => 'Desconectado',
-    PsitoDeviceState.unavailable => 'Sem cabo ou sinal',
-    PsitoDeviceState.other => 'Não gerenciado',
-  };
+  static String stateLabel(PsitoDeviceState state, SettingsLocalizations l) =>
+      switch (state) {
+        PsitoDeviceState.connected => l.deviceConnected,
+        PsitoDeviceState.connecting => l.deviceConnecting,
+        PsitoDeviceState.disconnected => l.deviceDisconnected,
+        PsitoDeviceState.unavailable => l.deviceUnavailable,
+        PsitoDeviceState.other => l.deviceUnmanaged,
+      };
 
   @override
   Widget build(BuildContext context) {
     final details = [
-      stateLabel(device.state),
+      stateLabel(device.state, context.l10n),
       ?device.connection,
       ?device.ipv4,
     ].join(' · ');
@@ -729,7 +744,16 @@ class SettingsApp extends PsitoApp {
   String get id => 'settings';
 
   @override
-  String get name => 'Configurações';
+  String get name => 'Settings';
+
+  @override
+  String localizedName(Locale locale) =>
+      lookupSettingsLocalizations(locale).appName;
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    SettingsLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.settings_rounded;

@@ -3,6 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 import 'package:system_shell/widgets/transfer_indicator.dart';
 
+import 'helpers.dart';
+
+import 'package:psito_sdk/psito_sdk.dart';
+
 void main() {
   Future<void> pump(
     WidgetTester tester, {
@@ -10,6 +14,9 @@ void main() {
     VoidCallback? onCancel,
   }) => tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testL10nDelegates,
+      supportedLocales: psitoLocales,
+
       home: Scaffold(
         body: TopBar(transfer: status, onCancelTransfer: onCancel),
       ),

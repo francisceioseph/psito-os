@@ -14,6 +14,8 @@ import 'dialogs.dart';
 import 'env.dart';
 import 'tab.dart';
 
+import 'package:psito_files/l10n/l10n.dart';
+
 /// Os itens do menu de [entry] (null: o fundo da pasta). [apps] são os do
 /// "Abrir com" do tipo do primeiro selecionado.
 List<Widget> contextMenu(
@@ -43,26 +45,23 @@ List<Widget> contextMenu(
     if (entry == null) {
       return [
         item(
-          'Esvaziar a lixeira...',
+          context.l10n.emptyTrashEllipsis,
           tab.items.isEmpty ? null : controller.emptyTrashAsked,
         ),
       ];
     }
     return [
-      item('Pôr de volta', () => controller.restore(paths)),
-      item(
-        'Apagar imediatamente...',
-        () => controller.deleteForeverAsked(paths),
-      ),
+      item(context.l10n.restore, () => controller.restore(paths)),
+      item(context.l10n.deleteNow, () => controller.deleteForeverAsked(paths)),
       divider,
       item(
-        'Pré-visualizar',
+        context.l10n.preview,
         () => showQuickLook(context, controller),
-        hint: 'Espaço',
+        hint: context.l10n.keySpace,
       ),
       if (selected.length == 1)
         item(
-          'Obter informações',
+          context.l10n.getInfo,
           () => showInfo(context, controller, entry),
           hint: 'Ctrl+I',
         ),
@@ -75,12 +74,12 @@ List<Widget> contextMenu(
     final clip = controller.clipboard.length;
     return [
       item(
-        'Nova pasta',
+        context.l10n.newFolder,
         inFolder ? controller.newFolder : null,
         hint: 'Ctrl+Shift+N',
       ),
       item(
-        clip == 0 ? 'Colar' : 'Colar ${clip == 1 ? '1 item' : '$clip itens'}',
+        clip == 0 ? context.l10n.paste : context.l10n.pasteItems(clip),
         inFolder && clip > 0 ? controller.paste : null,
         hint: 'Ctrl+V',
       ),
@@ -88,9 +87,9 @@ List<Widget> contextMenu(
       SubmenuButton(
         menuChildren: [
           for (final (mode, label) in [
-            (ViewMode.icons, 'Ícones'),
-            (ViewMode.list, 'Lista'),
-            (ViewMode.columns, 'Colunas'),
+            (ViewMode.icons, context.l10n.viewIcons),
+            (ViewMode.list, context.l10n.viewList),
+            (ViewMode.columns, context.l10n.viewColumns),
           ])
             item(
               tab.mode == mode ? '$label  *' : label,
@@ -99,16 +98,18 @@ List<Widget> contextMenu(
                   : () => tab.setMode(mode),
             ),
         ],
-        child: const Text('Ver como', style: TextStyle(fontSize: 12)),
+        child: Text(context.l10n.viewAs, style: TextStyle(fontSize: 12)),
       ),
       item(
-        controller.config.showHidden ? 'Esconder ocultos' : 'Mostrar ocultos',
+        controller.config.showHidden
+            ? context.l10n.hideHidden
+            : context.l10n.showHidden,
         () => controller.config.setShowHidden(!controller.config.showHidden),
         hint: 'Ctrl+H',
       ),
       if (folder != null && inFolder) ...[
         divider,
-        item('Obter informações', () {
+        item(context.l10n.getInfo, () {
           final info = FsEntry.stat(folder, controller.env.mime);
           if (info != null) showInfo(context, controller, info);
         }),
@@ -119,7 +120,7 @@ List<Widget> contextMenu(
   final single = selected.length == 1;
   final folders = selected.where((e) => e.isDirectory).toList();
   return [
-    item('Abrir', () => controller.open(selected), hint: 'Ctrl+O'),
+    item(context.l10n.open, () => controller.open(selected), hint: 'Ctrl+O'),
     if (selected.every((e) => !e.isDirectory))
       SubmenuButton(
         menuChildren: [
@@ -132,51 +133,63 @@ List<Widget> contextMenu(
               ),
               onPressed: () => controller.openWith(selected, app.id),
               child: Text(
-                app.isDefault ? '${app.name} (padrão)' : app.name,
+                app.isDefault ? context.l10n.appDefault(app.name) : app.name,
                 style: const TextStyle(fontSize: 12),
               ),
             ),
           if (apps.isNotEmpty) divider,
           item(
-            'Outro...',
+            context.l10n.other,
             () => showOpenWithOther(context, controller, selected),
           ),
         ],
-        child: const Text('Abrir com', style: TextStyle(fontSize: 12)),
+        child: Text(context.l10n.openWith, style: TextStyle(fontSize: 12)),
       ),
     if (folders.isNotEmpty)
-      item('Abrir em nova aba', () {
+      item(context.l10n.openInNewTab, () {
         for (final f in folders) {
           controller.newTab(FolderLocation(f.path));
         }
       }),
     divider,
     item(
-      'Mover para a lixeira',
+      context.l10n.moveToTrash,
       () => controller.moveToTrash(paths),
       hint: 'Del',
     ),
     divider,
     if (single)
       item(
-        'Obter informações',
+        context.l10n.getInfo,
         () => showInfo(context, controller, entry),
         hint: 'Ctrl+I',
       ),
     if (single && location is FolderLocation)
-      item('Renomear', () => tab.startRename(entry.path), hint: 'Enter'),
-    item('Duplicar', () => controller.duplicate(paths), hint: 'Ctrl+D'),
+      item(
+        context.l10n.rename,
+        () => tab.startRename(entry.path),
+        hint: 'Enter',
+      ),
     item(
-      'Pré-visualizar',
+      context.l10n.duplicate,
+      () => controller.duplicate(paths),
+      hint: 'Ctrl+D',
+    ),
+    item(
+      context.l10n.preview,
       () => showQuickLook(context, controller),
-      hint: 'Espaço',
+      hint: context.l10n.keySpace,
     ),
     divider,
-    item('Copiar', () => controller.copy(paths), hint: 'Ctrl+C'),
-    item('Recortar', () => controller.copy(paths, cut: true), hint: 'Ctrl+X'),
+    item(context.l10n.copy, () => controller.copy(paths), hint: 'Ctrl+C'),
+    item(
+      context.l10n.cut,
+      () => controller.copy(paths, cut: true),
+      hint: 'Ctrl+X',
+    ),
     if (folders.isNotEmpty) ...[
       divider,
-      item('Adicionar à barra lateral', () {
+      item(context.l10n.addToSidebar, () {
         for (final f in folders) {
           controller.config.addFavorite(f.path);
         }
@@ -184,7 +197,7 @@ List<Widget> contextMenu(
     ],
     if (location is SearchLocation && single) ...[
       divider,
-      item('Mostrar na pasta', () => controller.reveal(entry.path)),
+      item(context.l10n.showInFolder, () => controller.reveal(entry.path)),
     ],
   ];
 }

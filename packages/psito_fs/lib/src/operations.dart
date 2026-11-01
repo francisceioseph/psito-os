@@ -11,23 +11,42 @@ import 'dart:isolate';
 import 'names.dart';
 import 'trash.dart';
 
-/// O desfazer de uma operação.
-class FsUndo {
-  /// "Copiar", "Mover", "Renomear"… (o menu mostra "Desfazer <label>").
-  final String label;
-  final Future<void> Function() run;
-
-  const FsUndo(this.label, this.run);
+/// O que uma operação fez (o menu mostra "Desfazer" e a ação, na língua dele).
+enum FsAction {
+  rename,
+  newFolder,
+  newDocument,
+  createShortcut,
+  trash,
+  copy,
+  move,
+  duplicate,
+  arrange,
+  cleanUp,
 }
 
-/// Um erro que o Files mostra como está.
-class FsError implements Exception {
-  final String message;
+/// O desfazer de uma operação.
+class FsUndo {
+  final FsAction action;
+  final Future<void> Function() run;
 
-  const FsError(this.message);
+  const FsUndo(this.action, this.run);
+}
+
+/// Um erro para mostrar a quem usa, com [kind] para traduzir.
+class FsError implements Exception {
+  final FsErrorKind kind;
+
+  /// O item em questão.
+  final String name;
+
+  /// A mensagem do sistema, em [FsErrorKind.system].
+  final String detail;
+
+  const FsError(this.kind, {this.name = '', this.detail = ''});
 
   @override
-  String toString() => message;
+  String toString() => 'FsError(${kind.name}, $name, $detail)';
 }
 
 FileSystemEntityType _type(String path) =>
@@ -70,7 +89,7 @@ Future<void> _rename(String from, String to) async {
     case FileSystemEntityType.link:
       await Link(from).rename(to);
     case FileSystemEntityType.notFound:
-      throw FileSystemException('não existe', from);
+      throw FileSystemException('not found', from);
     default:
       await File(from).rename(to);
   }
@@ -78,36 +97,36 @@ Future<void> _rename(String from, String to) async {
 
 /// Renomeia o item. O desfazer volta o nome.
 Future<(String, FsUndo)> renameEntry(String path, String newName) async {
-  if (invalidName(newName) case final reason?) throw FsError(reason);
+  if (invalidName(newName) case final kind?) throw FsError(kind);
   final target = joinPath(dirName(path), newName);
-  if (target == path) return (path, FsUndo('Renomear', () async {}));
+  if (target == path) return (path, FsUndo(FsAction.rename, () async {}));
   // Só a caixa mudou ("foto" para "Foto"): o rename resolve
   if (_exists(target) && target.toLowerCase() != path.toLowerCase()) {
-    throw FsError('Já existe um item chamado "$newName".');
+    throw FsError(FsErrorKind.nameTaken, name: newName);
   }
   await _rename(path, target);
   return (
     target,
-    FsUndo('Renomear', () async {
+    FsUndo(FsAction.rename, () async {
       if (!_exists(path)) await _rename(target, path);
     }),
   );
 }
 
-/// Cria uma pasta com o primeiro nome livre ("Nova pasta", "Nova pasta 2").
+/// Cria uma pasta com o primeiro nome livre ([name], "[name] 2").
 /// O desfazer apaga a pasta se ela ainda estiver vazia, ou manda para a
 /// lixeira.
 Future<(String, FsUndo)> createFolder(
   String dir, {
-  String name = 'Nova pasta',
+  required String name,
   Trash? trash,
 }) async {
-  if (invalidName(name) case final reason?) throw FsError(reason);
+  if (invalidName(name) case final kind?) throw FsError(kind);
   final path = joinPath(dir, uniqueName(dir, name, isDirectory: true));
   await Directory(path).create();
   return (
     path,
-    FsUndo('Nova pasta', () async {
+    FsUndo(FsAction.newFolder, () async {
       final folder = Directory(path);
       if (!await folder.exists()) return;
       if (await folder.list().isEmpty) {
@@ -130,7 +149,7 @@ Future<(List<TrashItem>, FsUndo)> trashEntries(
   }
   return (
     items,
-    FsUndo('Mover para a lixeira', () async {
+    FsUndo(FsAction.trash, () async {
       for (final item in items.reversed) {
         if (_exists(item.path)) await trash.restore(item);
       }
@@ -141,13 +160,13 @@ Future<(List<TrashItem>, FsUndo)> trashEntries(
 // Copiar, mover e duplicar
 
 enum JobKind {
-  copy('Copiar'),
-  move('Mover'),
-  duplicate('Duplicar');
+  copy(FsAction.copy),
+  move(FsAction.move),
+  duplicate(FsAction.duplicate);
 
-  final String label;
+  final FsAction action;
 
-  const JobKind(this.label);
+  const JobKind(this.action);
 }
 
 /// Se [paths] estão todos no mesmo disco que [dir]. Sem como saber, não: quem
@@ -226,7 +245,7 @@ class JobResult {
   /// Cada item que foi, com onde ficou.
   final List<(String, String)> done;
   final bool cancelled;
-  final List<String> errors;
+  final List<FsError> errors;
 
   const JobResult({
     this.done = const [],
@@ -245,6 +264,7 @@ class FileJob {
   /// A pasta para onde vão (na duplicata, a pasta de cada um).
   final String? destination;
   final ConflictHandler? onConflict;
+  final String copyWord;
 
   final _progress = StreamController<JobProgress>.broadcast();
   final _result = Completer<JobResult>();
@@ -252,18 +272,25 @@ class FileJob {
   bool _cancelRequested = false;
   JobProgress _last = const JobProgress();
 
-  FileJob._(this.kind, this.sources, this.destination, this.onConflict);
+  FileJob._(
+    this.kind,
+    this.sources,
+    this.destination,
+    this.onConflict,
+    this.copyWord,
+  );
 
   static FileJob start(
     JobKind kind,
     List<String> sources, {
     String? destination,
     ConflictHandler? onConflict,
+    String copyWord = 'copy',
   }) {
     if (kind != JobKind.duplicate && destination == null) {
-      throw ArgumentError('falta a pasta de destino');
+      throw ArgumentError('missing destination');
     }
-    final job = FileJob._(kind, sources, destination, onConflict);
+    final job = FileJob._(kind, sources, destination, onConflict, copyWord);
     unawaited(job._run());
     return job;
   }
@@ -283,18 +310,24 @@ class FileJob {
     try {
       await Isolate.spawn(
         _jobMain,
-        _JobStart(port.sendPort, kind.index, sources, destination),
+        _JobStart(port.sendPort, kind.index, sources, destination, copyWord),
         onExit: exit.sendPort,
       );
     } on Object catch (e) {
       port.close();
       exit.close();
-      _finish(JobResult(errors: ['$e']));
+      _finish(JobResult(errors: [FsError(FsErrorKind.system, detail: '$e')]));
       return;
     }
     exit.listen((_) {
       // O Isolate saiu sem o "done" (um erro fora dos try)
-      if (!_result.isCompleted) _finish(const JobResult(errors: ['falhou']));
+      if (!_result.isCompleted) {
+        _finish(
+          const JobResult(
+            errors: [FsError(FsErrorKind.system, detail: 'failed')],
+          ),
+        );
+      }
       port.close();
       exit.close();
     });
@@ -338,7 +371,7 @@ class FileJob {
                   ((pair as List)[0] as String, pair[1] as String),
               ],
               cancelled: list[2] as bool,
-              errors: (list[3] as List).cast<String>(),
+              errors: (list[3] as List).cast<FsError>(),
             ),
           );
           port.close();
@@ -355,7 +388,7 @@ class FileJob {
   /// O desfazer do que o trabalho fez: a cópia e a duplicata vão para a
   /// lixeira, e o que foi movido volta (se o lugar de antes estiver livre).
   static FsUndo undoFor(JobKind kind, JobResult result, Trash trash) =>
-      FsUndo(kind.label, () async {
+      FsUndo(kind.action, () async {
         for (final (source, target) in result.done.reversed) {
           if (!_exists(target)) continue;
           if (kind == JobKind.move) {
@@ -375,8 +408,15 @@ class _JobStart {
   final int kind;
   final List<String> sources;
   final String? destination;
+  final String copyWord;
 
-  const _JobStart(this.port, this.kind, this.sources, this.destination);
+  const _JobStart(
+    this.port,
+    this.kind,
+    this.sources,
+    this.destination,
+    this.copyWord,
+  );
 }
 
 class _Cancelled implements Exception {}
@@ -392,7 +432,9 @@ class _Job {
   int _nextConflict = 0;
   ConflictChoice? forAll;
 
-  _Job(this.port);
+  final String copyWord;
+
+  _Job(this.port, this.copyWord);
 
   void checkCancel() {
     if (cancelled) throw _Cancelled();
@@ -445,7 +487,7 @@ class _Job {
 
 Future<void> _jobMain(_JobStart start) async {
   final control = ReceivePort();
-  final job = _Job(start.port);
+  final job = _Job(start.port, start.copyWord);
   control.listen((message) {
     final list = message as List;
     switch (list[0]) {
@@ -469,7 +511,7 @@ Future<void> _jobMain(_JobStart start) async {
   start.port.send(['control', control.sendPort]);
   final kind = JobKind.values[start.kind];
   final done = <List<String>>[];
-  final errors = <String>[];
+  final errors = <FsError>[];
   try {
     // A soma do que vai, para o progresso. Mover no mesmo disco não copia
     // bytes: aí vale a contagem dos itens
@@ -489,9 +531,15 @@ Future<void> _jobMain(_JobStart start) async {
         final target = await _transfer(kind, source, start.destination, job);
         if (target != null) done.add([source, target]);
       } on FileSystemException catch (e) {
-        errors.add('${baseName(source)}: ${e.osError?.message ?? e.message}');
+        errors.add(
+          FsError(
+            FsErrorKind.system,
+            name: baseName(source),
+            detail: e.osError?.message ?? e.message,
+          ),
+        );
       } on FsError catch (e) {
-        errors.add(e.message);
+        errors.add(e);
       }
     }
   } on _Cancelled {
@@ -536,7 +584,7 @@ Future<String?> _transfer(
 ) async {
   final sourceType = _type(source);
   if (sourceType == FileSystemEntityType.notFound) {
-    throw FileSystemException('não existe', source);
+    throw FileSystemException('not found', source);
   }
   final isDir = sourceType == FileSystemEntityType.directory;
   final name = baseName(source);
@@ -545,11 +593,16 @@ Future<String?> _transfer(
   var targetName = name;
   if (kind == JobKind.duplicate) {
     dir = dirName(source);
-    targetName = copyName(dir, name, isDirectory: isDir);
+    targetName = copyName(
+      dir,
+      name,
+      isDirectory: isDir,
+      copyWord: job.copyWord,
+    );
   } else {
     dir = destination!;
     if (isDir && isWithin(source, dir)) {
-      throw FsError('"$name" não pode ir para dentro dela mesma.');
+      throw FsError(FsErrorKind.intoItself, name: name);
     }
   }
   var target = joinPath(dir, targetName);
@@ -574,12 +627,12 @@ Future<String?> _transfer(
         target = joinPath(
           dir,
           target == source
-              ? copyName(dir, name, isDirectory: isDir)
+              ? copyName(dir, name, isDirectory: isDir, copyWord: job.copyWord)
               : uniqueName(dir, name, isDirectory: isDir),
         );
       case ConflictChoice.replace:
         if (isWithin(target, source)) {
-          throw FsError('"$name" não pode substituir a pasta em que está.');
+          throw FsError(FsErrorKind.replacesParent, name: name);
         }
         await deleteEntity(target);
     }
@@ -632,7 +685,7 @@ Future<void> _copyTree(String from, String to, _Job? job) async {
     case FileSystemEntityType.file:
       await _copyFile(from, to, job);
     default:
-      throw FileSystemException('tipo de arquivo que não dá para copiar', from);
+      throw FileSystemException('file type cannot be copied', from);
   }
   job?.addItem();
 }

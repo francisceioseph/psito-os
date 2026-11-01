@@ -52,18 +52,24 @@ Future<void> _openMenu(WidgetTester tester) async {
 void main() {
   test('formatDuration', () {
     expect(
-      BatteryIndicator.formatDuration(const Duration(seconds: 45)),
+      BatteryIndicator.formatDuration(testL10n, const Duration(seconds: 45)),
       'menos de 1 min',
     );
     expect(
-      BatteryIndicator.formatDuration(const Duration(minutes: 40)),
+      BatteryIndicator.formatDuration(testL10n, const Duration(minutes: 40)),
       '40 min',
     );
     expect(
-      BatteryIndicator.formatDuration(const Duration(hours: 3, minutes: 20)),
+      BatteryIndicator.formatDuration(
+        testL10n,
+        const Duration(hours: 3, minutes: 20),
+      ),
       '3 h 20 min',
     );
-    expect(BatteryIndicator.formatDuration(const Duration(hours: 2)), '2 h');
+    expect(
+      BatteryIndicator.formatDuration(testL10n, const Duration(hours: 2)),
+      '2 h',
+    );
   });
 
   testWidgets('a bateria some sem bateria e segue o estado', (tester) async {

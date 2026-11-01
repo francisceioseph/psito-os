@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Configurações
+Name=Settings
+Name[pt]=Configurações
 Exec=/usr/lib/psito/apps/org.psito.settings/psito_settings
 Icon=org.psito.settings
 StartupWMClass=org.psito.settings

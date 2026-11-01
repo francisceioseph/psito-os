@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import '../shell/clipboard_history.dart';
 import 'top_bar.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 IconData _iconFor(ClipKind kind) => switch (kind) {
   ClipKind.text => Icons.notes_rounded,
   ClipKind.image => Icons.image_outlined,
@@ -30,8 +32,8 @@ class ClipboardIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
     message: count == 0
-        ? 'Área de transferência'
-        : 'Área de transferência: $count ${count == 1 ? 'item' : 'itens'}',
+        ? context.l10n.clipboardTitle
+        : context.l10n.clipboardTooltip(count),
     child: Material(
       color: Colors.transparent,
       child: InkWell(
@@ -90,11 +92,10 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
   }
 
   String _age(ClipEntry entry) {
-    final minutes = widget.history
-        .now()
-        .difference(entry.copiedAt)
-        .inMinutes;
-    return minutes == 0 ? 'agora' : 'há $minutes min';
+    final minutes = widget.history.now().difference(entry.copiedAt).inMinutes;
+    return minutes == 0
+        ? context.l10n.timeNow
+        : context.l10n.timeMinutesAgo(minutes);
   }
 
   void _pick(int index) {
@@ -156,9 +157,9 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
               padding: const EdgeInsets.fromLTRB(16, 2, 8, 6),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Área de transferência',
+                      context.l10n.clipboardTitle,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -168,8 +169,8 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
                   if (entries.isNotEmpty)
                     TextButton(
                       onPressed: widget.history.clear,
-                      child: const Text(
-                        'Limpar',
+                      child: Text(
+                        context.l10n.clear,
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
@@ -177,10 +178,10 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
               ),
             ),
             if (entries.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, 14),
                 child: Text(
-                  'Nada copiado nos últimos 15 minutos.',
+                  context.l10n.clipboardEmpty,
                   style: TextStyle(fontSize: 12, color: Colors.white54),
                 ),
               ),
@@ -219,7 +220,7 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.preview,
+                  entry.text(context.l10n),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13),
@@ -234,7 +235,7 @@ class _ClipboardPanelState extends State<ClipboardPanel> {
           ),
           const SizedBox(width: 12),
           Tooltip(
-            message: 'ou Super+${index + 1}',
+            message: context.l10n.orShortcut('Super+${index + 1}'),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
@@ -276,7 +277,7 @@ class ClipboardOsd extends StatelessWidget {
               const SizedBox(width: 14),
               Flexible(
                 child: Text(
-                  'Copiado: ${entry.preview}',
+                  context.l10n.copied(entry.text(context.l10n)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, color: Colors.white70),

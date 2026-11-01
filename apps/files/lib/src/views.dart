@@ -17,6 +17,8 @@ import 'format.dart';
 import 'items.dart';
 import 'tab.dart';
 
+import 'package:psito_files/l10n/l10n.dart';
+
 /// O conteúdo da aba no modo dela, ou o estado (carregando, erro, vazia).
 class FolderContent extends StatelessWidget {
   final FilesTab tab;
@@ -31,10 +33,10 @@ class FolderContent extends StatelessWidget {
       return _Background(
         tab: tab,
         child: _Message(switch (tab.location) {
-          TrashLocation() => 'A lixeira está vazia.',
-          SearchLocation() when tab.searching => 'Buscando...',
-          SearchLocation() => 'Nada encontrado.',
-          FolderLocation() => 'Esta pasta está vazia.',
+          TrashLocation() => context.l10n.emptyTrashFolder,
+          SearchLocation() when tab.searching => context.l10n.searching,
+          SearchLocation() => context.l10n.nothingFound,
+          FolderLocation() => context.l10n.emptyFolder,
         }),
       );
     }
@@ -444,12 +446,17 @@ class _Header extends StatelessWidget {
         _ListColumn.where => null,
       };
       final label = switch (c) {
-        _ListColumn.name => 'Nome',
+        _ListColumn.name => context.l10n.sortName,
         _ListColumn.modified =>
-          tab.location is TrashLocation ? 'Apagado em' : 'Modificado',
-        _ListColumn.size => 'Tamanho',
-        _ListColumn.kind => 'Tipo',
-        _ListColumn.where => tab.location is TrashLocation ? 'Saiu de' : 'Onde',
+          tab.location is TrashLocation
+              ? context.l10n.deletedAt
+              : context.l10n.modified,
+        _ListColumn.size => context.l10n.size,
+        _ListColumn.kind => context.l10n.kind,
+        _ListColumn.where =>
+          tab.location is TrashLocation
+              ? context.l10n.wherefrom
+              : context.l10n.where,
       };
       final active = key != null && sort.key == key;
       final text = InkWell(
@@ -582,11 +589,11 @@ class _ListRow extends StatelessWidget {
         ),
         _ListColumn.modified => text(
           trashItem?.deletedAt != null
-              ? formatLocalDate(trashItem!.deletedAt!, now)
-              : formatDate(entry.modified, now),
+              ? formatLocalDate(context.l10n, trashItem!.deletedAt!, now)
+              : formatDate(context.l10n, entry.modified, now),
         ),
         _ListColumn.size => text(
-          entry.isDirectory ? '--' : formatSize(entry.size),
+          entry.isDirectory ? '--' : formatSize(context.l10n, entry.size),
         ),
         _ListColumn.kind => text(env.describe(entry.mimeType)),
         _ListColumn.where => text(
@@ -898,10 +905,16 @@ class PreviewPane extends StatelessWidget {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          line('Tipo', env.describe(entry.mimeType)),
-          line('Tamanho', formatSize(entry.size)),
-          line('Modificado', formatDate(entry.modified, now)),
-          line('Acessado', formatDate(entry.accessed, now)),
+          line(context.l10n.kind, env.describe(entry.mimeType)),
+          line(context.l10n.size, formatSize(context.l10n, entry.size)),
+          line(
+            context.l10n.modified,
+            formatDate(context.l10n, entry.modified, now),
+          ),
+          line(
+            context.l10n.accessed,
+            formatDate(context.l10n, entry.accessed, now),
+          ),
         ],
       ),
     );

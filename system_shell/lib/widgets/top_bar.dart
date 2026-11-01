@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'package:psito_services/audio_service.dart';
@@ -9,6 +10,8 @@ import 'clipboard_panel.dart';
 import 'network_indicator.dart';
 import 'transfer_indicator.dart';
 import 'volume_indicator.dart';
+
+import 'package:system_shell/l10n/l10n.dart';
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   /// Botão do Menu Psito: abre e fecha o launcher.
@@ -120,7 +123,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                         Icon(Icons.flutter_dash, size: 20, color: accent),
                         const SizedBox(width: 6),
                         Text(
-                          'Menu',
+                          context.l10n.menu,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -183,9 +186,10 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 builder: (context, snapshot) {
                   final time = snapshot.data ?? now();
 
-                  // Formatação amigável da data em português (ex: Sáb, 12 de set, 16:41)
+                  // Formatação amigável da data (ex.: sáb., 12 de set., 16:41)
                   final formattedDateTime = formatClock(
                     time,
+                    Localizations.localeOf(context).toString(),
                     use24h: use24h,
                     showSeconds: showSeconds,
                   );
@@ -204,7 +208,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 },
               ),
               const SizedBox(width: 8),
-              _buildPowerButton(),
+              _buildPowerButton(context),
             ],
           ),
         ],
@@ -212,9 +216,9 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildPowerButton() {
+  Widget _buildPowerButton(BuildContext context) {
     return Tooltip(
-      message: 'Energia',
+      message: context.l10n.power,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -265,42 +269,20 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   /// Ex.: "Sáb, 12 de set, 16:41" ou, em 12h com segundos,
-  /// "Sáb, 12 de set, 4:41:07 PM".
+  /// "sáb., 12 de set., 16:41:07", no idioma de [locale].
   static String formatClock(
-    DateTime dt, {
+    DateTime dt,
+    String locale, {
     bool use24h = true,
     bool showSeconds = false,
   }) {
-    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const months = [
-      'jan',
-      'fev',
-      'mar',
-      'abr',
-      'mai',
-      'jun',
-      'jul',
-      'ago',
-      'set',
-      'out',
-      'nov',
-      'dez',
-    ];
-
-    final weekDay = weekdays[dt.weekday % 7];
-    final day = dt.day;
-    final month = months[dt.month - 1];
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final seconds = showSeconds
-        ? ':${dt.second.toString().padLeft(2, '0')}'
-        : '';
-
-    if (use24h) {
-      final hour = dt.hour.toString().padLeft(2, '0');
-      return '$weekDay, $day de $month, $hour:$minute$seconds';
-    }
-    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final period = dt.hour < 12 ? 'AM' : 'PM';
-    return '$weekDay, $day de $month, $hour:$minute$seconds $period';
+    final date = DateFormat.MMMEd(locale).format(dt);
+    final time = switch ((use24h, showSeconds)) {
+      (true, true) => DateFormat.Hms(locale),
+      (true, false) => DateFormat.Hm(locale),
+      (false, true) => DateFormat('h:mm:ss a', locale),
+      (false, false) => DateFormat('h:mm a', locale),
+    }.format(dt);
+    return '$date, $time';
   }
 }

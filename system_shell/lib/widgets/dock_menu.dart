@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/l10n/l10n.dart';
 
 class DockMenuItem {
   final String label;
@@ -299,7 +300,7 @@ class DockConfirm extends StatelessWidget {
                         TextButton(
                           autofocus: true,
                           onPressed: onCancel,
-                          child: const Text('Cancelar'),
+                          child: Text(context.l10n.cancel),
                         ),
                         const SizedBox(width: 12),
                         FilledButton(

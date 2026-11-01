@@ -1,6 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Notepad
+Name[pt]=Bloco de notas
 Exec=/usr/lib/psito/apps/org.psito.notepad/psito_notepad %f
 Icon=org.psito.notepad
 StartupWMClass=org.psito.notepad

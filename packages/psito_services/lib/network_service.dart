@@ -230,7 +230,7 @@ class FakeNetworkService implements NetworkService {
     interface: 'ens3',
     kind: PsitoNetworkKind.ethernet,
     state: PsitoDeviceState.connected,
-    connection: 'Conexão cabeada 1',
+    connection: 'Wired connection 1',
     ipv4: '10.0.2.15/24',
   );
 

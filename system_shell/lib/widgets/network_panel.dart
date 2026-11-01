@@ -3,6 +3,7 @@
 // Painel do ícone de rede: conexão atual e o interruptor geral.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:system_shell/l10n/l10n.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
@@ -21,18 +22,21 @@ class NetworkPanel extends StatelessWidget {
     required this.onClose,
   });
 
-  static String connectivityLabel(PsitoConnectivity c) => switch (c) {
-    PsitoConnectivity.full => 'Internet',
-    PsitoConnectivity.limited || PsitoConnectivity.none => 'Sem internet',
-    PsitoConnectivity.portal => 'Portal de acesso',
-    PsitoConnectivity.unknown => 'Verificando…',
-  };
+  static String connectivityLabel(SystemLocalizations l, PsitoConnectivity c) =>
+      switch (c) {
+        PsitoConnectivity.full => l.connectivityFull,
+        PsitoConnectivity.limited ||
+        PsitoConnectivity.none => l.connectivityNone,
+        PsitoConnectivity.portal => l.connectivityPortal,
+        PsitoConnectivity.unknown => l.connectivityUnknown,
+      };
 
-  static String kindLabel(PsitoNetworkKind kind) => switch (kind) {
-    PsitoNetworkKind.ethernet => 'Cabo',
-    PsitoNetworkKind.wifi => 'Wi-Fi',
-    PsitoNetworkKind.other => 'Rede',
-  };
+  static String kindLabel(SystemLocalizations l, PsitoNetworkKind kind) =>
+      switch (kind) {
+        PsitoNetworkKind.ethernet => l.kindEthernet,
+        PsitoNetworkKind.wifi => l.kindWifi,
+        PsitoNetworkKind.other => l.network,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +73,8 @@ class NetworkPanel extends StatelessWidget {
   Widget _buildPanel(BuildContext context, PsitoNetworkState s) {
     final primary = s.primary;
     final (icon, _, color) =
-        NetworkIndicator.describe(s) ?? (Icons.link_off, '', null);
+        NetworkIndicator.describe(context.l10n, s) ??
+        (Icons.link_off, '', null);
     return Material(
       color: const Color(0xFF1E252B),
       borderRadius: BorderRadius.circular(18),
@@ -90,7 +95,9 @@ class NetworkPanel extends StatelessWidget {
                     children: [
                       Text(
                         primary?.connection ??
-                            (s.enabled ? 'Desconectado' : 'Rede desativada'),
+                            (s.enabled
+                                ? context.l10n.networkDisconnected
+                                : context.l10n.networkOff),
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 14,
@@ -99,8 +106,8 @@ class NetworkPanel extends StatelessWidget {
                       ),
                       if (primary != null)
                         Text(
-                          '${kindLabel(primary.kind)} · '
-                          '${connectivityLabel(s.connectivity)}',
+                          '${kindLabel(context.l10n, primary.kind)} · '
+                          '${connectivityLabel(context.l10n, s.connectivity)}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.white60,
@@ -122,7 +129,7 @@ class NetworkPanel extends StatelessWidget {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              title: const Text('Rede'),
+              title: Text(context.l10n.network),
               value: s.enabled,
               onChanged: onSetEnabled,
             ),

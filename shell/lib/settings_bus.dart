@@ -45,12 +45,12 @@ class SettingsBusObject extends DBusObject {
         if (mayUpdate != null &&
             (sender == null || !await mayUpdate!(sender))) {
           return DBusMethodErrorResponse.accessDenied(
-            'o app não tem a permissão settings',
+            'the app lacks the settings permission',
           );
         }
         final settings = decodeSettings(methodCall.values.single.asString());
         if (settings == null) {
-          return DBusMethodErrorResponse.invalidArgs('JSON inválido');
+          return DBusMethodErrorResponse.invalidArgs('invalid JSON');
         }
         await store.update(settings);
         return DBusMethodSuccessResponse();

@@ -3,6 +3,7 @@
 // Uma aba do Files: onde ela está (uma pasta, a lixeira ou uma busca), o
 // histórico de voltar e avançar, os itens, a seleção e o que os modos lista
 // (as pastas abertas em árvore) e colunas (a cadeia de pastas) precisam.
+
 import 'dart:async';
 import 'dart:io';
 
@@ -10,6 +11,8 @@ import 'package:flutter/foundation.dart';
 import 'package:psito_fs/psito_fs.dart';
 
 import 'env.dart';
+
+import 'package:psito_files/l10n/files_localizations.dart';
 
 sealed class FilesLocation {
   const FilesLocation();
@@ -149,8 +152,8 @@ class FilesTab extends ChangeNotifier {
   /// O nome da aba e da janela.
   String get title => switch (_location) {
     FolderLocation(:final path) => env.knownFolder(path)?.$2 ?? baseName(path),
-    TrashLocation() => 'Lixeira',
-    SearchLocation(:final query) => 'Buscando "$query"',
+    TrashLocation() => env.l10n.placeTrash,
+    SearchLocation(:final query) => env.l10n.searchingFor(query),
   };
 
   /// Vai para [location]. [record] guarda no voltar; os passos das colunas
@@ -261,7 +264,7 @@ class FilesTab extends ChangeNotifier {
       if (generation != _generation) return;
       _all = const [];
       loading = false;
-      error = describeError(e);
+      error = describeError(env.l10n, e);
     }
     if (!keepSelection) {
       // A seleção que veio com o go (a pasta de onde se subiu)
@@ -503,9 +506,10 @@ class FilesTab extends ChangeNotifier {
 }
 
 /// A mensagem de um erro de arquivo para quem usa, pelo errno.
-String describeError(FileSystemException e) => switch (e.osError?.errorCode) {
-  2 => 'A pasta não existe mais.',
-  13 || 1 => 'Sem permissão para abrir.',
-  20 => 'Não é uma pasta.',
-  _ => e.osError?.message ?? e.message,
-};
+String describeError(FilesLocalizations l, FileSystemException e) =>
+    switch (e.osError?.errorCode) {
+      2 => l.errorFolderGone,
+      13 || 1 => l.errorNoPermission,
+      20 => l.errorNotAFolder,
+      _ => e.osError?.message ?? e.message,
+    };

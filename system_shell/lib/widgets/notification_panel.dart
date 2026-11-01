@@ -6,6 +6,8 @@ import '../shell/notification_center.dart';
 import 'notification_toasts.dart';
 import 'top_bar.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 /// Painel de notificações abaixo da top bar, à direita.
 class NotificationPanel extends StatelessWidget {
   final NotificationCenter center;
@@ -21,12 +23,16 @@ class NotificationPanel extends StatelessWidget {
     required this.onTap,
   });
 
-  static String relativeTime(DateTime time, DateTime now) {
+  static String relativeTime(
+    SystemLocalizations l,
+    DateTime time,
+    DateTime now,
+  ) {
     final diff = now.difference(time);
-    if (diff.inMinutes < 1) return 'agora';
-    if (diff.inHours < 1) return 'há ${diff.inMinutes} min';
-    if (diff.inDays < 1) return 'há ${diff.inHours} h';
-    return 'há ${diff.inDays} d';
+    if (diff.inMinutes < 1) return l.timeNow;
+    if (diff.inHours < 1) return l.timeMinutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l.timeHoursAgo(diff.inHours);
+    return l.timeDaysAgo(diff.inDays);
   }
 
   @override
@@ -52,7 +58,7 @@ class NotificationPanel extends StatelessWidget {
               width: 360,
               child: ListenableBuilder(
                 listenable: center,
-                builder: (context, _) => _buildPanel(),
+                builder: (context, _) => _buildPanel(context),
               ),
             ),
           ],
@@ -61,7 +67,7 @@ class NotificationPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildPanel() {
+  Widget _buildPanel(BuildContext context) {
     final now = DateTime.now();
     final items = center.history;
 
@@ -90,9 +96,9 @@ class NotificationPanel extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 10, 8, 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Notificações',
+                      context.l10n.notifications,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -101,16 +107,16 @@ class NotificationPanel extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: items.isEmpty ? null : center.clear,
-                    child: const Text('Limpar tudo'),
+                    child: Text(context.l10n.clearAll),
                   ),
                 ],
               ),
             ),
             if (items.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 36),
                 child: Text(
-                  'Nenhuma notificação',
+                  context.l10n.noNotifications,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white54),
                 ),
@@ -130,7 +136,7 @@ class NotificationPanel extends StatelessWidget {
                     onTap: () => onTap(items[i]),
                     child: NotificationTile(
                       notification: items[i],
-                      timeLabel: relativeTime(items[i].time, now),
+                      timeLabel: relativeTime(context.l10n, items[i].time, now),
                       onClose: () => center.dismiss(items[i].id),
                     ),
                   ),

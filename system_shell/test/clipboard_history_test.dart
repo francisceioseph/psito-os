@@ -6,6 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/shell/clipboard_history.dart';
 import 'package:system_shell/widgets/clipboard_panel.dart';
 
+import 'helpers.dart';
+
+import 'package:psito_sdk/psito_sdk.dart';
+
 Map<String, Uint8List> _text(String text) => {
   'text/plain;charset=utf-8': utf8.encode(text),
   'UTF8_STRING': utf8.encode(text),
@@ -60,14 +64,18 @@ void main() {
       final many = entry({
         'text/uri-list': utf8.encode('file:///a\r\nfile:///b\r\nfile:///c\r\n'),
       })!;
-      expect(many.preview, '3 arquivos: a, b, c');
+      expect(many.text(testL10n), '3 arquivos: a, b, c');
     });
 
     test('imagem com os bytes, e o resto pelo tipo', () {
-      final image = entry({'image/png': Uint8List.fromList([1, 2])})!;
+      final image = entry({
+        'image/png': Uint8List.fromList([1, 2]),
+      })!;
       expect(image.kind, ClipKind.image);
       expect(image.image, [1, 2]);
-      final other = entry({'application/x-coisa': Uint8List.fromList([1])})!;
+      final other = entry({
+        'application/x-coisa': Uint8List.fromList([1]),
+      })!;
       expect(other.kind, ClipKind.other);
       expect(other.preview, 'application/x-coisa');
     });
@@ -171,6 +179,9 @@ void main() {
       closed = 0;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testL10nDelegates,
+          supportedLocales: psitoLocales,
+
           home: Scaffold(
             body: ClipboardPanel(
               history: history,

@@ -39,14 +39,14 @@ class LauncherClient {
         ], replySignature: DBusSignature(''));
       }
     } on DBusMethodResponseException catch (e) {
-      throw PsitoOpenException(
-        e.errorName == launcherNoAppError
-            ? (e.response.values.firstOrNull?.asString() ??
-                  'Nenhum app abre este arquivo.')
-            : 'O shell não abriu ($e)',
-      );
+      throw e.errorName == launcherNoAppError
+          ? PsitoOpenException(
+              PsitoOpenError.noApp,
+              e.response.values.firstOrNull?.asString() ?? '',
+            )
+          : PsitoOpenException(PsitoOpenError.failed, '$e');
     } on Exception catch (e) {
-      throw PsitoOpenException('O shell não abriu ($e)');
+      throw PsitoOpenException(PsitoOpenError.failed, '$e');
     }
   }
 

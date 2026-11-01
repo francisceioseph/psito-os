@@ -49,9 +49,14 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Scaffold(
           body: SettingsView(
-            appContext: _SectionContext(['${psitoSettingsSectionPrefix}desktop']),
+            appContext: _SectionContext([
+              '${psitoSettingsSectionPrefix}desktop',
+            ]),
           ),
         ),
       ),
@@ -208,7 +213,7 @@ void main() {
     addTearDown(services.dispose);
     await pumpOS(tester, services: services);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('Sex, 30 de out, 16:41'), findsOneWidget);
+    expect(find.text('sex., 30 de out., 16:41'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.access_time_rounded).first);
     await tester.pump();
@@ -224,14 +229,14 @@ void main() {
 
   test('formatClock em 12h e com segundos', () {
     final t = DateTime(2026, 10, 30, 16, 41, 7);
-    expect(TopBar.formatClock(t), 'Sex, 30 de out, 16:41');
+    expect(TopBar.formatClock(t, 'pt'), 'sex., 30 de out., 16:41');
     expect(
-      TopBar.formatClock(t, use24h: false, showSeconds: true),
-      'Sex, 30 de out, 4:41:07 PM',
+      TopBar.formatClock(t, 'pt', use24h: false, showSeconds: true),
+      'sex., 30 de out., 4:41:07 PM',
     );
     expect(
-      TopBar.formatClock(DateTime(2026, 10, 30, 0, 5), use24h: false),
-      'Sex, 30 de out, 12:05 AM',
+      TopBar.formatClock(DateTime(2026, 10, 30, 0, 5), 'pt', use24h: false),
+      'sex., 30 de out., 12:05 AM',
     );
   });
 }

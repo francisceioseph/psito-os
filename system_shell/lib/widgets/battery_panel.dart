@@ -10,6 +10,8 @@ import 'package:psito_services/battery_service.dart';
 import 'battery_indicator.dart';
 import 'top_bar.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 class BatteryPanel extends StatelessWidget {
   final ValueListenable<BatteryState> state;
   final VoidCallback onClose;
@@ -48,7 +50,7 @@ class BatteryPanel extends StatelessWidget {
   }
 
   Widget _buildPanel(BuildContext context, BatteryState s) {
-    final time = BatteryIndicator.timeFor(s);
+    final time = BatteryIndicator.timeFor(context.l10n, s);
     final pluggedIn = s.charging || s.full;
     return Material(
       color: const Color(0xFF1E252B),
@@ -62,9 +64,9 @@ class BatteryPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Bateria',
+                    context.l10n.battery,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -79,7 +81,7 @@ class BatteryPanel extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              [BatteryIndicator.statusFor(s), ?time].join(' · '),
+              [BatteryIndicator.statusFor(context.l10n, s), ?time].join(' · '),
               style: const TextStyle(fontSize: 12, color: Colors.white60),
             ),
             const Divider(height: 24, color: Colors.white12),
@@ -93,7 +95,11 @@ class BatteryPanel extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Fonte de energia: ${pluggedIn ? 'Adaptador' : 'Bateria'}',
+                    context.l10n.powerSource(
+                      pluggedIn
+                          ? context.l10n.powerSourceAdapter
+                          : context.l10n.powerSourceBattery,
+                    ),
                     style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ),

@@ -119,7 +119,7 @@ class ProcessAppContext implements PsitoAppContext {
   Future<void> open(List<String> paths, {String? withApp}) async {
     final launcher = this.launcher;
     if (launcher == null) {
-      throw const PsitoOpenException('Sem o shell para abrir arquivos.');
+      throw const PsitoOpenException(PsitoOpenError.failed, 'no shell');
     }
     await launcher.open(paths, withApp: withApp);
   }

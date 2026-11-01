@@ -10,6 +10,11 @@ void main() {
     VoidCallback? onCrash,
   }) => tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: psitoLocalizationsDelegates(
+        const HelloApp().localizationsDelegates,
+      ),
+      supportedLocales: psitoLocales,
+
       home: Scaffold(
         body: HelloView(
           network: ValueNotifier(PsitoNetworkState.unavailable),

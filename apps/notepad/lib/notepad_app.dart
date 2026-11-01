@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import 'l10n/notepad_localizations.dart';
+
 /// O arquivo da nota: `~/nota.txt`, que no sandbox é o `$HOME` privado do
 /// app (`~/.local/share/psito/apps/org.psito.notepad/` de verdade). Fora do
 /// sandbox (o laboratório e os testes) a nota fica só na memória.
@@ -15,9 +17,6 @@ File? noteFile(Map<String, String> env) {
   if (env['PSITO_APP_ID'] == null || home == null) return null;
   return File('$home/nota.txt');
 }
-
-const _welcome =
-    'Bem-vindo ao Psito Notepad!\n\nEscreva suas anotações aqui...';
 
 class NotepadView extends StatefulWidget {
   /// Onde a nota é gravada. Null: só na memória.
@@ -33,14 +32,13 @@ class NotepadView extends StatefulWidget {
 }
 
 class _NotepadViewState extends State<NotepadView> {
-  final TextEditingController _controller = TextEditingController(
-    text: _welcome,
-  );
+  final _controller = TextEditingController();
 
   /// Grava um tempo depois da última edição.
   static const _saveDelay = Duration(seconds: 1);
   Timer? _saveTimer;
-  String _saved = _welcome;
+  String _saved = '';
+  bool _welcomed = false;
   bool _saving = false;
 
   @override
@@ -50,6 +48,15 @@ class _NotepadViewState extends State<NotepadView> {
     if (file == null) return;
     unawaited(_load(file));
     _controller.addListener(_edited);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_welcomed) return;
+    _welcomed = true;
+    _saved = NotepadLocalizations.of(context).welcome;
+    _controller.text = _saved;
   }
 
   Future<void> _load(File file) async {
@@ -83,8 +90,9 @@ class _NotepadViewState extends State<NotepadView> {
   }
 
   String get _status {
-    if (widget.file == null) return 'Nota só nesta sessão';
-    return _saving ? 'Salvando...' : 'Salvo em ${widget.label}';
+    final l = NotepadLocalizations.of(context);
+    if (widget.file == null) return l.statusSessionOnly;
+    return _saving ? l.statusSaving : l.statusSaved(widget.label);
   }
 
   @override
@@ -121,8 +129,8 @@ class _NotepadViewState extends State<NotepadView> {
                   size: 16,
                   color: Color(0xFF4CAF50),
                 ),
-                label: const Text(
-                  'Limpar',
+                label: Text(
+                  NotepadLocalizations.of(context).clear,
                   style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ),
@@ -153,10 +161,10 @@ class _NotepadViewState extends State<NotepadView> {
               enableSuggestions: false,
               autocorrect: false,
               style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Digite algo...',
-                hintStyle: TextStyle(color: Colors.white24),
+                hintText: NotepadLocalizations.of(context).hint,
+                hintStyle: const TextStyle(color: Colors.white24),
               ),
             ),
           ),
@@ -239,6 +247,15 @@ class NotepadApp extends PsitoApp {
 
   @override
   String get name => 'Notepad';
+
+  @override
+  String localizedName(Locale locale) =>
+      lookupNotepadLocalizations(locale).appName;
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    NotepadLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.edit_note_rounded;

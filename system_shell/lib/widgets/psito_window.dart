@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../shell/window_manager.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 /// Moldura de uma janela: barra de título, botões e bordas de redimensionar.
 /// O estado fica todo no [WindowManager].
 class PsitoWindow extends StatelessWidget {
@@ -182,15 +184,19 @@ class _TitleBar extends StatelessWidget {
               ),
             ),
           ),
-          _button(Icons.remove, 'Minimizar', () {
+          _button(Icons.remove, context.l10n.minimize, () {
             manager.minimize(window.id);
           }),
           _button(
             maximized ? Icons.filter_none : Icons.crop_square,
-            maximized ? 'Restaurar' : 'Maximizar',
+            maximized ? context.l10n.restore : context.l10n.maximize,
             () => manager.toggleMaximize(window.id),
           ),
-          _button(Icons.close, 'Fechar', () => manager.close(window.id)),
+          _button(
+            Icons.close,
+            context.l10n.close,
+            () => manager.close(window.id),
+          ),
         ],
       ),
     );

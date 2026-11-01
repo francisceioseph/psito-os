@@ -7,7 +7,7 @@ import 'package:system_shell/widgets/psito_window.dart';
 import 'helpers.dart';
 
 final _notepadDock = find.byIcon(Icons.edit_note_rounded).first;
-final _notepadTitle = find.text('Notepad');
+final _notepadTitle = find.text('Bloco de notas');
 
 void main() {
   testWidgets('a dock abre e a janela fecha um app', (tester) async {

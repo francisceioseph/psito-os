@@ -2,7 +2,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+
+import 'l10n/clock_localizations.dart';
 
 class ClockView extends StatefulWidget {
   /// Para notificar quando o timer termina; null em previews.
@@ -37,9 +40,9 @@ class _ClockViewState extends State<ClockView> {
       timer.cancel();
       setState(() => _remaining = null);
       widget.appContext?.notify(
-        const PsitoNotification(
-          title: 'Timer concluído',
-          body: '10 segundos se passaram.',
+        PsitoNotification(
+          title: ClockLocalizations.of(context).timerDone,
+          body: ClockLocalizations.of(context).timerDoneBody,
         ),
       );
     });
@@ -70,34 +73,10 @@ class _ClockViewState extends State<ClockView> {
     final minute = _currentTime.minute.toString().padLeft(2, '0');
     final second = _currentTime.second.toString().padLeft(2, '0');
 
-    const weekdays = [
-      'Domingo',
-      'Segunda-feira',
-      'Terça-feira',
-      'Quarta-feira',
-      'Quinta-feira',
-      'Sexta-feira',
-      'Sábado',
-    ];
-    const months = [
-      'janeiro',
-      'fevereiro',
-      'março',
-      'abril',
-      'maio',
-      'junho',
-      'julho',
-      'agosto',
-      'setembro',
-      'outubro',
-      'novembro',
-      'dezembro',
-    ];
-
-    final weekDayStr = weekdays[_currentTime.weekday % 7];
-    final day = _currentTime.day;
-    final monthStr = months[_currentTime.month - 1];
-    final year = _currentTime.year;
+    final l = ClockLocalizations.of(context);
+    final date = DateFormat.yMMMMEEEEd(
+      Localizations.localeOf(context).toString(),
+    ).format(_currentTime);
 
     // Desenhado numa largura fixa e reduzido por inteiro em janelas pequenas
     return Center(
@@ -130,7 +109,7 @@ class _ClockViewState extends State<ClockView> {
                 const SizedBox(height: 8),
                 // Data Completa
                 Text(
-                  '$weekDayStr, $day de $monthStr de $year',
+                  date,
                   style: const TextStyle(fontSize: 14, color: Colors.white60),
                 ),
                 const SizedBox(height: 24),
@@ -157,8 +136,8 @@ class _ClockViewState extends State<ClockView> {
                       Expanded(
                         child: Text(
                           _remaining == null
-                              ? 'Timer de 10 s'
-                              : 'Faltam $_remaining s',
+                              ? l.timerIdle
+                              : l.timerRemaining(_remaining!),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -167,7 +146,7 @@ class _ClockViewState extends State<ClockView> {
                       ),
                       TextButton(
                         onPressed: _remaining == null ? _startTimer : null,
-                        child: const Text('Iniciar timer'),
+                        child: Text(l.timerStart),
                       ),
                     ],
                   ),
@@ -189,6 +168,15 @@ class ClockApp extends PsitoApp {
 
   @override
   String get name => 'Clock';
+
+  @override
+  String localizedName(Locale locale) =>
+      lookupClockLocalizations(locale).appName;
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    ClockLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.access_time_rounded;

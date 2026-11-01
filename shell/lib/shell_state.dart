@@ -6,8 +6,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter/services.dart';
 import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:system_shell/shell/app_entry.dart';
@@ -19,6 +21,7 @@ import 'package:system_shell/shell/shortcuts.dart';
 import 'package:system_shell/shell/window_switcher.dart';
 
 import 'app_icon.dart';
+import 'l10n/shell_localizations.dart';
 import 'autostart.dart';
 import 'clipboard_keeper.dart';
 import 'desk.dart';
@@ -44,6 +47,13 @@ enum ShellOverlay {
 enum PowerAction { powerOff, reboot }
 
 class ShellState {
+  Locale get locale => resolvePsitoLocale(settings.value.language);
+
+  /// Os textos do shell, para o que não tem um `BuildContext`.
+  ShellLocalizations get l10n => lookupShellLocalizations(locale);
+
+  FilesUiLocalizations get filesUi => lookupFilesUiLocalizations(locale);
+
   ShellState({
     required this.settings,
     required this.services,
@@ -75,6 +85,9 @@ class ShellState {
       listenable.addListener(dockUi.syncAutoHide);
     }
     settings.addListener(_dockSettingsChanged);
+    _language = settings.value.language;
+    DesktopEntry.language = _language;
+    settings.addListener(_languageChanged);
     // A faixa de dentro entra e sai da região de input com o ponteiro
     dockUi.hovered.addListener(() {
       if (dockUi.surface.isEmpty || !dockUi.revealed.value) return;
@@ -203,10 +216,18 @@ class ShellState {
   final overlay = ValueNotifier<ShellOverlay?>(null);
   final confirm = ValueNotifier<PowerAction?>(null);
 
+  /// O idioma dos `.desktop`: o `LANG` diz a variante (`pt_BR`), se for o do
+  /// idioma em uso.
+  String get entriesLocale {
+    final code = locale.languageCode;
+    final lang = Platform.environment['LANG'];
+    return lang?.startsWith(code) ?? false ? lang! : code;
+  }
+
   Future<void> loadApps(Map<String, String> env) async {
     apps.value = await loadDesktopEntries(
       desktopEntryDirs(env),
-      locale: env['LANG'],
+      locale: entriesLocale,
     );
   }
 
@@ -245,6 +266,17 @@ class ShellState {
   }
 
   void _dockSettingsChanged() => applyDockSettings();
+
+  String _language = '';
+
+  /// Os nomes dos apps vêm dos `.desktop`, já no idioma.
+  void _languageChanged() {
+    final language = settings.value.language;
+    if (language == _language) return;
+    _language = language;
+    DesktopEntry.language = language;
+    unawaited(loadApps(Platform.environment));
+  }
 
   /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
   void toggle(ShellOverlay value) {
@@ -592,7 +624,7 @@ class ShellState {
 
   /// O `Notify` do D-Bus. Devolve o id no centro.
   int notify(IncomingNotification n) {
-    final name = n.appName.isEmpty ? 'Notificação' : n.appName;
+    final name = n.appName.isEmpty ? l10n.notification : n.appName;
     return notifications.add(
       app: appFor(
         n.desktopEntry ?? name,

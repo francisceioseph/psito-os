@@ -1,0 +1,5 @@
+arb-dir: lib/l10n
+template-arb-file: files_ui_en.arb
+output-localization-file: files_ui_localizations.dart
+output-class: FilesUiLocalizations
+nullable-getter: false

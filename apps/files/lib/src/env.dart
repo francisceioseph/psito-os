@@ -4,13 +4,18 @@
 // pastas do usuário) e a configuração dele, em ~/.config/psito/files.json:
 // os favoritos da barra lateral, o modo de ver de cada pasta, a ordem e os
 // ocultos.
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
+import 'package:psito_sdk/psito_sdk.dart';
+
+import 'package:psito_files/l10n/files_localizations.dart';
 
 class FilesEnv implements FileIconEnv {
   final String home;
@@ -22,6 +27,9 @@ class FilesEnv implements FileIconEnv {
   /// O `LANG`, para a descrição dos tipos.
   final String? locale;
 
+  /// O idioma em uso.
+  final Locale Function() currentLocale;
+
   /// Onde a configuração fica. Null: só na memória (os testes).
   final File? configFile;
 
@@ -31,10 +39,14 @@ class FilesEnv implements FileIconEnv {
     required this.trash,
     this.userDirs = const {},
     this.locale,
+    this.currentLocale = _systemLocale,
     this.configFile,
   });
 
-  factory FilesEnv.fromPlatform({required DateTime Function() now}) {
+  factory FilesEnv.fromPlatform({
+    required DateTime Function() now,
+    Locale Function() currentLocale = _systemLocale,
+  }) {
     final env = Platform.environment;
     final home = env['HOME'] ?? '/';
     final config = env['XDG_CONFIG_HOME'] ?? '$home/.config';
@@ -44,6 +56,7 @@ class FilesEnv implements FileIconEnv {
       trash: Trash.forEnv(env, now: now),
       userDirs: loadUserDirs(env),
       locale: env['LANG'],
+      currentLocale: currentLocale,
       configFile: File('$config/psito/files.json'),
     );
   }
@@ -53,8 +66,8 @@ class FilesEnv implements FileIconEnv {
 
   /// O ícone e o nome de uma pasta conhecida (o home e as do usuário).
   (String, String)? knownFolder(String path) {
-    if (path == home) return ('user-home', 'Início');
-    if (path == '/') return ('drive-harddisk', 'Computador');
+    if (path == home) return ('user-home', l10n.placeHome);
+    if (path == '/') return ('drive-harddisk', l10n.placeComputer);
     for (final MapEntry(key: dir, value: dirPath) in userDirs.entries) {
       if (dirPath == path) return (dir.icon, baseName(path));
     }
@@ -63,9 +76,19 @@ class FilesEnv implements FileIconEnv {
 
   /// A descrição do tipo, como a coluna "Tipo" mostra.
   String describe(String mimeType) => mimeType == directoryType
-      ? 'Pasta'
-      : mime.description(mimeType, locale: locale);
+      ? l10n.kindFolder
+      : mime.description(mimeType, locale: _mimeLocale);
+
+  FilesLocalizations get l10n => lookupFilesLocalizations(currentLocale());
+
+  /// O `LANG` diz a variante (`pt_BR`), se o idioma em uso for o dele.
+  String get _mimeLocale {
+    final code = currentLocale().languageCode;
+    return locale?.startsWith(code) ?? false ? locale! : code;
+  }
 }
+
+Locale _systemLocale() => resolvePsitoLocale('');
 
 enum ViewMode { icons, list, columns }
 

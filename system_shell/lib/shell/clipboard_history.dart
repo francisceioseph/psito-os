@@ -8,6 +8,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:psito_runtime/psito_runtime.dart';
+import 'package:system_shell/l10n/system_localizations.dart';
 
 enum ClipKind { text, image, files, other }
 
@@ -24,13 +25,24 @@ class ClipEntry {
   /// A imagem, num [ClipKind.image].
   final Uint8List? image;
 
+  /// Quantos arquivos, num [ClipKind.files].
+  final int fileCount;
+
   const ClipEntry._(
     this.formats,
     this.copiedAt,
     this.kind,
-    this.preview, [
+    this.preview, {
     this.image,
-  ]);
+    this.fileCount = 0,
+  });
+
+  /// A linha no idioma de quem usa.
+  String text(SystemLocalizations l) => switch (kind) {
+    ClipKind.image => l.clipImage,
+    ClipKind.files when fileCount > 1 => l.clipFiles(fileCount, preview),
+    _ => preview,
+  };
 
   static const previewLength = 200;
   static const _textTypes = [
@@ -60,11 +72,12 @@ class ClipEntry {
         copiedAt,
         ClipKind.files,
         _filesPreview(files.paths),
+        fileCount: files.paths.length,
       );
     }
     for (final MapEntry(key: type, value: bytes) in formats.entries) {
       if (type.startsWith('image/') && bytes.isNotEmpty) {
-        return ClipEntry._(formats, copiedAt, ClipKind.image, 'Imagem', bytes);
+        return ClipEntry._(formats, copiedAt, ClipKind.image, '', image: bytes);
       }
     }
     for (final type in _textTypes) {
@@ -88,9 +101,7 @@ class ClipEntry {
 
   static String _filesPreview(List<String> paths) {
     final names = [for (final path in paths) path.split('/').last];
-    return names.length == 1
-        ? names.single
-        : '${names.length} arquivos: ${names.take(3).join(', ')}';
+    return names.take(3).join(', ');
   }
 
   bool sameContent(ClipEntry other) {
@@ -101,8 +112,14 @@ class ClipEntry {
     return true;
   }
 
-  ClipEntry _at(DateTime when) =>
-      ClipEntry._(formats, when, kind, preview, image);
+  ClipEntry _at(DateTime when) => ClipEntry._(
+    formats,
+    when,
+    kind,
+    preview,
+    image: image,
+    fileCount: fileCount,
+  );
 }
 
 class ClipboardHistory extends ChangeNotifier {

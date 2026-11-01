@@ -7,6 +7,8 @@ import 'package:psito_services/audio_service.dart';
 
 import 'volume_indicator.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 class VolumeOsd extends StatelessWidget {
   final AudioState state;
 
@@ -41,7 +43,9 @@ class VolumeOsd extends StatelessWidget {
               SizedBox(
                 width: 40,
                 child: Text(
-                  state.muted ? 'Mudo' : VolumeIndicator.percent(state.volume),
+                  state.muted
+                      ? context.l10n.muted
+                      : VolumeIndicator.percent(state.volume),
                   style: const TextStyle(fontSize: 13, color: Colors.white70),
                 ),
               ),

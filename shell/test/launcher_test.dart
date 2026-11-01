@@ -227,8 +227,8 @@ void main() {
         client.open(['${dir.path}/x.bin']),
         throwsA(
           isA<PsitoOpenException>().having(
-            (e) => e.message,
-            'message',
+            (e) => e.detail,
+            'detail',
             contains('x.bin'),
           ),
         ),

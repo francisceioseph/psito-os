@@ -43,7 +43,7 @@ class ShellWindow {
   late final PsitoAppContext context;
 
   ShellWindow({required this.id, required this.app, required this.bounds})
-    : title = app.name;
+    : title = app.localizedName(resolvePsitoLocale(''));
 }
 
 class WindowManager extends ChangeNotifier {
@@ -425,7 +425,7 @@ class _WindowContext implements PsitoAppContext {
           path,
         ], mode: ProcessStartMode.detached);
       } on ProcessException catch (e) {
-        throw PsitoOpenException('Sem o xdg-open ($e)');
+        throw PsitoOpenException(PsitoOpenError.failed, '$e');
       }
     }
   }

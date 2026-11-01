@@ -33,9 +33,7 @@ class FileClip {
   /// O `text/uri-list`, em que as linhas com `#` são comentários.
   static FileClip? parseUris(String text) {
     final paths = filePaths(
-      const LineSplitter()
-          .convert(text)
-          .where((line) => !line.startsWith('#')),
+      const LineSplitter().convert(text).where((line) => !line.startsWith('#')),
     );
     return paths.isEmpty ? null : FileClip(paths);
   }

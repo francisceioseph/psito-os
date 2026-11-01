@@ -60,7 +60,7 @@ void main() {
     client.dispose();
   });
 
-  test('JSON inválido é recusado', () async {
+  test('invalid JSON é recusado', () async {
     final reply = DBusRemoteObject(
       appBus,
       name: settingsBusName,

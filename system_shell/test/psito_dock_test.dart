@@ -5,6 +5,8 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 
+import 'helpers.dart';
+
 DockTile _tile(String id) => DockTile(
   key: id,
   entry: AppEntry(
@@ -27,6 +29,9 @@ void main() {
   testWidgets('os centros batem com o desenho', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(
             tiles: [_tile('a'), _tile('b'), _tile('c')],
@@ -56,6 +61,9 @@ void main() {
     String? menu;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(
             tiles: [_tile('a'), _tile('b')],
@@ -83,6 +91,9 @@ void main() {
     String? tapped;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(
             tiles: [_tile('a')],
@@ -101,6 +112,9 @@ void main() {
   testWidgets('os pontos das janelas, a bolinha e o pulo', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(
             tiles: [
@@ -141,6 +155,9 @@ void main() {
   testWidgets('na vertical, os centros batem no eixo y', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(
             tiles: [_tile('a'), _tile('b'), _tile('c')],
@@ -167,6 +184,9 @@ void main() {
   testWidgets('a ampliação não muda o tamanho da dock', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Center(
           child: PsitoDock(tiles: [_tile('a'), _tile('b')], onTap: (_, _) {}),
         ),

@@ -5,6 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_desktop/psito_desktop.dart';
 import 'package:system_shell/widgets/psito_desktop_icons.dart';
 
+import 'helpers.dart';
+
+import 'package:psito_sdk/psito_sdk.dart';
+
 const _long =
     'um nome muito comprido que não cabe em duas linhas de jeito nenhum';
 
@@ -45,6 +49,9 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: PsitoDesktopIcons(
           icons: [
             for (final name in ['a', 'b', _long])

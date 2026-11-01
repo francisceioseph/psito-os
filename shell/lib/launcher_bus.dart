@@ -19,6 +19,7 @@ import 'package:dbus/dbus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/launcher_client.dart';
+import 'package:psito_fs/psito_fs.dart';
 
 import 'opener.dart';
 
@@ -187,7 +188,7 @@ class LauncherBusObject extends DBusObject {
           if (!_maySetDefault(caller)) return _denied();
           final appId = values[1].asString();
           if (opener.entry(appId) == null) {
-            return DBusMethodErrorResponse.invalidArgs('app desconhecido');
+            return DBusMethodErrorResponse.invalidArgs('unknown app');
           }
           await setDefault(values[0].asString(), appId);
           return DBusMethodSuccessResponse();
@@ -219,7 +220,9 @@ class LauncherBusObject extends DBusObject {
           return DBusMethodErrorResponse.unknownMethod();
       }
     } on NoAppException catch (e) {
-      return DBusMethodErrorResponse(launcherNoAppError, [DBusString('$e')]);
+      return DBusMethodErrorResponse(launcherNoAppError, [
+        DBusString(baseName(e.path)),
+      ]);
     } on Exception catch (e) {
       debugPrint('🦜 launcher: ${methodCall.name} falhou ($e)');
       return DBusMethodErrorResponse.failed('$e');
@@ -245,7 +248,7 @@ class LauncherBusObject extends DBusObject {
   }
 
   DBusMethodErrorResponse _denied() => DBusMethodErrorResponse.accessDenied(
-    'o app não vê esse caminho ou não tem a permissão',
+    'the app cannot see that path or lacks the permission',
   );
 
   Future<List<String>> _next(String appId, String sender) {

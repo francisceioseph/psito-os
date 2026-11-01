@@ -1,0 +1,12 @@
+{
+  "@@locale": "en",
+  "connected": "Connected",
+  "noConnection": "No connection: {error}",
+  "networkUnavailable": "Network unavailable to the app",
+  "networkConnected": "Network connected",
+  "networkNone": "No network",
+  "networkLimited": "Limited network",
+  "testing": "Testing...",
+  "testConnection": "Test connection",
+  "exitWithError": "Exit with error"
+}

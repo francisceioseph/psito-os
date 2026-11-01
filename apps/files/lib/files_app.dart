@@ -6,7 +6,10 @@
 // entre pastas e abas. A base dos arquivos é o psito_fs, e abrir cada
 // arquivo no app certo é com o shell (o PsitoAppContext.open).
 import 'package:flutter/material.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+
+import 'l10n/files_localizations.dart';
 
 import 'src/controller.dart';
 import 'src/env.dart';
@@ -31,7 +34,11 @@ class FilesView extends StatefulWidget {
 
 class _FilesViewState extends State<FilesView> {
   late final FilesEnv _env =
-      widget.env ?? FilesEnv.fromPlatform(now: widget.appContext.now);
+      widget.env ??
+      FilesEnv.fromPlatform(
+        now: widget.appContext.now,
+        currentLocale: () => widget.appContext.locale,
+      );
   late final FilesConfig _config = widget.config ?? FilesConfig.load(_env);
   late final FilesController _controller = FilesController(
     ctx: widget.appContext,
@@ -62,6 +69,12 @@ class FilesApp extends PsitoApp {
 
   @override
   String get name => 'Files';
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    FilesLocalizations.delegate,
+    FilesUiLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.folder_open_rounded;

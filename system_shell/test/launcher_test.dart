@@ -8,6 +8,8 @@ import 'package:system_shell/widgets/launcher.dart';
 
 import 'helpers.dart';
 
+import 'package:psito_sdk/psito_sdk.dart';
+
 Future<void> _openByMenu(WidgetTester tester) async {
   await tester.tap(find.text('Menu'));
   await tester.pump();
@@ -40,14 +42,14 @@ void main() {
     await pumpDesktop(tester);
     await _openByMenu(tester);
 
-    await tester.enterText(_search, 'NÓTE');
+    await tester.enterText(_search, 'NÓTA');
     await tester.pump();
     expect(find.byKey(const ValueKey('launcher-notepad')), findsOneWidget);
     expect(find.byKey(const ValueKey('launcher-calculator')), findsNothing);
 
     await _submit(tester);
     expect(_launcher, findsNothing);
-    expect(find.text('Notepad'), findsOneWidget);
+    expect(find.text('Bloco de notas'), findsOneWidget);
   });
 
   testWidgets('a seta escolhe outro app', (tester) async {
@@ -57,7 +59,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     await _submit(tester);
-    expect(find.text('Clock'), findsOneWidget);
+    expect(find.text('Relógio'), findsOneWidget);
   });
 
   testWidgets('Esc fecha', (tester) async {
@@ -94,9 +96,9 @@ void main() {
     await tester.pump();
 
     await _openByMenu(tester);
-    await tester.enterText(_search, 'notepad');
+    await tester.enterText(_search, 'bloco');
     await _submit(tester);
-    expect(find.text('Notepad'), findsNWidgets(2));
+    expect(find.text('Bloco de notas'), findsNWidgets(2));
   });
 
   testWidgets('o clique direito abre o menu do app, e o Esc fecha só ele', (
@@ -112,6 +114,9 @@ void main() {
     );
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: Scaffold(
           body: Launcher(
             apps: [app],

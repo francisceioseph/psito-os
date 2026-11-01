@@ -49,7 +49,7 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
   const window = AppWindow();
   final notifier = Notifier(
     session,
-    appName: app.name,
+    appName: app.localizedName(resolvePsitoLocale(settings.value.language)),
     desktopEntry: await window.applicationId() ?? 'org.psito.${app.id}',
   );
   final launcher = LauncherClient(session);
@@ -69,7 +69,15 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
         ? launcher.openRequests().asBroadcastStream()
         : const Stream.empty(),
   );
-  await context.window.setTitle(app.name);
+  // O título acompanha o idioma
+  var title = app.localizedName(context.locale);
+  await context.window.setTitle(title);
+  context.settings.addListener(() {
+    final next = app.localizedName(context.locale);
+    if (next == title) return;
+    title = next;
+    unawaited(context.window.setTitle(title));
+  });
   await context.window.setSize(app.defaultSize);
   runApp(PsitoAppHost(app: app, context: context));
   app.onOpen(context);
@@ -109,9 +117,14 @@ class PsitoAppHost extends StatelessWidget {
   Widget build(BuildContext _) => ValueListenableBuilder(
     valueListenable: context.settings,
     builder: (_, settings, _) => MaterialApp(
-      title: app.name,
+      onGenerateTitle: (_) => app.localizedName(context.locale),
       debugShowCheckedModeBanner: false,
       theme: psitoTheme(settings.accent),
+      locale: resolvePsitoLocale(settings.language, app.supportedLocales),
+      localizationsDelegates: psitoLocalizationsDelegates(
+        app.localizationsDelegates,
+      ),
+      supportedLocales: app.supportedLocales,
       home: Scaffold(body: app.build(context)),
     ),
   );

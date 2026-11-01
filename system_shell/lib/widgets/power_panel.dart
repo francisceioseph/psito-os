@@ -3,6 +3,7 @@
 // Menu do botão de energia: suspender, reiniciar e desligar.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:system_shell/l10n/l10n.dart';
 import 'package:flutter/services.dart';
 
 import 'package:psito_services/session_service.dart';
@@ -47,7 +48,7 @@ class PowerPanel extends StatelessWidget {
               width: 220,
               child: ValueListenableBuilder(
                 valueListenable: capabilities,
-                builder: (context, can, _) => _buildPanel(can),
+                builder: (context, can, _) => _buildPanel(context, can),
               ),
             ),
           ],
@@ -56,11 +57,16 @@ class PowerPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildPanel(SessionCapabilities can) {
+  Widget _buildPanel(BuildContext context, SessionCapabilities can) {
     final items = [
-      (Icons.bedtime_outlined, 'Suspender', can.canSuspend, onSuspend),
-      (Icons.restart_alt, 'Reiniciar', can.canReboot, onReboot),
-      (Icons.power_settings_new, 'Desligar', can.canPowerOff, onPowerOff),
+      (Icons.bedtime_outlined, context.l10n.suspend, can.canSuspend, onSuspend),
+      (Icons.restart_alt, context.l10n.reboot, can.canReboot, onReboot),
+      (
+        Icons.power_settings_new,
+        context.l10n.powerOff,
+        can.canPowerOff,
+        onPowerOff,
+      ),
     ];
     final firstEnabled = items.indexWhere((item) => item.$3);
     return Material(

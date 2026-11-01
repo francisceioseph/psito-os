@@ -1,7 +1,7 @@
 // packages/psito_fs/lib/src/names.dart
 //
 // Nomes e caminhos: o nome de um caminho, a extensão, os nomes livres
-// ("foto 2.png", "foto cópia.png") e a ordem natural ("2" antes de "10").
+// ("foto 2.png", "foto copy.png") e a ordem natural ("2" antes de "10").
 import 'dart:io';
 
 /// O último pedaço do caminho (`/a/b.txt` → `b.txt`; `/` → `/`).
@@ -64,13 +64,19 @@ String uniqueName(String dir, String name, {bool isDirectory = false}) {
   }
 }
 
-/// O nome de uma duplicata: `nome cópia.ext`, depois `nome cópia 2.ext`…
-String copyName(String dir, String name, {bool isDirectory = false}) {
+/// O nome de uma duplicata: `nome copy.ext`, depois `nome copy 2.ext`…, com
+/// [copyWord] no idioma de quem usa.
+String copyName(
+  String dir,
+  String name, {
+  bool isDirectory = false,
+  String copyWord = 'copy',
+}) {
   final (stem, ext) = splitExtension(name, isDirectory: isDirectory);
-  final first = '$stem cópia$ext';
+  final first = '$stem $copyWord$ext';
   if (!_exists(joinPath(dir, first))) return first;
   for (var n = 2; ; n++) {
-    final candidate = '$stem cópia $n$ext';
+    final candidate = '$stem $copyWord $n$ext';
     if (!_exists(joinPath(dir, candidate))) return candidate;
   }
 }
@@ -80,12 +86,25 @@ bool _exists(String path) =>
     FileSystemEntityType.notFound;
 
 /// Por que [name] não serve de nome de arquivo, ou null se serve.
-String? invalidName(String name) {
-  if (name.trim().isEmpty) return 'O nome não pode ficar vazio.';
-  if (name.contains('/')) return 'O nome não pode ter "/".';
-  if (name == '.' || name == '..') return 'Esse nome é reservado.';
-  if (name.length > 255) return 'O nome é longo demais.';
+FsErrorKind? invalidName(String name) {
+  if (name.trim().isEmpty) return FsErrorKind.emptyName;
+  if (name.contains('/')) return FsErrorKind.slashInName;
+  if (name == '.' || name == '..') return FsErrorKind.reservedName;
+  if (name.length > 255) return FsErrorKind.nameTooLong;
   return null;
+}
+
+/// Os erros que o `psito_fs` conhece: quem mostra é que traduz.
+enum FsErrorKind {
+  /// Um erro do sistema: [FsError.detail] tem a mensagem dele.
+  system,
+  emptyName,
+  slashInName,
+  reservedName,
+  nameTooLong,
+  nameTaken,
+  intoItself,
+  replacesParent,
 }
 
 /// A ordem dos nomes como o Finder: sem diferença de maiúsculas, e os

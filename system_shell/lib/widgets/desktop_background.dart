@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/l10n/l10n.dart';
 
 class DesktopBackground extends StatelessWidget {
   final PsitoWallpaper wallpaper;
@@ -48,8 +49,8 @@ class DesktopBackground extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'O Sistema Operacional Penoso',
+            Text(
+              context.l10n.tagline,
               style: TextStyle(fontSize: 16, color: Colors.white54),
             ),
           ],

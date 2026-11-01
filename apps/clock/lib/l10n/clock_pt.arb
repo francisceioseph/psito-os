@@ -1,0 +1,9 @@
+{
+  "@@locale": "pt",
+  "appName": "Relógio",
+  "timerDone": "Timer concluído",
+  "timerDoneBody": "10 segundos se passaram.",
+  "timerIdle": "Timer de 10 s",
+  "timerRemaining": "Faltam {seconds} s",
+  "timerStart": "Iniciar timer"
+}

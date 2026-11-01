@@ -2,6 +2,7 @@
 //
 // Ícone de rede da top bar. Some quando não há gerenciador de rede.
 import 'package:flutter/material.dart';
+import 'package:system_shell/l10n/l10n.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 class NetworkIndicator extends StatelessWidget {
@@ -13,14 +14,17 @@ class NetworkIndicator extends StatelessWidget {
   static const _warning = Color(0xFFFF9800);
 
   /// Ícone e texto do estado; null quando não há o que mostrar.
-  static (IconData, String, Color?)? describe(PsitoNetworkState s) {
+  static (IconData, String, Color?)? describe(
+    SystemLocalizations l,
+    PsitoNetworkState s,
+  ) {
     if (!s.available) return null;
     if (!s.enabled) {
-      return (Icons.signal_wifi_off, 'Rede desativada', Colors.white38);
+      return (Icons.signal_wifi_off, l.networkOff, Colors.white38);
     }
-    if (s.connecting) return (Icons.sync, 'Conectando…', null);
+    if (s.connecting) return (Icons.sync, l.networkConnecting, null);
     final primary = s.primary;
-    if (primary == null) return (Icons.link_off, 'Desconectado', null);
+    if (primary == null) return (Icons.link_off, l.networkDisconnected, null);
 
     final icon = switch (primary.kind) {
       PsitoNetworkKind.wifi => switch (primary.wifiStrength ?? 100) {
@@ -34,13 +38,13 @@ class NetworkIndicator extends StatelessWidget {
     final noInternet =
         s.connectivity == PsitoConnectivity.limited ||
         s.connectivity == PsitoConnectivity.portal;
-    if (noInternet) return (icon, 'Conectado, sem internet', _warning);
+    if (noInternet) return (icon, l.networkNoInternet, _warning);
     return (icon, primary.connection ?? primary.interface, null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final described = describe(state);
+    final described = describe(context.l10n, state);
     if (described == null) return const SizedBox.shrink();
     final (icon, tooltip, color) = described;
     return Tooltip(

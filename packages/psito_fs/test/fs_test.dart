@@ -77,9 +77,9 @@ void main() {
       write('foto 2.png');
       expect(uniqueName(tmp.path, 'foto.png'), 'foto 3.png');
       expect(uniqueName(tmp.path, 'outra.png'), 'outra.png');
-      expect(copyName(tmp.path, 'foto.png'), 'foto cópia.png');
-      write('foto cópia.png');
-      expect(copyName(tmp.path, 'foto.png'), 'foto cópia 2.png');
+      expect(copyName(tmp.path, 'foto.png'), 'foto copy.png');
+      write('foto copy.png');
+      expect(copyName(tmp.path, 'foto.png'), 'foto copy 2.png');
     });
 
     test('a ordem natural', () {
@@ -430,11 +430,11 @@ XDG_VIDEOS_DIR="/mnt/v\\"x"
         final same = await FileJob.start(JobKind.copy, [
           p('s/f.txt'),
         ], destination: p('s')).result;
-        expect(same.done.single.$2, p('s/f cópia.txt'));
+        expect(same.done.single.$2, p('s/f copy.txt'));
         final dup = await FileJob.start(JobKind.duplicate, [
           p('s/f.txt'),
         ]).result;
-        expect(dup.done.single.$2, p('s/f cópia 2.txt'));
+        expect(dup.done.single.$2, p('s/f copy 2.txt'));
         final inside = await FileJob.start(JobKind.move, [
           p('s'),
         ], destination: p('s')).result;
@@ -442,7 +442,7 @@ XDG_VIDEOS_DIR="/mnt/v\\"x"
         final into = await FileJob.start(JobKind.copy, [
           tmp.path,
         ], destination: p('s')).result;
-        expect(into.errors.single, contains('dentro dela mesma'));
+        expect(into.errors.single.kind, FsErrorKind.intoItself);
       },
     );
 
@@ -471,8 +471,11 @@ XDG_VIDEOS_DIR="/mnt/v\\"x"
       expect(() => renameEntry(p('r/c.txt'), 'b.txt'), throwsA(isA<FsError>()));
       await undoRename.run();
       expect(File(p('r/a.txt')).existsSync(), isTrue);
-      final (folder, undoFolder) = await createFolder(p('r'));
-      final (folder2, _) = await createFolder(p('r'));
+      final (folder, undoFolder) = await createFolder(
+        p('r'),
+        name: 'Nova pasta',
+      );
+      final (folder2, _) = await createFolder(p('r'), name: 'Nova pasta');
       expect(baseName(folder), 'Nova pasta');
       expect(baseName(folder2), 'Nova pasta 2');
       await undoFolder.run();

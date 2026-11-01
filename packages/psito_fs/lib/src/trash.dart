@@ -63,10 +63,10 @@ class Trash {
   Future<TrashItem> trash(String path) async {
     final type = FileSystemEntity.typeSync(path, followLinks: false);
     if (type == FileSystemEntityType.notFound) {
-      throw FileSystemException('não existe', path);
+      throw FileSystemException('not found', path);
     }
     if (isWithin(dir, path)) {
-      throw FileSystemException('já está na lixeira', path);
+      throw FileSystemException('already in the trash', path);
     }
     await Directory(filesDir).create(recursive: true);
     await Directory(infoDir).create(recursive: true);

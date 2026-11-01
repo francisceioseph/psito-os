@@ -44,7 +44,7 @@ void main() {
     expect(_iconOf(tester, 'network-indicator'), Icons.lan);
     expect(_iconOf(tester, 'volume-indicator'), Icons.volume_down);
     expect(find.byKey(_key('battery-indicator')), findsNothing);
-    expect(find.text('Sex, 30 de out, 16:41'), findsOneWidget);
+    expect(find.text('sex., 30 de out., 16:41'), findsOneWidget);
 
     network.set(const PsitoNetworkState(available: true));
     await tester.pump();
@@ -65,7 +65,7 @@ void main() {
     await time.setTimezone('Asia/Tokyo');
     clock = DateTime(2026, 10, 31, 4, 41);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('Sáb, 31 de out, 04:41'), findsOneWidget);
+    expect(find.text('sáb., 31 de out., 04:41'), findsOneWidget);
 
     systemInfo.set(
       const PsitoSystemInfo(

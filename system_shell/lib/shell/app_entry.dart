@@ -22,7 +22,7 @@ class AppEntry {
 
   factory AppEntry.fromPsitoApp(PsitoApp app) => AppEntry(
     id: app.id,
-    name: app.name,
+    name: app.localizedName(resolvePsitoLocale('')),
     color: app.color,
     icon: (size) => Icon(app.icon, size: size, color: app.color),
   );

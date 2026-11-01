@@ -13,6 +13,8 @@ import 'format.dart';
 import 'items.dart';
 import 'tab.dart';
 
+import 'package:psito_files/l10n/l10n.dart';
+
 class Toolbar extends StatelessWidget {
   final TextEditingController search;
   final FocusNode searchFocus;
@@ -42,17 +44,17 @@ class Toolbar extends StatelessWidget {
               if (onToggleSidebar != null)
                 _Button(
                   Icons.view_sidebar_outlined,
-                  'Barra lateral',
+                  context.l10n.sidebar,
                   onToggleSidebar,
                 ),
               _Button(
                 Icons.chevron_left_rounded,
-                'Voltar (Alt+←)',
+                context.l10n.back,
                 tab.canGoBack ? tab.back : null,
               ),
               _Button(
                 Icons.chevron_right_rounded,
-                'Avançar (Alt+→)',
+                context.l10n.forward,
                 tab.canGoForward ? tab.forward : null,
               ),
               const SizedBox(width: 4),
@@ -62,7 +64,10 @@ class Toolbar extends StatelessWidget {
                   onPressed: tab.items.isEmpty
                       ? null
                       : controller.emptyTrashAsked,
-                  child: const Text('Esvaziar', style: TextStyle(fontSize: 12)),
+                  child: Text(
+                    context.l10n.empty,
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               if (wide) _Modes(tab: tab),
               const _ActionsMenu(),
@@ -173,19 +178,19 @@ class _Modes extends StatelessWidget {
       children: [
         _Button(
           Icons.grid_view_rounded,
-          'Ícones (Ctrl+1)',
+          context.l10n.viewIconsTip,
           () => tab.setMode(ViewMode.icons),
           active: mode == ViewMode.icons,
         ),
         _Button(
           Icons.view_list_rounded,
-          'Lista (Ctrl+2)',
+          context.l10n.viewListTip,
           () => tab.setMode(ViewMode.list),
           active: mode == ViewMode.list,
         ),
         _Button(
           Icons.view_column_rounded,
-          'Colunas (Ctrl+3)',
+          context.l10n.viewColumnsTip,
           columns ? () => tab.setMode(ViewMode.columns) : null,
           active: mode == ViewMode.columns,
         ),
@@ -218,27 +223,27 @@ class _ActionsMenu extends StatelessWidget {
         MenuItemButton(
           onPressed: inFolder ? controller.newFolder : null,
           shortcut: null,
-          child: const Text('Nova pasta (Ctrl+Shift+N)'),
+          child: Text(context.l10n.newFolderTip),
         ),
         MenuItemButton(
           onPressed: () => controller.newTab(),
-          child: const Text('Nova aba (Ctrl+T)'),
+          child: Text(context.l10n.newTabTip),
         ),
         MenuItemButton(
           onPressed: controller.canUndo ? controller.undo : null,
           child: Text(
             controller.canUndo
-                ? 'Desfazer ${controller.undoLabel} (Ctrl+Z)'
-                : 'Desfazer (Ctrl+Z)',
+                ? context.l10n.undoTooltip(controller.undoLabel!)
+                : context.l10n.undoTip,
           ),
         ),
         const Divider(height: 8),
         SubmenuButton(
           menuChildren: [
             for (final (mode, label) in [
-              (ViewMode.icons, 'Ícones'),
-              (ViewMode.list, 'Lista'),
-              (ViewMode.columns, 'Colunas'),
+              (ViewMode.icons, context.l10n.viewIcons),
+              (ViewMode.list, context.l10n.viewList),
+              (ViewMode.columns, context.l10n.viewColumns),
             ])
               MenuItemButton(
                 onPressed: mode == ViewMode.columns && !inFolder
@@ -247,15 +252,15 @@ class _ActionsMenu extends StatelessWidget {
                 child: check(tab.mode == mode, label),
               ),
           ],
-          child: const Text('Ver como'),
+          child: Text(context.l10n.viewAs),
         ),
         SubmenuButton(
           menuChildren: [
             for (final (key, label) in [
-              (FsSortKey.name, 'Nome'),
-              (FsSortKey.modified, 'Data de modificação'),
-              (FsSortKey.size, 'Tamanho'),
-              (FsSortKey.kind, 'Tipo'),
+              (FsSortKey.name, context.l10n.sortName),
+              (FsSortKey.modified, context.l10n.sortModified),
+              (FsSortKey.size, context.l10n.size),
+              (FsSortKey.kind, context.l10n.kind),
             ])
               MenuItemButton(
                 onPressed: () => config.setSort(sort.copyWith(key: key)),
@@ -265,25 +270,25 @@ class _ActionsMenu extends StatelessWidget {
             MenuItemButton(
               onPressed: () =>
                   config.setSort(sort.copyWith(ascending: !sort.ascending)),
-              child: check(!sort.ascending, 'Ordem inversa'),
+              child: check(!sort.ascending, context.l10n.reverseOrder),
             ),
             MenuItemButton(
               onPressed: () => config.setSort(
                 sort.copyWith(foldersFirst: !sort.foldersFirst),
               ),
-              child: check(sort.foldersFirst, 'Pastas primeiro'),
+              child: check(sort.foldersFirst, context.l10n.foldersFirst),
             ),
           ],
-          child: const Text('Ordenar por'),
+          child: Text(context.l10n.sortBy),
         ),
         MenuItemButton(
           onPressed: () => config.setShowHidden(!config.showHidden),
-          child: check(config.showHidden, 'Mostrar ocultos (Ctrl+H)'),
+          child: check(config.showHidden, context.l10n.showHiddenTip),
         ),
       ],
       builder: (context, menu, _) => _Button(
         Icons.more_horiz_rounded,
-        'Ações',
+        context.l10n.actions,
         () => menu.isOpen ? menu.close() : menu.open(),
       ),
     );
@@ -308,7 +313,7 @@ class _SearchField extends StatelessWidget {
       style: const TextStyle(fontSize: 12),
       decoration: InputDecoration(
         isDense: true,
-        hintText: 'Buscar',
+        hintText: context.l10n.search,
         prefixIcon: const Icon(Icons.search_rounded, size: 16),
         prefixIconConstraints: const BoxConstraints(minWidth: 28),
         contentPadding: const EdgeInsets.symmetric(vertical: 6),
@@ -413,7 +418,7 @@ class TabStrip extends StatelessWidget {
             ),
           IconButton(
             icon: const Icon(Icons.add_rounded, size: 16),
-            tooltip: 'Nova aba (Ctrl+T)',
+            tooltip: context.l10n.newTabTip,
             visualDensity: VisualDensity.compact,
             onPressed: () => controller.newTab(),
           ),
@@ -442,7 +447,7 @@ class JobsBar extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    _jobText(running),
+                    _jobText(context, running),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11, color: Colors.white70),
@@ -458,7 +463,7 @@ class JobsBar extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 14),
-                  tooltip: 'Cancelar',
+                  tooltip: context.l10n.cancel,
                   visualDensity: VisualDensity.compact,
                   onPressed: running.job.cancel,
                 ),
@@ -469,13 +474,15 @@ class JobsBar extends StatelessWidget {
     );
   }
 
-  static String _jobText(RunningJob running) {
+  static String _jobText(BuildContext context, RunningJob running) {
+    final l = context.l10n;
     final p = running.progress;
+    final label = FilesUiLocalizations.of(context).jobLabel(running.job.kind);
     final what = p.current == null ? '' : ' "${p.current}"';
     final amount = p.totalBytes > 0
-        ? ' (${formatSize(p.doneBytes)} de ${formatSize(p.totalBytes)})'
+        ? ' ${l.jobAmount(formatSize(l, p.doneBytes), formatSize(l, p.totalBytes))}'
         : '';
-    return '${running.label}$what$amount';
+    return '$label$what$amount';
   }
 }
 
@@ -489,9 +496,10 @@ class StatusBar extends StatelessWidget {
     final tab = controller.tab;
     final config = controller.config;
     final selected = tab.selection.length;
+    final l = context.l10n;
     final text = selected > 0
-        ? '$selected de ${formatCount(tab.items.length, 'item', 'itens')} selecionados'
-        : formatCount(tab.items.length, 'item', 'itens');
+        ? l.itemsSelected(tab.items.length, selected)
+        : l.itemCount(tab.items.length);
     return Container(
       height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -500,7 +508,7 @@ class StatusBar extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              tab.searching ? '$text, buscando...' : text,
+              tab.searching ? l.statusSearching(text) : text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: Colors.white54),

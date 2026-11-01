@@ -39,7 +39,7 @@ class _FakeNM {
       ]),
     });
     connection = FakeDBusObject.single(_path('/ActiveConnection/1'), _active, {
-      'Id': DBusString(wifi ? 'Calopsita' : 'Conexão cabeada 1'),
+      'Id': DBusString(wifi ? 'Calopsita' : 'Wired connection 1'),
       'Type': DBusString(wifi ? '802-11-wireless' : '802-3-ethernet'),
       'State': const DBusUint32(2),
       'Devices': DBusArray.objectPath([_path('/Devices/1')]),
@@ -115,7 +115,7 @@ void main() {
       interface: 'ens3',
       kind: PsitoNetworkKind.ethernet,
       state: PsitoDeviceState.connected,
-      connection: 'Conexão cabeada 1',
+      connection: 'Wired connection 1',
       ipv4: '10.0.2.15/24',
     );
     expect(

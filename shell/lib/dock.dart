@@ -294,7 +294,7 @@ class DockController {
     DockPath() => pathEntry(keyOf(item), item.name, iconsFor(item), pathColor),
     DockLauncher() => AppEntry(
       id: keyOf(item),
-      name: 'Apps',
+      name: state.l10n.apps,
       color: state.settings.value.accent,
       icon: (size) => Icon(
         Icons.apps_rounded,
@@ -302,7 +302,7 @@ class DockController {
         color: state.settings.value.accent,
       ),
     ),
-    DockTrash() => pathEntry(keyOf(item), 'Lixeira', [
+    DockTrash() => pathEntry(keyOf(item), state.l10n.trash, [
       if (trashFull.value) 'user-trash-full' else 'user-trash',
     ], pathColor),
   };
@@ -619,8 +619,8 @@ class DockController {
           ].firstOrNull ??
           id,
     DockPath() => item.name,
-    DockTrash() => 'Lixeira',
-    DockLauncher() => 'Apps',
+    DockTrash() => state.l10n.trash,
+    DockLauncher() => state.l10n.apps,
   };
 
   /// O menu de um app, em grupos: as janelas (a mais recente primeiro),
@@ -646,7 +646,7 @@ class DockController {
       [
         if (app != null) ...[
           DockMenuItem(
-            windows.isEmpty ? 'Abrir' : 'Nova janela',
+            windows.isEmpty ? state.l10n.open : state.l10n.newWindow,
             () => state.launchFromDock(
               app,
               command: newWindow?.firstOrNull?.command,
@@ -663,7 +663,7 @@ class DockController {
       [
         if (app != null && autostart != null)
           DockMenuItem(
-            'Abrir ao iniciar a sessão',
+            state.l10n.openAtLogin,
             () => unawaited(autostart.set(app, !autostart.enabled(id))),
             checked: autostart.enabled(id),
           ),
@@ -671,19 +671,16 @@ class DockController {
       ],
       if (windows.isNotEmpty)
         [
-          DockMenuItem('Ocultar', () {
+          DockMenuItem(state.l10n.hide, () {
             for (final window in windows) {
               if (!window.minimized) unawaited(toplevels.minimize(window.id));
             }
           }),
-          DockMenuItem(
-            windows.length > 1 ? 'Fechar ${windows.length} janelas' : 'Fechar',
-            () {
-              for (final window in windows) {
-                unawaited(toplevels.close(window.id));
-              }
-            },
-          ),
+          DockMenuItem(state.l10n.closeWindows(windows.length), () {
+            for (final window in windows) {
+              unawaited(toplevels.close(window.id));
+            }
+          }),
         ],
     ];
     return [
@@ -704,8 +701,8 @@ class DockController {
   List<DockMenuItem> menuItems(DockItem item) {
     final pinned = state.dock.contains(item);
     final keep = pinned
-        ? DockMenuItem('Remover da Dock', () => state.dock.unpin(item))
-        : DockMenuItem('Manter na Dock', () => state.dock.pin(item));
+        ? DockMenuItem(state.l10n.removeFromDock, () => state.dock.unpin(item))
+        : DockMenuItem(state.l10n.keepInDock, () => state.dock.pin(item));
     switch (item) {
       case DockApp(:final id):
         return _appMenu(id, keep);
@@ -713,20 +710,20 @@ class DockController {
         final parent = File(path).parent.path;
         return [
           DockMenuItem(
-            item is DockFolder ? 'Abrir no Files' : 'Abrir',
+            item is DockFolder ? state.l10n.openInFiles : state.l10n.open,
             () => _open([path]),
           ),
-          DockMenuItem('Mostrar no Files', () => _open([parent])),
+          DockMenuItem(state.l10n.showInFiles, () => _open([parent])),
           keep,
         ];
       case DockLauncher():
         return const [];
       case DockTrash():
         return [
-          DockMenuItem('Abrir', () => unawaited(openTrash())),
+          DockMenuItem(state.l10n.open, () => unawaited(openTrash())),
           if (trashFull.value)
             DockMenuItem(
-              'Esvaziar a lixeira',
+              state.l10n.emptyTrash,
               () => askEmptyTrash.value = true,
             ),
         ];

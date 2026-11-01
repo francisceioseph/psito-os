@@ -4,8 +4,11 @@
 
 cd "$(dirname "$0")"
 
+# Os textos gerados acompanham os .arb
+./l10n.sh || exit 1
+
 STATUS=0
-for dir in packages/psito_fs packages/psito_dock packages/psito_desktop packages/psito_files_ui packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/; do
+for dir in packages/psito_sdk packages/psito_fs packages/psito_dock packages/psito_desktop packages/psito_files_ui packages/psito_services packages/psito_runtime system_shell shell apps/*/ examples/*/; do
     dir=${dir%/}
     OUT=$(cd "$dir" && flutter analyze --no-pub 2>&1)
     CODE=$?

@@ -21,7 +21,10 @@ void main() {
 
     test('lê o que ele mesmo oferece', () {
       expect(FileClip.parseGnome(clip.gnome), clip);
-      expect(FileClip.parseUris(clip.uris), const FileClip(['/a b/c.txt', '/d']));
+      expect(
+        FileClip.parseUris(clip.uris),
+        const FileClip(['/a b/c.txt', '/d']),
+      );
     });
 
     test('um texto qualquer não é um arquivo', () {

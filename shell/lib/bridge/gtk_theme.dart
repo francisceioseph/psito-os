@@ -12,6 +12,7 @@ import 'dart:ui';
 
 import 'colors.dart';
 
+// A marca de que o arquivo é nosso, nos que já estão gravados: não muda.
 const gtkThemeHeader = '/* Gerado pela ponte do Psito. Não edite. */';
 const _iniHeader = '# Gerado pela ponte do Psito. Não edite.';
 

@@ -3,6 +3,7 @@
 // do shell ou dos serviços quebraria essa fronteira.
 import 'dart:io';
 
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:system_shell/shell/app_registry.dart';
 
@@ -64,6 +65,9 @@ void main() {
           .padLeft(6, '0')
           .toUpperCase();
       expect(text, contains('Name=${app.name}\n'));
+      // O nome traduzido do .desktop é o que o launcher e a dock mostram
+      final pt = app.localizedName(const Locale('pt'));
+      if (pt != app.name) expect(text, contains('Name[pt]=$pt\n'));
       // O código de campo (%f, %U) é de quem abre arquivos
       expect(
         text,

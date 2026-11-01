@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import 'l10n/calculator_localizations.dart';
+
 class CalculatorView extends StatefulWidget {
   const CalculatorView({super.key});
 
@@ -40,7 +42,9 @@ class _CalculatorViewState extends State<CalculatorView> {
         } else if (_operator == '×') {
           _output = (_num1 * _num2).toString();
         } else if (_operator == '÷') {
-          _output = _num2 != 0 ? (_num1 / _num2).toString() : 'Erro';
+          _output = _num2 != 0
+              ? (_num1 / _num2).toString()
+              : CalculatorLocalizations.of(context).error;
         }
         // Remove .0 se for inteiro para ficar limpo
         if (_output.endsWith('.0')) {
@@ -180,6 +184,15 @@ class CalculatorApp extends PsitoApp {
 
   @override
   String get name => 'Calculator';
+
+  @override
+  String localizedName(Locale locale) =>
+      lookupCalculatorLocalizations(locale).appName;
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    CalculatorLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.calculate_outlined;

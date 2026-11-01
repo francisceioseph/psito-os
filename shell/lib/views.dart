@@ -12,6 +12,7 @@ import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
+import 'package:system_shell/l10n/system_localizations.dart';
 import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/shell/clipboard_history.dart';
 import 'package:system_shell/widgets/battery_panel.dart';
@@ -39,6 +40,7 @@ import 'dock.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
 import 'surfaces.dart';
+import 'l10n/shell_localizations.dart';
 
 /// A raiz: põe cada superfície na sua view, assim que o engine anuncia a
 /// view (as do runner chegam depois da implícita).
@@ -110,6 +112,13 @@ class _Themed extends StatelessWidget {
     builder: (context, settings, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: psitoTheme(settings.accent),
+      locale: resolvePsitoLocale(settings.language),
+      localizationsDelegates: psitoLocalizationsDelegates(const [
+        ShellLocalizations.delegate,
+        SystemLocalizations.delegate,
+        FilesUiLocalizations.delegate,
+      ]),
+      supportedLocales: psitoLocales,
       color: Colors.transparent,
       home: Builder(builder: builder),
     ),
@@ -751,12 +760,15 @@ class _OverlayView extends StatelessWidget {
     final item = DockApp(entry.id);
     final desk = state.desk.value;
     return [
-      if (app != null) DockMenuItem('Abrir', () => state.launch(app)),
+      if (app != null) DockMenuItem(state.l10n.open, () => state.launch(app)),
       state.dock.contains(item)
-          ? DockMenuItem('Remover da Dock', () => state.dock.unpin(item))
-          : DockMenuItem('Manter na Dock', () => state.dock.pin(item)),
+          ? DockMenuItem(
+              state.l10n.removeFromDock,
+              () => state.dock.unpin(item),
+            )
+          : DockMenuItem(state.l10n.keepInDock, () => state.dock.pin(item)),
       if (app != null && desk != null && desk.canCreateShortcut)
-        DockMenuItem('Criar atalho na mesa', () {
+        DockMenuItem(state.l10n.createDeskShortcut, () {
           state.closeOverlay();
           unawaited(desk.createShortcut(app));
         }),
@@ -808,8 +820,7 @@ class _OverlayView extends StatelessWidget {
         final powerOff = action == PowerAction.powerOff;
         return PowerConfirmDialog(
           key: ValueKey(action),
-          action: powerOff ? 'Desligar' : 'Reiniciar',
-          progressive: powerOff ? 'Desligando' : 'Reiniciando',
+          powerOff: powerOff,
           onConfirm: () => state.runPower(action),
           onCancel: () => state.confirm.value = null,
         );
@@ -817,20 +828,18 @@ class _OverlayView extends StatelessWidget {
       final ui = state.dockUi;
       if (ui.askEmptyTrash.value) {
         return DockConfirm(
-          title: 'Esvaziar a lixeira?',
-          message: 'Os itens da lixeira serão apagados de vez.',
-          action: 'Esvaziar',
+          title: state.l10n.emptyTrashQuestion,
+          message: state.l10n.emptyTrashBody,
+          action: state.l10n.emptyAction,
           onConfirm: () => unawaited(ui.emptyTrash()),
           onCancel: () => ui.askEmptyTrash.value = false,
         );
       }
       if (state.deskTrust.value case final trust?) {
         return DockConfirm(
-          title: 'Confiar neste atalho?',
-          message:
-              '"${trust.name}" não foi marcado como confiável, e pode abrir '
-              'qualquer programa.',
-          action: 'Confiar e abrir',
+          title: state.l10n.trustQuestion,
+          message: state.l10n.trustBody(trust.name),
+          action: state.l10n.trustAndOpen,
           onConfirm: trust.onTrust,
           onCancel: () => state.deskTrust.value = null,
         );

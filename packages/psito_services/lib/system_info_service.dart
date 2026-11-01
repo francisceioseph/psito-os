@@ -91,7 +91,7 @@ class FakeSystemInfoService implements SystemInfoService {
   static const sample = PsitoSystemInfo(
     available: true,
     hostname: 'psito-fake',
-    osName: 'Psito OS (serviços falsos)',
+    osName: 'Psito OS (fake services)',
     kernel: '0.0.0-fake',
   );
 

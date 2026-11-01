@@ -5,6 +5,8 @@ import 'package:system_shell/shell/app_entry.dart';
 import 'package:system_shell/widgets/dock_menu.dart';
 import 'package:system_shell/widgets/dock_stack.dart';
 
+import 'helpers.dart';
+
 DockStackEntry _entry(String name) => DockStackEntry(
   '/p/$name',
   AppEntry(
@@ -20,6 +22,9 @@ void main() {
     final log = <String>[];
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: DockStack(
           anchor: const Rect.fromLTWH(380, 540, 52, 52),
           title: 'Downloads',
@@ -70,6 +75,9 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+
         home: DockMenu(
           anchor: const Rect.fromLTWH(380, 540, 52, 52),
           title: 'App',
@@ -111,6 +119,9 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testL10nDelegates,
+          supportedLocales: psitoLocales,
+
           home: Scaffold(
             body: DockMenu(
               at: at,
@@ -120,11 +131,7 @@ void main() {
               items: [
                 DockMenuItem('Viva', () => log.add('viva')),
                 DockMenuItem('Morta', () => log.add('morta'), enabled: false),
-                DockMenuItem(
-                  'Fica',
-                  () => log.add('fica'),
-                  keepsOpen: true,
-                ),
+                DockMenuItem('Fica', () => log.add('fica'), keepsOpen: true),
               ],
             ),
           ),
@@ -165,6 +172,9 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testL10nDelegates,
+          supportedLocales: psitoLocales,
+
           home: DockMenu(
             at: Offset.zero,
             title: 'Menu',

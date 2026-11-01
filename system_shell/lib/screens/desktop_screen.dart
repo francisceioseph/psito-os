@@ -501,8 +501,7 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     return Positioned.fill(
                       child: PowerConfirmDialog(
                         key: ValueKey(action),
-                        action: powerOff ? 'Desligar' : 'Reiniciar',
-                        progressive: powerOff ? 'Desligando' : 'Reiniciando',
+                        powerOff: powerOff,
                         onConfirm: () => _runPower(action),
                         onCancel: () => _confirm.value = null,
                       ),

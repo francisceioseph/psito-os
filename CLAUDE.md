@@ -66,6 +66,12 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
     - Os painéis da top bar abrem um de cada vez, pelo `_Overlay` do `DesktopScreen`. A barreira deles deixa a top bar clicável, para trocar de painel.
   - `test/`: testes de unidade e widget (`flutter test` em `system_shell/`). O apoio comum fica em `test/helpers.dart`: `FakeApp`, `pumpDesktop` e `pumpOS`.
 - `packages/psito_sdk/`: contrato shell↔apps (`PsitoApp`, `PsitoAppContext`, `PsitoNotification`, `PsitoSettings`, papéis de parede, cores, o tema `psitoTheme` e a tabela `psitoShortcuts`). Os apps só podem importar Flutter, pacotes externos, o `psito_sdk` e o `psito_runtime`. O `system_shell/test/app_boundary_test.dart` garante isso.
+- As traduções (`gen-l10n` do Flutter): cada projeto com texto tem o `l10n.yaml` e o `lib/l10n/<prefixo>_en.arb` e `_pt.arb`, com o inglês como modelo e o que se gera ao lado, no git, porque o flutter não gera nos pacotes por caminho (`./l10n.sh`, que o `./check.sh` já roda).
+  - Na tela, `context.l10n.chave` (o `lib/l10n/l10n.dart` de cada projeto). Fora de um widget, `ctx.locale` nos apps e `state.l10n` e `state.filesUi` no shell, com o `lookup...Localizations`.
+  - Uma classe por projeto: `SdkLocalizations` (papéis de parede, atalhos, erros de abrir), `FilesUiLocalizations` (o que o `psito_fs` fala: `fsError`, `fsAction` e `jobLabel`), `SystemLocalizations` (os widgets do `system_shell`), `ShellLocalizations` e uma por app. O app diz as dele no `localizationsDelegates` e o nome no `localizedName`, e o `.desktop` traz o `Name[pt]`.
+  - O `psito_fs` é Dart puro e não fala língua nenhuma: devolve `FsErrorKind` e `FsAction`, e recebe o nome da pasta nova e a palavra de "cópia" de quem chama.
+  - O idioma é o `PsitoSettings.language` (`en`, `pt`; vazio segue o sistema, pelo `resolvePsitoLocale`), na seção Idioma das Configurações. Os apps do Psito mudam na hora, e os de fora recebem o `LANGUAGE` ao abrir.
+  - Data, hora e número vão pelo `DateFormat` e pelo `NumberFormat` do `intl`, com o idioma, e plural pelo `{n, plural, ...}` do `.arb`.
 - `docs/ROADMAP.md`: roteiro por fases (local, fora do git). `docs/FASE-3.md` detalha a última fase, e `docs/decisao-compositor.md` a base escolhida. Consulte só quando a tarefa envolver planejamento.
 - `spike/`: bancada da fase 3 (`docs/FASE-3.md`): a comparação dos compositores, numa VM própria (`qemu/psito-spike.qcow2`, SSH na 2223) em que o `session.sh` escolhe o compositor.
   - `probe/`: app Flutter Linux de referência, compilado dentro da VM;
@@ -83,7 +89,8 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 
 ## Comandos (host)
 - `PSITO_SERVICES=fake flutter run -d linux` (em `system_shell/`): o laboratório de UX no host, com os serviços falsos. Sem a variável, usa os serviços reais do host. Em `apps/<id>/`, `flutter run -d linux` abre o app sozinho.
-- `./check.sh`: `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/`, em cada `apps/<id>/` e nos `examples/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
+- `./l10n.sh`: gera os textos a partir dos `.arb`, em todos os projetos.
+- `./check.sh`: gera os textos (`./l10n.sh`) e roda o `flutter analyze` nos `packages/`, no `system_shell/`, no `shell/`, em cada `apps/<id>/` e nos `examples/`, mostrando só os problemas. Rode depois de editar Dart, junto com o `./test.sh`.
 - `./test.sh [pasta...]`: o `flutter test` de cada projeto (ou só dos indicados), mostrando só as falhas. São 2 processos de teste (`TEST_JOBS`) num escopo do systemd com 2G de limite e sem swap (`TEST_MEM`; `0` tira o limite). Assim cabe no host com a VM ligada, e se estourar só os testes morrem. Não rode o `flutter test` direto com a VM ligada: ele abre um processo por núcleo.
 - `./build.sh [release|profile|debug]`: envia o código e compila o `shell/` e cada `apps/<id>/` dentro da VM (padrão release), com o Flutter dela. `ONLY="shell apps/files"` compila só esses.
 - `./deploy.sh`: empacota (`tools/psito-deb`) e instala com o `apt` o runtime, o `psito-shell`, os `psito-app-*` e o metapacote `psito-desktop`, e reinicia a unidade `psito-shell`. Só em release: em profile ou debug o shell vai por cima do pacote e os apps instalados ficam.
@@ -105,6 +112,7 @@ SO baseado em Linux cuja interface é feita em Flutter (ideia parecida com o Fuc
 - Não ler `build/`, `.dart_tool/`, `linux/flutter/ephemeral/`, `qemu/`, `debian/`.
 - Prefira `./check.sh` e `./logs.sh` a builds e logs completos.
 - Para mostrar a hora, use `ctx.now()` (apps) ou `TimeService.now` (shell), nunca `DateTime.now()`. O fuso do `DateTime.now()` fica congelado depois que o processo começa, porque o glibc não relê o `/etc/localtime`.
+- Nenhum texto que quem usa lê fica no código: vai para os `.arb`, nos dois idiomas. O `l10n_boundary_test` do `system_shell` recusa texto com acento ou direto num `Text`, `tooltip`, `label` e parecidos, e confere se os idiomas têm as mesmas chaves. Log e mensagem de diagnóstico não passam por tradução. Os testes rodam em português (`test/flutter_test_config.dart`).
 - A UI não tem emojis, porque a fonte da VM não tem esses glifos. Nos `debugPrint` eles podem ficar.
 - Todo atalho global tem uma combinação nativa e uma de VM (`lib/shell/shortcuts.dart`, mais `psitoShortcuts` no SDK). O host Cinnamon fica com Super, Alt+Tab, Alt+\`, Ctrl+Alt+setas e Ctrl+Alt+Shift+setas, e o QEMU fica com Ctrl+Alt+G/F/Q/M/1–9. A lista completa está em `docs/FASE-1.md`.
 - Apps precisam caber no tamanho mínimo de janela (240×160). O `desktop_test` verifica todos.

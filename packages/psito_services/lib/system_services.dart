@@ -89,7 +89,7 @@ class SystemServices {
       time.ready,
     ]);
     ready.then((_) {
-      String status(bool ok) => ok ? 'ok' : 'indisponível';
+      String status(bool ok) => ok ? 'ok' : 'unavailable';
       debugPrint(
         '🦜 serviços: '
         'systemInfo=${status(systemInfo.info.value.available)} '

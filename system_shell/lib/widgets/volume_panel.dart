@@ -10,6 +10,8 @@ import 'package:psito_services/audio_service.dart';
 import 'top_bar.dart';
 import 'volume_indicator.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 class VolumePanel extends StatelessWidget {
   final ValueListenable<AudioState> state;
   final ValueChanged<double> onVolume;
@@ -46,7 +48,7 @@ class VolumePanel extends StatelessWidget {
               width: 300,
               child: ValueListenableBuilder(
                 valueListenable: state,
-                builder: (context, s, _) => _buildPanel(s),
+                builder: (context, s, _) => _buildPanel(context, s),
               ),
             ),
           ],
@@ -55,7 +57,7 @@ class VolumePanel extends StatelessWidget {
     );
   }
 
-  Widget _buildPanel(AudioState s) {
+  Widget _buildPanel(BuildContext context, AudioState s) {
     return Material(
       color: const Color(0xFF1E252B),
       borderRadius: BorderRadius.circular(18),
@@ -65,7 +67,7 @@ class VolumePanel extends StatelessWidget {
         child: Row(
           children: [
             IconButton(
-              tooltip: s.muted ? 'Ativar som' : 'Silenciar',
+              tooltip: s.muted ? context.l10n.unmute : context.l10n.mute,
               icon: Icon(VolumeIndicator.iconFor(s)),
               onPressed: () => onMuted(!s.muted),
             ),

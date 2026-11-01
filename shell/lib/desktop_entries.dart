@@ -234,6 +234,14 @@ class DesktopEntry {
   /// [files] são os arquivos que o sandbox monta para o app (o caminho de
   /// fora e o de dentro). [workingDirectory] é onde ele abre (o terminal da
   /// mesa).
+  /// O idioma escolhido nas Configurações, para quem não fala com elas (os
+  /// programas de fora do Psito): vazio segue o `LANG`.
+  static String language = '';
+
+  Map<String, String> get _environment => {
+    if (language.isNotEmpty) 'LANGUAGE': language,
+  };
+
   Future<void> launch({
     String? sandbox,
     List<String>? command,
@@ -252,6 +260,7 @@ class DesktopEntry {
         args.sublist(1),
         mode: ProcessStartMode.detached,
         workingDirectory: workingDirectory,
+        environment: _environment,
       );
     } on ProcessException {
       final direct = args.sublist(args.indexOf('--') + 1);
@@ -260,6 +269,7 @@ class DesktopEntry {
         direct.sublist(1),
         mode: ProcessStartMode.detached,
         workingDirectory: workingDirectory,
+        environment: _environment,
       );
     }
   }

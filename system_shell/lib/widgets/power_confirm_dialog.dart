@@ -5,13 +5,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:system_shell/l10n/l10n.dart';
 
 class PowerConfirmDialog extends StatefulWidget {
-  /// "Desligar" ou "Reiniciar".
-  final String action;
+  /// Desligar, ou reiniciar.
+  final bool powerOff;
 
-  /// "Desligando" ou "Reiniciando".
-  final String progressive;
   final VoidCallback onConfirm;
   final VoidCallback onCancel;
 
@@ -19,8 +18,7 @@ class PowerConfirmDialog extends StatefulWidget {
 
   const PowerConfirmDialog({
     super.key,
-    required this.action,
-    required this.progressive,
+    required this.powerOff,
     required this.onConfirm,
     required this.onCancel,
   });
@@ -76,7 +74,9 @@ class _PowerConfirmDialogState extends State<PowerConfirmDialog> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${widget.action} o Psito OS?',
+                      widget.powerOff
+                          ? context.l10n.powerOffQuestion
+                          : context.l10n.rebootQuestion,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -84,7 +84,9 @@ class _PowerConfirmDialogState extends State<PowerConfirmDialog> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${widget.progressive} em $_remaining s…',
+                      widget.powerOff
+                          ? context.l10n.powerOffCountdown(_remaining)
+                          : context.l10n.rebootCountdown(_remaining),
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 20),
@@ -93,13 +95,17 @@ class _PowerConfirmDialogState extends State<PowerConfirmDialog> {
                       children: [
                         TextButton(
                           onPressed: widget.onCancel,
-                          child: const Text('Cancelar'),
+                          child: Text(context.l10n.cancel),
                         ),
                         const SizedBox(width: 12),
                         FilledButton(
                           autofocus: true,
                           onPressed: _confirm,
-                          child: Text('${widget.action} agora'),
+                          child: Text(
+                            widget.powerOff
+                                ? context.l10n.powerOffNow
+                                : context.l10n.rebootNow,
+                          ),
                         ),
                       ],
                     ),

@@ -83,7 +83,7 @@ void main() {
     await tester.pump();
 
     expect(_panel, findsOneWidget);
-    expect(find.text('Conexão cabeada 1'), findsOneWidget);
+    expect(find.text('Wired connection 1'), findsOneWidget);
     expect(find.text('Cabo · Internet'), findsOneWidget);
     expect(find.text('IPv4  10.0.2.15/24'), findsOneWidget);
 
@@ -142,7 +142,7 @@ void main() {
 
     expect(find.text('ens3'), findsOneWidget);
     expect(
-      find.text('Conectado · Conexão cabeada 1 · 10.0.2.15/24'),
+      find.text('Conectado · Wired connection 1 · 10.0.2.15/24'),
       findsOneWidget,
     );
   });

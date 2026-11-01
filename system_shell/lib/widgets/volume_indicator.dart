@@ -3,6 +3,7 @@
 // Ícone de volume da top bar. Clique abre o painel; a roda ajusta.
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:system_shell/l10n/l10n.dart';
 
 import 'package:psito_services/audio_service.dart';
 
@@ -39,7 +40,9 @@ class VolumeIndicator extends StatelessWidget {
         }
       },
       child: Tooltip(
-        message: state.muted ? 'Sem som' : 'Volume: ${percent(state.volume)}',
+        message: state.muted
+            ? context.l10n.volumeMutedTooltip
+            : context.l10n.volumeTooltip(percent(state.volume)),
         child: Material(
           color: Colors.transparent,
           child: InkWell(

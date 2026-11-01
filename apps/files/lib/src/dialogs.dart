@@ -18,6 +18,8 @@ import 'env.dart';
 import 'format.dart';
 import 'items.dart';
 
+import 'package:psito_files/l10n/l10n.dart';
+
 /// O Espaço mostra o item selecionado: a imagem, o começo do texto ou, no
 /// resto, o ícone grande com as informações. As setas trocam de item, e o
 /// Espaço ou o Esc fecham.
@@ -92,7 +94,7 @@ class _QuickLook extends StatelessWidget {
                                 Navigator.of(context).pop();
                                 controller.open([entry]);
                               },
-                              child: const Text('Abrir'),
+                              child: Text(context.l10n.open),
                             ),
                           IconButton(
                             icon: const Icon(Icons.close_rounded, size: 18),
@@ -149,7 +151,7 @@ class _Preview extends StatelessWidget {
       return Image.file(
         File(entry.path),
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => _summary(env),
+        errorBuilder: (_, _, _) => _summary(context, env),
       );
     }
     if (env.mime.isA(entry.mimeType, textType) && !entry.isDirectory) {
@@ -159,7 +161,7 @@ class _Preview extends StatelessWidget {
           final text = snapshot.data;
           if (text == null) {
             return snapshot.connectionState == ConnectionState.done
-                ? _summary(env)
+                ? _summary(context, env)
                 : const SizedBox(height: 120);
           }
           return Container(
@@ -176,10 +178,10 @@ class _Preview extends StatelessWidget {
         },
       );
     }
-    return _summary(env);
+    return _summary(context, env);
   }
 
-  Widget _summary(FilesEnv env) {
+  Widget _summary(BuildContext context, FilesEnv env) {
     final now = controller.ctx.now();
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -192,11 +194,13 @@ class _Preview extends StatelessWidget {
         ),
         if (!entry.isDirectory)
           Text(
-            formatSize(entry.size),
+            formatSize(context.l10n, entry.size),
             style: const TextStyle(fontSize: 12, color: Colors.white60),
           ),
         Text(
-          'Modificado: ${formatDate(entry.modified, now)}',
+          context.l10n.modifiedAt(
+            formatDate(context.l10n, entry.modified, now),
+          ),
           style: const TextStyle(fontSize: 12, color: Colors.white60),
         ),
       ],
@@ -283,40 +287,54 @@ class _InfoDialogState extends State<_InfoDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              line('Tipo', text(env.describe(entry.mimeType))),
+              line(context.l10n.kind, text(env.describe(entry.mimeType))),
               line(
-                'Tamanho',
+                context.l10n.size,
                 _size == null
-                    ? text('${formatSize(entry.size)} (${entry.size} bytes)')
+                    ? text(
+                        context.l10n.sizeWithBytes(
+                          formatSize(context.l10n, entry.size),
+                          entry.size,
+                        ),
+                      )
                     : FutureBuilder(
                         future: _size,
                         builder: (_, s) => text(
                           s.data == null
-                              ? 'Calculando...'
-                              : '${formatSize(s.data!.$1)}, ${formatCount(s.data!.$2, 'item', 'itens')}',
+                              ? context.l10n.calculating
+                              : context.l10n.sizeAndItems(
+                                  s.data!.$2,
+                                  formatSize(context.l10n, s.data!.$1),
+                                ),
                         ),
                       ),
               ),
               line(
-                trash != null ? 'Saiu de' : 'Onde',
+                trash != null ? context.l10n.wherefrom : context.l10n.where,
                 SelectableText(
                   trash != null ? trash.originalPath : dirName(entry.path),
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
               if (entry.linkTarget != null)
-                line('Aponta para', text(entry.linkTarget!)),
+                line(context.l10n.pointsTo, text(entry.linkTarget!)),
               if (trash?.deletedAt != null)
                 line(
-                  'Apagado em',
-                  text(formatLocalDate(trash!.deletedAt!, now)),
+                  context.l10n.deletedAt,
+                  text(formatLocalDate(context.l10n, trash!.deletedAt!, now)),
                 ),
-              line('Modificado', text(formatDate(entry.modified, now))),
-              line('Acessado', text(formatDate(entry.accessed, now))),
-              line('Permissões', text(formatMode(entry.mode))),
+              line(
+                context.l10n.modified,
+                text(formatDate(context.l10n, entry.modified, now)),
+              ),
+              line(
+                context.l10n.accessed,
+                text(formatDate(context.l10n, entry.accessed, now)),
+              ),
+              line(context.l10n.permissions, text(formatMode(entry.mode))),
               if (!entry.isDirectory && trash == null)
                 line(
-                  'Abrir com',
+                  context.l10n.openWith,
                   FutureBuilder(
                     future: _apps,
                     builder: (context, snapshot) {
@@ -324,7 +342,7 @@ class _InfoDialogState extends State<_InfoDialog> {
                       if (apps.isEmpty) {
                         return text(
                           snapshot.connectionState == ConnectionState.done
-                              ? 'Nenhum app'
+                              ? context.l10n.noApp
                               : '...',
                         );
                       }
@@ -339,7 +357,7 @@ class _InfoDialogState extends State<_InfoDialog> {
                               value: app.id,
                               child: Text(
                                 app.isDefault
-                                    ? '${app.name} (padrão)'
+                                    ? context.l10n.appDefault(app.name)
                                     : app.name,
                               ),
                             ),
@@ -363,7 +381,7 @@ class _InfoDialogState extends State<_InfoDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Fechar'),
+          child: Text(context.l10n.close),
         ),
       ],
     );
@@ -381,7 +399,10 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
       builder: (context, setState) => AlertDialog(
         backgroundColor: const Color(0xFF1C2327),
         title: Text(
-          'Já existe um item chamado "${baseName(c.target)}" em "${baseName(dirName(c.target))}".',
+          context.l10n.conflictExists(
+            baseName(dirName(c.target)),
+            baseName(c.target),
+          ),
           style: const TextStyle(fontSize: 14),
         ),
         content: Column(
@@ -390,8 +411,8 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
           children: [
             Text(
               c.targetIsDirectory && c.sourceIsDirectory
-                  ? 'Substituir troca a pasta inteira, com o que tiver dentro.'
-                  : 'Substituir apaga o que está lá.',
+                  ? context.l10n.conflictFolderHint
+                  : context.l10n.conflictFileHint,
               style: const TextStyle(fontSize: 12, color: Colors.white60),
             ),
             CheckboxListTile(
@@ -399,8 +420,8 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
               dense: true,
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              title: const Text(
-                'Fazer o mesmo com os próximos',
+              title: Text(
+                context.l10n.applyToNext,
                 style: TextStyle(fontSize: 12),
               ),
               onChanged: (v) => setState(() => all = v ?? false),
@@ -410,15 +431,15 @@ Future<ConflictAnswer> showConflict(BuildContext context, FsConflict c) async {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(ConflictChoice.skip),
-            child: const Text('Pular'),
+            child: Text(context.l10n.skip),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(ConflictChoice.keepBoth),
-            child: const Text('Manter os dois'),
+            child: Text(context.l10n.keepBoth),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(ConflictChoice.replace),
-            child: const Text('Substituir'),
+            child: Text(context.l10n.replace),
           ),
         ],
       ),
@@ -443,7 +464,7 @@ Future<void> showOpenWithOther(
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
         backgroundColor: const Color(0xFF1C2327),
-        title: const Text('Abrir com', style: TextStyle(fontSize: 14)),
+        title: Text(context.l10n.openWith, style: TextStyle(fontSize: 14)),
         content: SizedBox(
           width: 320,
           height: 320,
@@ -451,7 +472,7 @@ Future<void> showOpenWithOther(
             children: [
               Expanded(
                 child: apps.isEmpty
-                    ? const Center(child: Text('Nenhum app recebe arquivos.'))
+                    ? Center(child: Text(context.l10n.noAppTakesFiles))
                     : ListView(
                         children: [
                           for (final app in apps)
@@ -473,7 +494,9 @@ Future<void> showOpenWithOther(
                 dense: true,
                 controlAffinity: ListTileControlAffinity.leading,
                 title: Text(
-                  'Sempre abrir "${controller.env.describe(mimeType)}" com ele',
+                  context.l10n.alwaysOpenWith(
+                    controller.env.describe(mimeType),
+                  ),
                   style: const TextStyle(fontSize: 12),
                 ),
                 onChanged: (v) => setState(() => always = v ?? false),
@@ -484,7 +507,7 @@ Future<void> showOpenWithOther(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text(context.l10n.cancel),
           ),
         ],
       ),
@@ -511,7 +534,7 @@ Future<bool> showConfirm(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),

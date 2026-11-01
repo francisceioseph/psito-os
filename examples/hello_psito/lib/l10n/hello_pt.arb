@@ -1,0 +1,12 @@
+{
+  "@@locale": "pt",
+  "connected": "Conectado",
+  "noConnection": "Sem conexão: {error}",
+  "networkUnavailable": "Rede indisponível para o app",
+  "networkConnected": "Rede conectada",
+  "networkNone": "Sem rede",
+  "networkLimited": "Rede limitada",
+  "testing": "Testando...",
+  "testConnection": "Testar conexão",
+  "exitWithError": "Sair com erro"
+}

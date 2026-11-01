@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../shell/notification_center.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 /// Toasts no canto superior direito, mais novo em cima.
 class NotificationToasts extends StatelessWidget {
   final NotificationCenter center;
@@ -152,7 +154,7 @@ class NotificationTile extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.close, size: 16),
-          tooltip: 'Dispensar',
+          tooltip: context.l10n.dismiss,
           onPressed: onClose,
           color: Colors.white54,
           visualDensity: VisualDensity.compact,

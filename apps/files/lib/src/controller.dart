@@ -4,9 +4,11 @@
 // recortar e colar), os trabalhos em andamento (copiar e mover, com o
 // progresso), o desfazer e o que abre cada arquivo. A UI chama daqui, e as
 // perguntas (os conflitos, os erros) voltam para ela pelos callbacks.
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -14,17 +16,22 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'env.dart';
 import 'tab.dart';
 
+import 'package:psito_files/l10n/files_localizations.dart';
+
 /// Um copiar ou mover em andamento, para a barra de progresso.
 class RunningJob {
   final FileJob job;
-  final String label;
   JobProgress progress = const JobProgress();
 
-  RunningJob(this.job, this.label);
+  RunningJob(this.job);
 }
 
 class FilesController extends ChangeNotifier {
   final PsitoAppContext ctx;
+
+  FilesLocalizations get l10n => env.l10n;
+  FilesUiLocalizations get ui => lookupFilesUiLocalizations(ctx.locale);
+
   final FilesEnv env;
   final FilesConfig config;
 
@@ -221,7 +228,7 @@ class FilesController extends ChangeNotifier {
   /// os arquivos no app padrão pelo shell. Na lixeira nada abre.
   Future<void> open(List<FsEntry> entries, {bool newTab = false}) async {
     if (tab.location is TrashLocation) {
-      onError?.call('Para abrir, ponha o item de volta primeiro.');
+      onError?.call(l10n.openFromTrash);
       return;
     }
     final folders = [
@@ -243,7 +250,7 @@ class FilesController extends ChangeNotifier {
     try {
       await ctx.open([for (final f in files) f.path]);
     } on PsitoOpenException catch (e) {
-      onError?.call(e.message);
+      onError?.call(e.text(lookupSdkLocalizations(ctx.locale)));
     }
   }
 
@@ -251,7 +258,7 @@ class FilesController extends ChangeNotifier {
     try {
       await ctx.open([for (final e in entries) e.path], withApp: appId);
     } on PsitoOpenException catch (e) {
-      onError?.call(e.message);
+      onError?.call(e.text(lookupSdkLocalizations(ctx.locale)));
     }
   }
 
@@ -262,7 +269,10 @@ class FilesController extends ChangeNotifier {
   // Desfazer
 
   bool get canUndo => _undo.isNotEmpty;
-  String? get undoLabel => _undo.lastOrNull?.label;
+  String? get undoLabel => switch (_undo.lastOrNull) {
+    final undo? => ui.fsAction(undo.action),
+    null => null,
+  };
 
   void _pushUndo(FsUndo undo) {
     _undo.add(undo);
@@ -281,7 +291,7 @@ class FilesController extends ChangeNotifier {
     try {
       return await action();
     } on FsError catch (e) {
-      onError?.call(e.message);
+      onError?.call(ui.fsError(e));
     } on Exception catch (e) {
       onError?.call('$e');
     }
@@ -293,7 +303,9 @@ class FilesController extends ChangeNotifier {
   Future<void> newFolder() async {
     final dir = tab.folder;
     if (dir == null || tab.location is! FolderLocation) return;
-    final created = await _guard(() => createFolder(dir, trash: env.trash));
+    final created = await _guard(
+      () => createFolder(dir, name: ui.newFolderName, trash: env.trash),
+    );
     if (created == null) return;
     final (path, undo) = created;
     _pushUndo(undo);
@@ -344,13 +356,14 @@ class FilesController extends ChangeNotifier {
   /// "Apagar imediatamente", depois de confirmar.
   Future<void> deleteForeverAsked(List<String> paths) async {
     if (paths.isEmpty) return;
-    final name = paths.length == 1
-        ? '"${tab.trashItems[paths.single]?.name ?? baseName(paths.single)}"'
-        : '${paths.length} itens';
     final ok = await onConfirm?.call(
-      'Apagar $name para sempre?',
-      'Não dá para desfazer.',
-      'Apagar',
+      paths.length == 1
+          ? l10n.deleteForeverOne(
+              tab.trashItems[paths.single]?.name ?? baseName(paths.single),
+            )
+          : l10n.deleteForeverMany(paths.length),
+      l10n.cannotUndo,
+      l10n.delete,
     );
     if (ok ?? false) await deleteForever(paths);
   }
@@ -358,9 +371,9 @@ class FilesController extends ChangeNotifier {
   /// "Esvaziar a lixeira", depois de confirmar.
   Future<void> emptyTrashAsked() async {
     final ok = await onConfirm?.call(
-      'Apagar tudo o que está na lixeira?',
-      'Não dá para desfazer.',
-      'Esvaziar',
+      l10n.emptyTrashQuestion,
+      l10n.cannotUndo,
+      l10n.empty,
     );
     if (ok ?? false) await emptyTrash();
   }
@@ -386,7 +399,7 @@ class FilesController extends ChangeNotifier {
 
   Future<void> duplicate(List<String> paths) async {
     if (paths.isEmpty) return;
-    await _run(FileJob.start(JobKind.duplicate, paths), 'Duplicando');
+    await _run(FileJob.start(JobKind.duplicate, paths, copyWord: ui.copyWord));
   }
 
   /// Copiar ou mover para [destination] (colar e arrastar).
@@ -406,13 +419,13 @@ class FilesController extends ChangeNotifier {
         sources,
         destination: destination,
         onConflict: onConflict,
+        copyWord: ui.copyWord,
       ),
-      move ? 'Movendo' : 'Copiando',
     );
   }
 
-  Future<void> _run(FileJob job, String label) async {
-    final running = RunningJob(job, label);
+  Future<void> _run(FileJob job) async {
+    final running = RunningJob(job);
     jobs.add(running);
     notifyListeners();
     final sub = job.progress.listen((p) {
@@ -422,7 +435,7 @@ class FilesController extends ChangeNotifier {
     final result = await job.result;
     await sub.cancel();
     jobs.remove(running);
-    if (result.errors.isNotEmpty) onError?.call(result.errors.join('\n'));
+    if (result.errors.isNotEmpty) onError?.call(ui.fsErrors(result.errors));
     if (result.done.isNotEmpty) {
       _pushUndo(FileJob.undoFor(job.kind, result, env.trash));
     }
@@ -450,7 +463,7 @@ class FilesController extends ChangeNotifier {
     try {
       await ctx.setDefaultApp(mimeType, appId);
     } on Exception catch (e) {
-      onError?.call('Não foi possível mudar o app padrão ($e)');
+      onError?.call(l10n.setDefaultFailed('$e'));
     }
   }
 

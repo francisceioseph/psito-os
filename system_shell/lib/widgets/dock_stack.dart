@@ -13,6 +13,8 @@ import 'package:psito_sdk/psito_sdk.dart';
 import '../shell/app_entry.dart';
 import 'dock_menu.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 class DockStackEntry {
   /// Identifica o item no [DockStack.onOpen] (o caminho, no shell).
   final String key;
@@ -83,7 +85,7 @@ class DockStack extends StatelessWidget {
                 behavior: HitTestBehavior.opaque,
               ),
             ),
-            if (fan) _fan(screen) else _grid(screen),
+            if (fan) _fan(context, screen) else _grid(context, screen),
           ],
         ),
       ),
@@ -91,11 +93,11 @@ class DockStack extends StatelessWidget {
   }
 
   /// Uma coluna em arco acima do ícone, com o nome à esquerda de cada um.
-  Widget _fan(Size screen) {
+  Widget _fan(BuildContext context, Size screen) {
     const icon = 48.0;
     final rows = [
       _FanRow(
-        label: 'Abrir no Files',
+        label: context.l10n.openInFiles,
         onTap: () {
           onClose();
           onOpenFolder();
@@ -136,7 +138,7 @@ class DockStack extends StatelessWidget {
     );
   }
 
-  Widget _grid(Size screen) {
+  Widget _grid(BuildContext context, Size screen) {
     return Positioned.fill(
       child: CustomSingleChildLayout(
         delegate: DockPopupLayout(anchor, position, columns * cell + 24),
@@ -165,15 +167,15 @@ class DockStack extends StatelessWidget {
                         onClose();
                         onOpenFolder();
                       },
-                      child: const Text('Abrir no Files'),
+                      child: Text(context.l10n.openInFiles),
                     ),
                   ],
                 ),
                 if (entries.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      'A pasta está vazia.',
+                      context.l10n.folderEmpty,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white60),
                     ),

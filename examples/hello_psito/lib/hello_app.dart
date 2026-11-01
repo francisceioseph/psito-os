@@ -11,6 +11,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
+import 'l10n/hello_localizations.dart';
+
 /// Abre uma conexão TCP com o espelho do Debian. Devolve null se conectou,
 /// ou o erro. Sem a permissão network, o sandbox não tem rede e falha.
 Future<String?> probeInternet() async {
@@ -54,24 +56,26 @@ class _HelloViewState extends State<HelloView> {
     });
     final error = await widget.probe();
     if (!mounted) return;
+    final l = HelloLocalizations.of(context);
     setState(() {
       _testing = false;
-      _result = error == null ? 'Conectado' : 'Sem conexão: $error';
+      _result = error == null ? l.connected : l.noConnection(error);
     });
   }
 
-  static String networkLabel(PsitoNetworkState s) {
-    if (!s.available) return 'Rede indisponível para o app';
+  static String networkLabel(HelloLocalizations l, PsitoNetworkState s) {
+    if (!s.available) return l.networkUnavailable;
     return switch (s.connectivity) {
-      PsitoConnectivity.full => 'Rede conectada',
-      PsitoConnectivity.none => 'Sem rede',
-      _ => 'Rede limitada',
+      PsitoConnectivity.full => l.networkConnected,
+      PsitoConnectivity.none => l.networkNone,
+      _ => l.networkLimited,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = HelloLocalizations.of(context);
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
@@ -83,7 +87,7 @@ class _HelloViewState extends State<HelloView> {
             ValueListenableBuilder(
               valueListenable: widget.network,
               builder: (_, s, _) =>
-                  Text(networkLabel(s), style: theme.textTheme.bodySmall),
+                  Text(networkLabel(l, s), style: theme.textTheme.bodySmall),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -93,11 +97,11 @@ class _HelloViewState extends State<HelloView> {
               children: [
                 FilledButton(
                   onPressed: _testing ? null : _test,
-                  child: Text(_testing ? 'Testando...' : 'Testar conexão'),
+                  child: Text(_testing ? l.testing : l.testConnection),
                 ),
                 OutlinedButton(
                   onPressed: widget.onCrash,
-                  child: const Text('Sair com erro'),
+                  child: Text(l.exitWithError),
                 ),
               ],
             ),
@@ -124,6 +128,11 @@ class HelloApp extends PsitoApp {
 
   @override
   String get name => 'Hello Psito';
+
+  @override
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [
+    HelloLocalizations.delegate,
+  ];
 
   @override
   IconData get icon => Icons.waving_hand_rounded;

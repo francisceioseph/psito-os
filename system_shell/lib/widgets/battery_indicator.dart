@@ -3,6 +3,7 @@
 // Bateria na top bar, como no macOS: some sem bateria (ex.: na VM), a
 // porcentagem é opcional e o clique abre o painel com os detalhes.
 import 'package:flutter/material.dart';
+import 'package:system_shell/l10n/l10n.dart';
 
 import 'package:psito_services/battery_service.dart';
 
@@ -21,12 +22,14 @@ class BatteryIndicator extends StatelessWidget {
   static const _low = Color(0xFFF44336);
 
   /// Ex.: "menos de 1 min", "40 min", "3 h 20 min".
-  static String formatDuration(Duration d) {
-    if (d.inMinutes < 1) return 'menos de 1 min';
+  static String formatDuration(SystemLocalizations l, Duration d) {
+    if (d.inMinutes < 1) return l.durationUnderMinute;
     final hours = d.inHours;
     final minutes = d.inMinutes % 60;
-    if (hours == 0) return '$minutes min';
-    return minutes == 0 ? '$hours h' : '$hours h $minutes min';
+    if (hours == 0) return l.durationMinutes(minutes);
+    return minutes == 0
+        ? l.durationHours(hours)
+        : l.durationHoursMinutes(hours, minutes);
   }
 
   static IconData iconFor(BatteryState s) {
@@ -47,21 +50,21 @@ class BatteryIndicator extends StatelessWidget {
     return bars[index];
   }
 
-  static String statusFor(BatteryState s) {
-    if (s.full) return 'Carregada';
-    if (s.charging) return 'Carregando';
-    return 'Na bateria';
+  static String statusFor(SystemLocalizations l, BatteryState s) {
+    if (s.full) return l.batteryFull;
+    if (s.charging) return l.batteryCharging;
+    return l.batteryDischarging;
   }
 
   /// Ex.: "3 h 20 min restantes"; null sem estimativa.
-  static String? timeFor(BatteryState s) {
+  static String? timeFor(SystemLocalizations l, BatteryState s) {
     if (s.full) return null;
     if (s.charging) {
       final t = s.timeToFull;
-      return t == null ? null : '${formatDuration(t)} até completar';
+      return t == null ? null : l.batteryUntilFull(formatDuration(l, t));
     }
     final t = s.timeToEmpty;
-    return t == null ? null : '${formatDuration(t)} restantes';
+    return t == null ? null : l.batteryRemaining(formatDuration(l, t));
   }
 
   static bool isLow(BatteryState s) => !s.charging && s.percentage <= 10;
@@ -73,7 +76,7 @@ class BatteryIndicator extends StatelessWidget {
     if (!state.available || !state.present) return const SizedBox.shrink();
     final color = isLow(state) ? _low : Theme.of(context).colorScheme.primary;
     return Tooltip(
-      message: 'Bateria: ${percent(state)}',
+      message: context.l10n.batteryTooltip(percent(state)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(

@@ -6,6 +6,8 @@ import '../shell/app_entry.dart';
 import '../shell/app_search.dart';
 import 'dock_menu.dart';
 
+import 'package:system_shell/l10n/l10n.dart';
+
 /// Menu Psito: busca com foco e grade de apps.
 class Launcher extends StatefulWidget {
   final List<AppEntry> apps;
@@ -139,7 +141,7 @@ class _LauncherState extends State<Launcher> {
               onSubmitted: (_) => _launchSelected(),
               style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
-                hintText: 'Buscar apps',
+                hintText: context.l10n.searchApps,
                 prefixIcon: const Icon(Icons.search, size: 20),
                 filled: true,
                 fillColor: Colors.black.withValues(alpha: 0.3),
@@ -151,10 +153,10 @@ class _LauncherState extends State<Launcher> {
             ),
             const SizedBox(height: 16),
             if (_results.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),
                 child: Text(
-                  'Nenhum app encontrado',
+                  context.l10n.noAppsFound,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white54),
                 ),

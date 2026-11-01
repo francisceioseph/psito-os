@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_files/files_app.dart';
+import 'package:psito_files/l10n/files_localizations.dart';
 import 'package:psito_files/src/format.dart';
 import 'package:psito_files/src/tab.dart';
 import 'package:psito_fs/psito_fs.dart';
@@ -106,21 +107,22 @@ void main() {
   tearDown(() => home.deleteSync(recursive: true));
 
   test('formatos: tamanho, data e permissões', () {
-    expect(formatSize(1), '1 byte');
-    expect(formatSize(999), '999 bytes');
-    expect(formatSize(1234), '1,2 KB');
-    expect(formatSize(56 * 1000 * 1000), '56 MB');
+    final l = lookupFilesLocalizations(const Locale('pt'));
+    expect(formatSize(l, 1), '1 byte');
+    expect(formatSize(l, 999), '999 bytes');
+    expect(formatSize(l, 1234), '1,2 KB');
+    expect(formatSize(l, 56 * 1000 * 1000), '56 MB');
     final now = DateTime(2026, 10, 31, 12);
     expect(
-      formatLocalDate(DateTime.utc(2026, 10, 31, 9, 5), now),
+      formatLocalDate(l, DateTime.utc(2026, 10, 31, 9, 5), now),
       'Hoje, 09:05',
     );
     expect(
-      formatLocalDate(DateTime.utc(2026, 10, 30, 23), now),
+      formatLocalDate(l, DateTime.utc(2026, 10, 30, 23), now),
       'Ontem, 23:00',
     );
     expect(
-      formatLocalDate(DateTime.utc(2025, 1, 2, 3, 4), now),
+      formatLocalDate(l, DateTime.utc(2025, 1, 2, 3, 4), now),
       '2 de jan. de 2025, 03:04',
     );
     expect(formatMode(0x1ed), 'rwxr-xr-x');
@@ -314,6 +316,10 @@ void main() {
       final env = testEnv();
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: psitoLocalizationsDelegates(
+            const FilesApp().localizationsDelegates,
+          ),
+          supportedLocales: psitoLocales,
           theme: psitoTheme(const Color(0xFFFFC107)),
           home: Scaffold(
             body: FilesView(

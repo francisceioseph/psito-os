@@ -7,6 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Brightness, ColorScheme, ThemeData;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n/sdk_localizations.dart';
+
+export 'l10n/sdk_localizations.dart';
 
 /// Descrição de um app: o que aparece na dock/launcher e como construí-lo.
 abstract class PsitoApp {
@@ -27,11 +32,26 @@ abstract class PsitoApp {
   /// ([PsitoAppContext.updateSettings]). Só o app Configurações.
   bool get canChangeSettings => false;
 
+  /// O nome no idioma [locale]. O nome do `.desktop` traduzido (`Name[pt]`)
+  /// deve bater com este.
+  String localizedName(Locale locale) => name;
+
+  /// As traduções do app, além das do SDK e das do Flutter.
+  List<LocalizationsDelegate<dynamic>> get localizationsDelegates => const [];
+
+  /// Os idiomas que o app tem.
+  List<Locale> get supportedLocales => psitoLocales;
+
   Widget build(PsitoAppContext context);
 
   void onOpen(PsitoAppContext context) {}
 
   void onClose(PsitoAppContext context) {}
+}
+
+/// O idioma em uso, para o que não tem um [BuildContext].
+extension PsitoAppContextLocale on PsitoAppContext {
+  Locale get locale => resolvePsitoLocale(settings.value.language);
 }
 
 /// Tudo o que um app pode pedir ao shell, por janela.
@@ -134,13 +154,28 @@ class PsitoAppChoice {
   int get hashCode => Object.hash(id, name, icon, isDefault);
 }
 
-class PsitoOpenException implements Exception {
-  final String message;
+enum PsitoOpenError {
+  /// Nenhum app abre: [PsitoOpenException.detail] é o nome do arquivo.
+  noApp,
 
-  const PsitoOpenException(this.message);
+  /// Sem o shell, ou ele não abriu: [PsitoOpenException.detail] é o porquê.
+  failed,
+}
+
+class PsitoOpenException implements Exception {
+  final PsitoOpenError kind;
+  final String detail;
+
+  const PsitoOpenException(this.kind, [this.detail = '']);
+
+  /// A mensagem para quem usa.
+  String text(SdkLocalizations l) => switch (kind) {
+    PsitoOpenError.noApp => l.openNoApp(detail),
+    PsitoOpenError.failed => l.openFailed(detail),
+  };
 
   @override
-  String toString() => message;
+  String toString() => 'PsitoOpenException(${kind.name}, $detail)';
 }
 
 /// O que o sistema diz de si (hostnamed no Linux).
@@ -189,27 +224,25 @@ class PsitoNotification {
 /// Papel de parede predefinido: uma cor é sólido, duas ou mais é degradê.
 class PsitoWallpaper {
   final String id;
-  final String name;
   final List<Color> colors;
 
-  const PsitoWallpaper(this.id, this.name, this.colors);
+  const PsitoWallpaper(this.id, this.colors);
+
+  String name(SdkLocalizations l) => switch (id) {
+    'calopsita' => l.wallpaperCalopsita,
+    'por-do-sol' => l.wallpaperPorDoSol,
+    'floresta' => l.wallpaperFloresta,
+    'oceano' => l.wallpaperOceano,
+    _ => l.wallpaperNoite,
+  };
 }
 
 const psitoWallpapers = [
-  PsitoWallpaper('noite', 'Noite', [Color(0xFF12181B)]),
-  PsitoWallpaper('calopsita', 'Calopsita', [
-    Color(0xFF12181B),
-    Color(0xFF3A2E12),
-  ]),
-  PsitoWallpaper('por-do-sol', 'Pôr do sol', [
-    Color(0xFF2B1220),
-    Color(0xFF5C2A12),
-  ]),
-  PsitoWallpaper('floresta', 'Floresta', [
-    Color(0xFF0E1F17),
-    Color(0xFF1F3A26),
-  ]),
-  PsitoWallpaper('oceano', 'Oceano', [Color(0xFF0B1A2B), Color(0xFF12405C)]),
+  PsitoWallpaper('noite', [Color(0xFF12181B)]),
+  PsitoWallpaper('calopsita', [Color(0xFF12181B), Color(0xFF3A2E12)]),
+  PsitoWallpaper('por-do-sol', [Color(0xFF2B1220), Color(0xFF5C2A12)]),
+  PsitoWallpaper('floresta', [Color(0xFF0E1F17), Color(0xFF1F3A26)]),
+  PsitoWallpaper('oceano', [Color(0xFF0B1A2B), Color(0xFF12405C)]),
 ];
 
 PsitoWallpaper wallpaperById(String id) => psitoWallpapers.firstWhere(
@@ -247,37 +280,61 @@ const psitoQuickLookPrefix = 'quicklook:';
 /// o papel de parede" da mesa).
 const psitoSettingsSectionPrefix = 'section:';
 
-const psitoShortcuts = [
-  PsitoShortcut('Abrir e fechar o launcher', 'Super', 'Ctrl+Espaço'),
-  PsitoShortcut('Alternar janelas', 'Alt+Tab', 'Ctrl+Tab'),
-  PsitoShortcut('Fechar a janela', 'Alt+F4 / Super+Q', 'Ctrl+Alt+W'),
-  PsitoShortcut('Maximizar', 'Super+↑', 'Alt+Shift+↑'),
-  PsitoShortcut('Snap à esquerda / direita', 'Super+← / →', 'Alt+Shift+← / →'),
-  PsitoShortcut('Minimizar', 'Super+↓', 'Alt+Shift+↓'),
+List<PsitoShortcut> psitoShortcuts(SdkLocalizations l) => [
+  PsitoShortcut(l.shortcutLauncher, 'Super', l.shortcutLauncherVm),
+  PsitoShortcut(l.shortcutSwitchWindows, 'Alt+Tab', 'Ctrl+Tab'),
+  PsitoShortcut(l.shortcutCloseWindow, 'Alt+F4 / Super+Q', 'Ctrl+Alt+W'),
+  PsitoShortcut(l.shortcutMaximize, 'Super+↑', 'Alt+Shift+↑'),
+  PsitoShortcut(l.shortcutSnap, 'Super+← / →', 'Alt+Shift+← / →'),
+  PsitoShortcut(l.shortcutMinimize, 'Super+↓', 'Alt+Shift+↓'),
   PsitoShortcut(
-    'Subir / baixar o volume',
-    'Teclas de volume',
+    l.shortcutVolume,
+    l.shortcutVolumeKeys,
     'Alt+Shift+PageUp / PageDown',
   ),
-  PsitoShortcut('Silenciar', 'Tecla de mudo', 'Alt+Shift+M'),
-  PsitoShortcut('Abrir a área de transferência', 'Super+V', 'Alt+Shift+V'),
+  PsitoShortcut(l.shortcutMute, l.shortcutMuteKey, 'Alt+Shift+M'),
+  PsitoShortcut(l.shortcutClipboard, 'Super+V', 'Alt+Shift+V'),
   PsitoShortcut(
-    'Copiar de novo o item 1 a 5 da área de transferência',
-    'Super+1 a 5',
-    'Alt+Shift+1 a 5',
+    l.shortcutClipboardCopy,
+    l.shortcutClipboardCopyNative,
+    l.shortcutClipboardCopyVm,
   ),
-  PsitoShortcut('Mostrar a área de trabalho', 'Super+D', 'Alt+Shift+D'),
-  PsitoShortcut('Fechar launcher, painel ou seletor', 'Esc', 'Esc'),
+  PsitoShortcut(l.shortcutShowDesktop, 'Super+D', 'Alt+Shift+D'),
+  PsitoShortcut(l.shortcutDismiss, 'Esc', 'Esc'),
+];
+
+/// Os idiomas do sistema: o primeiro é o de quem pede um que não existe.
+const psitoLocales = SdkLocalizations.supportedLocales;
+
+/// O idioma em uso: [language], ou o do sistema, se vazio ou se não existir.
+Locale resolvePsitoLocale(
+  String language, [
+  List<Locale> supported = psitoLocales,
+]) => basicLocaleListResolution([
+  if (language.isNotEmpty) Locale(language),
+  ...WidgetsBinding.instance.platformDispatcher.locales,
+], supported);
+
+/// As traduções do [PsitoSettings.language], para um `MaterialApp`.
+List<LocalizationsDelegate<dynamic>> psitoLocalizationsDelegates([
+  Iterable<LocalizationsDelegate<dynamic>> extra = const [],
+]) => [
+  ...extra,
+  SdkLocalizations.delegate,
+  ...GlobalMaterialLocalizations.delegates,
 ];
 
 /// Em que borda da tela a dock fica.
 enum PsitoDockPosition {
-  bottom('Embaixo'),
-  left('À esquerda'),
-  right('À direita');
+  bottom,
+  left,
+  right;
 
-  final String label;
-  const PsitoDockPosition(this.label);
+  String label(SdkLocalizations l) => switch (this) {
+    bottom => l.dockPositionBottom,
+    left => l.dockPositionLeft,
+    right => l.dockPositionRight,
+  };
 
   bool get vertical => this != bottom;
 }
@@ -329,6 +386,9 @@ class PsitoSettings {
   /// O canto de cima à direita da tela mostra a área de trabalho.
   final bool desktopHotCorner;
 
+  /// O idioma escolhido (`en`, `pt`); vazio segue o do sistema.
+  final String language;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -346,6 +406,7 @@ class PsitoSettings {
     this.desktopShowTrash = false,
     this.desktopAutoArrange = false,
     this.desktopHotCorner = false,
+    this.language = '',
   });
 
   static const defaults = PsitoSettings();
@@ -369,6 +430,7 @@ class PsitoSettings {
     bool? desktopShowTrash,
     bool? desktopAutoArrange,
     bool? desktopHotCorner,
+    String? language,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -386,6 +448,7 @@ class PsitoSettings {
     desktopShowTrash: desktopShowTrash ?? this.desktopShowTrash,
     desktopAutoArrange: desktopAutoArrange ?? this.desktopAutoArrange,
     desktopHotCorner: desktopHotCorner ?? this.desktopHotCorner,
+    language: language ?? this.language,
   );
 
   Map<String, Object?> toJson() => {
@@ -405,6 +468,7 @@ class PsitoSettings {
     'desktopShowTrash': desktopShowTrash,
     'desktopAutoArrange': desktopAutoArrange,
     'desktopHotCorner': desktopHotCorner,
+    'language': language,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -448,6 +512,7 @@ class PsitoSettings {
         defaults.desktopAutoArrange,
       ),
       desktopHotCorner: pick('desktopHotCorner', defaults.desktopHotCorner),
+      language: pick('language', defaults.language),
     );
   }
 
@@ -469,7 +534,8 @@ class PsitoSettings {
       other.desktopShowHome == desktopShowHome &&
       other.desktopShowTrash == desktopShowTrash &&
       other.desktopAutoArrange == desktopAutoArrange &&
-      other.desktopHotCorner == desktopHotCorner;
+      other.desktopHotCorner == desktopHotCorner &&
+      other.language == language;
 
   @override
   int get hashCode => Object.hash(
@@ -489,6 +555,7 @@ class PsitoSettings {
     desktopShowTrash,
     desktopAutoArrange,
     desktopHotCorner,
+    language,
   );
 }
 

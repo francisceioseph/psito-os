@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_notepad/notepad_app.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 void main() {
   test('a nota só vai para o disco no sandbox', () {
@@ -28,6 +29,11 @@ void main() {
     await tester.runAsync(() async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: psitoLocalizationsDelegates(
+            const NotepadApp().localizationsDelegates,
+          ),
+          supportedLocales: psitoLocales,
+
           home: Scaffold(body: NotepadView(file: file)),
         ),
       );
@@ -82,6 +88,11 @@ void main() {
       final opened = <List<String>>[];
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: psitoLocalizationsDelegates(
+            const NotepadApp().localizationsDelegates,
+          ),
+          supportedLocales: psitoLocales,
+
           home: Scaffold(
             body: NotepadDropZone(
               accepts: (_) async => accepted,
@@ -113,7 +124,13 @@ void main() {
 
   testWidgets('sem arquivo, a nota fica na memória', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: NotepadView())),
+      MaterialApp(
+        localizationsDelegates: psitoLocalizationsDelegates(
+          const NotepadApp().localizationsDelegates,
+        ),
+        supportedLocales: psitoLocales,
+        home: Scaffold(body: NotepadView()),
+      ),
     );
     expect(find.text('Nota só nesta sessão'), findsOneWidget);
   });
