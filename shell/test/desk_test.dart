@@ -27,7 +27,7 @@ const _shortcut = '''
 [Desktop Entry]
 Type=Application
 Name=Meu app
-Name[pt_BR]=Meu programa
+Name[pt]=Meu programa
 Exec=/nao/existe/meu-app
 ''';
 
