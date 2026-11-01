@@ -8,12 +8,12 @@ import 'package:flutter/gestures.dart'
     show kPrimaryButton, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 
 import 'controller.dart';
 import 'env.dart';
-import 'file_icon.dart';
 
 /// O que a janela oferece aos widgets de dentro.
 class FilesScope extends InheritedWidget {

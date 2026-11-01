@@ -18,6 +18,10 @@ dependencies:
     path: ../packages/psito_fs
   psito_dock:
     path: ../packages/psito_dock
+  psito_desktop:
+    path: ../packages/psito_desktop
+  psito_files_ui:
+    path: ../packages/psito_files_ui
   psito_services:
     path: ../packages/psito_services
   system_shell:

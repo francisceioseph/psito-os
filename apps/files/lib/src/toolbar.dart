@@ -4,11 +4,11 @@
 // os modos de ver, o menu de ações e a busca), as abas, e embaixo os
 // trabalhos em andamento e a barra de status.
 import 'package:flutter/material.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 
 import 'controller.dart';
 import 'env.dart';
-import 'file_icon.dart';
 import 'format.dart';
 import 'items.dart';
 import 'tab.dart';

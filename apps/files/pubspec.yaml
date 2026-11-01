@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  psito_files_ui:
+    path: ../../packages/psito_files_ui
   psito_fs:
     path: ../../packages/psito_fs
   psito_runtime:

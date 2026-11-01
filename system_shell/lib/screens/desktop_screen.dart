@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
@@ -25,6 +26,7 @@ import '../widgets/volume_osd.dart';
 import '../widgets/volume_panel.dart';
 import '../widgets/notification_panel.dart';
 import '../widgets/notification_toasts.dart';
+import '../widgets/psito_desktop_icons.dart';
 import '../widgets/psito_dock.dart';
 import '../widgets/psito_window.dart';
 import '../widgets/window_switcher_overlay.dart';
@@ -285,6 +287,20 @@ class _DesktopScreenState extends State<DesktopScreen> {
                     valueListenable: _settings,
                     builder: (context, settings, _) =>
                         DesktopBackground(wallpaper: settings.wallpaper),
+                  ),
+                ),
+                Positioned.fill(
+                  child: ValueListenableBuilder(
+                    valueListenable: _settings,
+                    builder: (context, settings, _) => settings.desktopShowIcons
+                        ? _LabDesk(
+                            iconSize: settings.desktopIconSize,
+                            insets: const EdgeInsets.only(
+                              top: TopBar.height,
+                              bottom: _dockReserve,
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ),
 
@@ -564,4 +580,51 @@ class _DockWindow implements DockWindow {
 
   @override
   bool get minimized => window.minimized;
+}
+
+/// A mesa do laboratório: uma pasta de mentira, sem arquivos de verdade.
+class _LabDesk extends StatefulWidget {
+  final double iconSize;
+  final EdgeInsets insets;
+
+  const _LabDesk({required this.iconSize, required this.insets});
+
+  @override
+  State<_LabDesk> createState() => _LabDeskState();
+}
+
+class _LabDeskState extends State<_LabDesk> {
+  static const _items = {
+    'Projetos': Icons.folder_rounded,
+    'notas.txt': Icons.description_outlined,
+    'foto.png': Icons.image_outlined,
+    'um arquivo com um nome bem comprido demais.pdf':
+        Icons.picture_as_pdf_outlined,
+  };
+
+  String? _selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final grid = DeskGrid.fit(
+      widget.insets.deflateSize(MediaQuery.sizeOf(context)),
+      deskCellSize(widget.iconSize),
+    );
+    return PsitoDesktopIcons(
+      icons: [
+        for (final MapEntry(key: name, value: icon) in _items.entries)
+          DeskIcon(
+            key: name,
+            name: name,
+            icon: (size) => Icon(icon, size: size, color: Colors.white70),
+          ),
+      ],
+      cells: packDesk(_items.keys.toList(), grid),
+      iconSize: widget.iconSize,
+      insets: widget.insets,
+      selected: _selected,
+      onSelect: (key) => setState(() => _selected = key),
+      onOpen: (name) => debugPrint('🦜 mesa: abrir $name'),
+    );
+  }
 }

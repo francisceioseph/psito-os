@@ -1,4 +1,4 @@
-// apps/files/lib/src/file_icon.dart
+// packages/psito_files_ui/lib/src/file_icon.dart
 //
 // O ícone de um item: a miniatura nas imagens, o ícone do tema pelo tipo
 // MIME (o PsitoIcon) e, sem tema (o laboratório, os testes), um do Material.
@@ -8,11 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
-import 'env.dart';
+/// O que o ícone de um item precisa saber do sistema.
+abstract interface class FileIconEnv {
+  MimeDatabase get mime;
+
+  /// O ícone de uma pasta conhecida (o home e as do usuário).
+  String? folderIcon(String path);
+}
 
 class FileIcon extends StatelessWidget {
   final FsEntry entry;
-  final FilesEnv env;
+  final FileIconEnv env;
   final double size;
 
   /// Miniatura para as imagens (desligada nas listas de ícone pequeno).
@@ -55,10 +61,10 @@ class FileIcon extends StatelessWidget {
   }
 
   Widget _themed() {
-    final known = entry.isDirectory ? env.knownFolder(entry.path) : null;
+    final known = entry.isDirectory ? env.folderIcon(entry.path) : null;
     return PsitoIcon(
       [
-        if (known != null) known.$1,
+        ?known,
         if (entry.executable && !entry.mimeType.startsWith('text/'))
           'application-x-executable',
         ...env.mime.iconNames(entry.mimeType),

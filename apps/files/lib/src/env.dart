@@ -9,10 +9,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 
-class FilesEnv {
+class FilesEnv implements FileIconEnv {
   final String home;
+  @override
   final MimeDatabase mime;
   final Trash trash;
   final Map<UserDir, String> userDirs;
@@ -45,6 +47,9 @@ class FilesEnv {
       configFile: File('$config/psito/files.json'),
     );
   }
+
+  @override
+  String? folderIcon(String path) => knownFolder(path)?.$1;
 
   /// O ícone e o nome de uma pasta conhecida (o home e as do usuário).
   (String, String)? knownFolder(String path) {

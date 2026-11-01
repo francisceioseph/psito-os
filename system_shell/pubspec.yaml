@@ -40,6 +40,8 @@ dependencies:
     path: ../packages/psito_services
   psito_dock:
     path: ../packages/psito_dock
+  psito_desktop:
+    path: ../packages/psito_desktop
   # Os apps do Psito (apps/<id>/), que o laboratório roda dentro do processo
   psito_calculator:
     path: ../apps/calculator

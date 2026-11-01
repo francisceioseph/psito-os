@@ -7,6 +7,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 enum _Section {
   appearance('Aparência', Icons.palette_outlined),
   dock('Dock', Icons.call_to_action_outlined),
+  desktop('Área de trabalho', Icons.desktop_windows_outlined),
   dateTime('Data e hora', Icons.schedule),
   network('Rede', Icons.lan_outlined),
   notifications('Notificações', Icons.notifications_none),
@@ -79,6 +80,7 @@ class _SettingsViewState extends State<SettingsView> {
                 ...switch (_section) {
                   _Section.appearance => _appearance(settings),
                   _Section.dock => _dock(settings),
+                  _Section.desktop => _desktop(settings),
                   _Section.dateTime => _dateTime(settings),
                   _Section.network => _network(),
                   _Section.notifications => _notifications(settings),
@@ -222,6 +224,39 @@ class _SettingsViewState extends State<SettingsView> {
       value: s.dockAutoHide,
       onChanged: (v) => _update(s.copyWith(dockAutoHide: v)),
     ),
+  ];
+
+  List<Widget> _desktop(PsitoSettings s) => [
+    SwitchListTile(
+      title: const Text('Mostrar os ícones'),
+      subtitle: const Text('Os arquivos da pasta Área de Trabalho, na mesa.'),
+      value: s.desktopShowIcons,
+      onChanged: (v) => _update(s.copyWith(desktopShowIcons: v)),
+    ),
+    if (s.desktopShowIcons) ...[
+      const SizedBox(height: 16),
+      const _Label('Tamanho dos ícones'),
+      _DockSizeSlider(
+        value: s.desktopIconSize,
+        onChanged: (v) => _update(s.copyWith(desktopIconSize: v)),
+      ),
+      SwitchListTile(
+        title: const Text('Pasta pessoal'),
+        value: s.desktopShowHome,
+        onChanged: (v) => _update(s.copyWith(desktopShowHome: v)),
+      ),
+      SwitchListTile(
+        title: const Text('Lixeira'),
+        value: s.desktopShowTrash,
+        onChanged: (v) => _update(s.copyWith(desktopShowTrash: v)),
+      ),
+      SwitchListTile(
+        title: const Text('Organizar automaticamente'),
+        subtitle: const Text('Os ícones ficam em ordem de nome, sem buracos.'),
+        value: s.desktopAutoArrange,
+        onChanged: (v) => _update(s.copyWith(desktopAutoArrange: v)),
+      ),
+    ],
   ];
 
   List<Widget> _dateTime(PsitoSettings s) => [

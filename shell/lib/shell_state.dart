@@ -18,6 +18,7 @@ import 'package:system_shell/shell/window_switcher.dart';
 
 import 'app_icon.dart';
 import 'autostart.dart';
+import 'desk.dart';
 import 'desktop_entries.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
@@ -85,6 +86,10 @@ class ShellState {
 
   /// O arrastar e o menu da dock.
   late final dockUi = DockController(this);
+
+  /// A mesa. Null até o main carregar os tipos MIME, depois do primeiro
+  /// quadro.
+  final desk = ValueNotifier<DeskController?>(null);
 
   /// O autostart do XDG. Null: sem o "Abrir ao iniciar a sessão" (testes).
   final Autostart? autostart;

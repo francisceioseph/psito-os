@@ -5,13 +5,13 @@
 // pasta (Nova pasta, Colar, Ver como) e os da lixeira (Pôr de volta, Apagar
 // imediatamente, Esvaziar).
 import 'package:flutter/material.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'controller.dart';
 import 'dialogs.dart';
 import 'env.dart';
-import 'file_icon.dart';
 import 'tab.dart';
 
 /// Os itens do menu de [entry] (null: o fundo da pasta). [apps] são os do

@@ -286,6 +286,23 @@ class PsitoSettings {
   /// borda; as janelas ocupam o lugar dela.
   final bool dockAutoHide;
 
+  /// A `~/Área de Trabalho` na mesa.
+  final bool desktopShowIcons;
+
+  /// O lado dos ícones da mesa, em px lógicos ([desktopSizes]).
+  final double desktopIconSize;
+
+  static const desktopSizes = (min: 32.0, max: 96.0);
+
+  /// O home na mesa.
+  final bool desktopShowHome;
+
+  /// A lixeira na mesa.
+  final bool desktopShowTrash;
+
+  /// Os ícones ficam em ordem de nome, sem buracos, e não onde foram postos.
+  final bool desktopAutoArrange;
+
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
     this.wallpaperId = 'noite',
@@ -297,6 +314,11 @@ class PsitoSettings {
     this.dockMagnification = true,
     this.dockPosition = PsitoDockPosition.bottom,
     this.dockAutoHide = false,
+    this.desktopShowIcons = true,
+    this.desktopIconSize = 48,
+    this.desktopShowHome = false,
+    this.desktopShowTrash = false,
+    this.desktopAutoArrange = false,
   });
 
   static const defaults = PsitoSettings();
@@ -314,6 +336,11 @@ class PsitoSettings {
     bool? dockMagnification,
     PsitoDockPosition? dockPosition,
     bool? dockAutoHide,
+    bool? desktopShowIcons,
+    double? desktopIconSize,
+    bool? desktopShowHome,
+    bool? desktopShowTrash,
+    bool? desktopAutoArrange,
   }) => PsitoSettings(
     accent: accent ?? this.accent,
     wallpaperId: wallpaperId ?? this.wallpaperId,
@@ -325,6 +352,11 @@ class PsitoSettings {
     dockMagnification: dockMagnification ?? this.dockMagnification,
     dockPosition: dockPosition ?? this.dockPosition,
     dockAutoHide: dockAutoHide ?? this.dockAutoHide,
+    desktopShowIcons: desktopShowIcons ?? this.desktopShowIcons,
+    desktopIconSize: desktopIconSize ?? this.desktopIconSize,
+    desktopShowHome: desktopShowHome ?? this.desktopShowHome,
+    desktopShowTrash: desktopShowTrash ?? this.desktopShowTrash,
+    desktopAutoArrange: desktopAutoArrange ?? this.desktopAutoArrange,
   );
 
   Map<String, Object?> toJson() => {
@@ -338,6 +370,11 @@ class PsitoSettings {
     'dockMagnification': dockMagnification,
     'dockPosition': dockPosition.name,
     'dockAutoHide': dockAutoHide,
+    'desktopShowIcons': desktopShowIcons,
+    'desktopIconSize': desktopIconSize,
+    'desktopShowHome': desktopShowHome,
+    'desktopShowTrash': desktopShowTrash,
+    'desktopAutoArrange': desktopAutoArrange,
   };
 
   /// Campos ausentes ou de tipo errado ficam com o padrão.
@@ -369,6 +406,17 @@ class PsitoSettings {
           )] ??
           defaults.dockPosition,
       dockAutoHide: pick('dockAutoHide', defaults.dockAutoHide),
+      desktopShowIcons: pick('desktopShowIcons', defaults.desktopShowIcons),
+      desktopIconSize: pick<num>(
+        'desktopIconSize',
+        defaults.desktopIconSize,
+      ).toDouble().clamp(desktopSizes.min, desktopSizes.max),
+      desktopShowHome: pick('desktopShowHome', defaults.desktopShowHome),
+      desktopShowTrash: pick('desktopShowTrash', defaults.desktopShowTrash),
+      desktopAutoArrange: pick(
+        'desktopAutoArrange',
+        defaults.desktopAutoArrange,
+      ),
     );
   }
 
@@ -384,7 +432,12 @@ class PsitoSettings {
       other.dockIconSize == dockIconSize &&
       other.dockMagnification == dockMagnification &&
       other.dockPosition == dockPosition &&
-      other.dockAutoHide == dockAutoHide;
+      other.dockAutoHide == dockAutoHide &&
+      other.desktopShowIcons == desktopShowIcons &&
+      other.desktopIconSize == desktopIconSize &&
+      other.desktopShowHome == desktopShowHome &&
+      other.desktopShowTrash == desktopShowTrash &&
+      other.desktopAutoArrange == desktopAutoArrange;
 
   @override
   int get hashCode => Object.hash(
@@ -398,6 +451,11 @@ class PsitoSettings {
     dockMagnification,
     dockPosition,
     dockAutoHide,
+    desktopShowIcons,
+    desktopIconSize,
+    desktopShowHome,
+    desktopShowTrash,
+    desktopAutoArrange,
   );
 }
 

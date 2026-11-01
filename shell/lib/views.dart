@@ -6,7 +6,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_runtime/psito_runtime.dart';
 import 'package:psito_services/system_services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -21,6 +23,7 @@ import 'package:system_shell/widgets/notification_panel.dart';
 import 'package:system_shell/widgets/notification_toasts.dart';
 import 'package:system_shell/widgets/power_confirm_dialog.dart';
 import 'package:system_shell/widgets/power_panel.dart';
+import 'package:system_shell/widgets/psito_desktop_icons.dart';
 import 'package:system_shell/widgets/psito_dock.dart';
 import 'package:system_shell/widgets/top_bar.dart';
 import 'package:system_shell/widgets/volume_osd.dart';
@@ -28,6 +31,7 @@ import 'package:system_shell/widgets/volume_panel.dart';
 import 'package:system_shell/widgets/window_switcher_overlay.dart';
 
 import 'app_icon.dart';
+import 'desk.dart';
 import 'dock.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
@@ -123,7 +127,85 @@ class _BackgroundView extends StatelessWidget {
       state.dockUi.screen = MediaQuery.sizeOf(context);
       return Material(
         type: MaterialType.transparency,
-        child: DesktopBackground(wallpaper: state.settings.value.wallpaper),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DesktopBackground(
+                wallpaper: state.settings.value.wallpaper,
+              ),
+            ),
+            Positioned.fill(
+              child: ValueListenableBuilder(
+                valueListenable: state.desk,
+                builder: (context, desk, _) =>
+                    desk == null ? const SizedBox.shrink() : _DeskView(desk),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _DeskView extends StatelessWidget {
+  final DeskController desk;
+  const _DeskView(this.desk);
+
+  Widget _icon(DeskItem item, double size) {
+    final fallback = Icon(
+      Icons.insert_drive_file_outlined,
+      size: size,
+      color: Colors.white70,
+    );
+    if (item.key == DeskItem.homeKey) {
+      return PsitoIcon(const ['user-home', 'folder'], size: size);
+    }
+    if (item.key == DeskItem.trashKey) {
+      return ValueListenableBuilder(
+        valueListenable: desk.state.dockUi.trashFull,
+        builder: (context, full, _) => PsitoIcon(
+          [full ? 'user-trash-full' : 'user-trash'],
+          size: size,
+          fallback: fallback,
+        ),
+      );
+    }
+    if (item.broken) {
+      return Icon(Icons.link_off_rounded, size: size, color: Colors.white70);
+    }
+    if (item.shortcut case final shortcut?) {
+      return AppIcon(shortcut.icon, size: size);
+    }
+    return FileIcon(entry: item.entry!, env: desk, size: size);
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: desk,
+    builder: (context, _) {
+      final size = desk.state.settings.value.desktopIconSize;
+      final insets = desk.insets;
+      final grid = DeskGrid.fit(
+        insets.deflateSize(MediaQuery.sizeOf(context)),
+        deskCellSize(size),
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => desk.setGrid(grid));
+      return PsitoDesktopIcons(
+        icons: [
+          for (final item in desk.items)
+            DeskIcon(
+              key: item.key,
+              name: item.name,
+              icon: (size) => _icon(item, size),
+            ),
+        ],
+        cells: desk.cells,
+        iconSize: size,
+        insets: insets,
+        selected: desk.selected,
+        onSelect: desk.select,
+        onOpen: desk.open,
       );
     },
   );

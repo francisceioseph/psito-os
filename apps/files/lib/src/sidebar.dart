@@ -7,9 +7,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 
-import 'file_icon.dart';
 import 'items.dart';
 import 'tab.dart';
 

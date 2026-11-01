@@ -89,6 +89,11 @@ void main() {
       dockMagnification: false,
       dockPosition: PsitoDockPosition.left,
       dockAutoHide: true,
+      desktopShowIcons: false,
+      desktopIconSize: 64,
+      desktopShowHome: true,
+      desktopShowTrash: true,
+      desktopAutoArrange: true,
     );
     expect(PsitoSettings.fromJson(s.toJson()), s);
   });

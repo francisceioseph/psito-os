@@ -77,7 +77,13 @@ void main() {
     );
     await tester.tap(find.byIcon(Icons.settings_rounded).first);
     await tester.pump();
-    await tester.ensureVisible(find.text('Sobre'));
+    await tester.scrollUntilVisible(
+      find.text('Sobre'),
+      50,
+      scrollable: find
+          .ancestor(of: find.text('Dock'), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.pump();
     await tester.tap(find.text('Sobre'));
     await tester.pump();

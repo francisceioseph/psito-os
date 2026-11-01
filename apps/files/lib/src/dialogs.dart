@@ -9,12 +9,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_files_ui/psito_files_ui.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'controller.dart';
 import 'env.dart';
-import 'file_icon.dart';
 import 'format.dart';
 import 'items.dart';
 

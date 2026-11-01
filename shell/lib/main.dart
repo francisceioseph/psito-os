@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/widgets.dart';
+import 'package:psito_desktop/psito_desktop.dart';
 import 'package:psito_dock/psito_dock.dart';
 import 'package:psito_fs/psito_fs.dart';
 import 'package:psito_services/system_services.dart';
@@ -15,6 +16,7 @@ import 'package:system_shell/shell/settings_store.dart';
 
 import 'autostart.dart';
 import 'bridge/bridge.dart';
+import 'desk.dart';
 import 'launcher_bus.dart';
 import 'notifications_server.dart';
 import 'opener.dart';
@@ -57,26 +59,6 @@ Future<void> main() async {
   );
   Bridge(settings).start();
 
-  try {
-    await publishShell(ShellBusObject(onRun: state.run));
-  } on Exception catch (e) {
-    debugPrint('🦜 shell: sem o barramento da sessão ($e)');
-    return;
-  }
-  // Uma conexão por nome: o filtro do sandbox decide por conexão
-  try {
-    final settingsBus = DBusClient.session();
-    await publishSettings(
-      settingsBus,
-      SettingsBusObject(
-        settings,
-        mayUpdate: (sender) async =>
-            state.maySetSettings(await senderAppId(settingsBus, sender)),
-      ),
-    );
-  } on Exception catch (e) {
-    debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
-  }
   final env = Platform.environment;
   final mime = MimeDatabase.load(MimeDatabase.dirsFor(env));
   final userDirs = loadUserDirs(env);
@@ -104,6 +86,38 @@ Future<void> main() async {
   );
   state.dockUi.trash = Trash.forEnv(env, now: state.services.time.now);
   unawaited(state.dockUi.watchTrash());
+  final desk = DeskController(
+    state,
+    dir: userDirs[UserDir.desktop],
+    home: env['HOME'] ?? '/',
+    mime: mime,
+    store: await DeskStore.load(defaultDeskFile()),
+    userDirs: userDirs,
+    env: env,
+  );
+  state.desk.value = desk;
+  unawaited(desk.start());
+
+  try {
+    await publishShell(ShellBusObject(onRun: state.run));
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o barramento da sessão ($e)');
+    return;
+  }
+  // Uma conexão por nome: o filtro do sandbox decide por conexão
+  try {
+    final settingsBus = DBusClient.session();
+    await publishSettings(
+      settingsBus,
+      SettingsBusObject(
+        settings,
+        mayUpdate: (sender) async =>
+            state.maySetSettings(await senderAppId(settingsBus, sender)),
+      ),
+    );
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Settings ($e)');
+  }
   try {
     final launcherBus = DBusClient.session();
     final launcher = LauncherBusObject(

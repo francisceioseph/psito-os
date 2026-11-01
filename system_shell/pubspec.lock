@@ -217,6 +217,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0+1"
+  psito_desktop:
+    dependency: "direct main"
+    description:
+      path: "../packages/psito_desktop"
+      relative: true
+    source: path
+    version: "0.1.0"
   psito_dock:
     dependency: "direct main"
     description:
@@ -231,6 +238,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0+1"
+  psito_files_ui:
+    dependency: transitive
+    description:
+      path: "../packages/psito_files_ui"
+      relative: true
+    source: path
+    version: "0.1.0"
   psito_fs:
     dependency: transitive
     description:
