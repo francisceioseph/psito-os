@@ -1,0 +1,29 @@
+name: player_psito
+description: "Player de músicas locais do Psito OS."
+publish_to: 'none'
+version: 0.2.0+2
+
+environment:
+  sdk: ^3.13.3
+
+# O player fica em outro repositório e não conhece o Psito: é este projeto que
+# liga um ao outro. Para atualizar, suba o ref.
+dependencies:
+  flutter:
+    sdk: flutter
+  psito_player:
+    git:
+      url: https://github.com/francisceioseph/psito-player
+      ref: v0.2.0
+  psito_runtime:
+    path: ../../packages/psito_runtime
+  psito_sdk:
+    path: ../../packages/psito_sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
