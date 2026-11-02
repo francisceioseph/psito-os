@@ -159,6 +159,10 @@ abstract class PsitoAppContext {
     required String title,
     List<String> patterns = const [],
   });
+
+  /// O seletor de pastas do sistema. Devolve o caminho, ou null se a pessoa
+  /// cancelou. O caminho é o de fora do sandbox, como no [pickFile].
+  Future<String?> pickFolder({required String title});
 }
 
 /// Um app que abre um tipo de arquivo, para o "Abrir com".

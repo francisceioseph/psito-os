@@ -2,7 +2,6 @@
   "@@locale": "en",
   "appName": "Music Player",
   "noTrack": "No track",
-  "openFile": "Open file",
   "play": "Play",
   "pause": "Pause",
   "progress": "Progress",
@@ -14,5 +13,197 @@
   "search": "Search",
   "settings": "Settings",
   "engineUnavailable": "The audio engine is unavailable: {error}",
-  "openFailed": "Could not play this file: {error}"
+  "openFailed": "Could not play this file: {error}",
+  "addFolder": "Add folder",
+  "addMusicFolder": "Add music folder",
+  "folderNotVisible": "The player can't see this folder. Choose one in your home or on an external disk.",
+  "folderAlreadyAdded": "This folder is already in the library.",
+  "libraryUnavailable": "Could not open the library: {error}",
+  "@libraryUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "albums": "Albums",
+  "unknownArtist": "Unknown artist",
+  "playAlbum": "Play {album}",
+  "@playAlbum": {
+    "placeholders": {
+      "album": {
+        "type": "String"
+      }
+    }
+  },
+  "hasLyrics": "Has lyrics",
+  "moreOptions": "More options",
+  "playNext": "Play next",
+  "addToQueue": "Add to queue",
+  "removeFromQueue": "Remove from queue",
+  "queue": "Queue",
+  "queueEmpty": "The queue is empty",
+  "close": "Close",
+  "shuffle": "Shuffle",
+  "previousTrack": "Previous track",
+  "nextTrack": "Next track",
+  "repeatOff": "Repeat: off",
+  "repeatAll": "Repeat: all",
+  "repeatOne": "Repeat: one",
+  "homeSubtitle": "Your local library, the way you left it",
+  "continueListening": "Continue where you left off",
+  "continuePlaying": "Continue",
+  "stoppedAt": "{artist} · stopped at {position} of {duration}",
+  "@stoppedAt": {
+    "placeholders": {
+      "artist": {
+        "type": "String"
+      },
+      "position": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "shuffleAll": "Shuffle everything",
+  "recentlyAdded": "Recently added",
+  "seeAll": "See all",
+  "mostPlayed": "Most played",
+  "comingSoon": "This screen arrives in a later phase.",
+  "emptyTitle": "Your library is empty",
+  "emptyBody": "Point to the folder where your music is. The player reads the files directly from your computer and sends nothing out.",
+  "useFolder": "Use {folder}",
+  "@useFolder": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptedFormats": "Accepted formats",
+  "scanning": "Reading your library",
+  "scanSubtitle": "Reading in progress: you can already listen to what was found",
+  "scanFiles": "{done} of {total} files",
+  "@scanFiles": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "scanLessThanMinute": "less than a minute left",
+  "scanMinutesLeft": "about {n} min left",
+  "@scanMinutesLeft": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "pauseScan": "Pause",
+  "resumeScan": "Resume",
+  "cancelScan": "Cancel",
+  "scanKeepsGoing": "Reading continues if you leave this screen",
+  "foundSoFar": "Found so far",
+  "updateAll": "Update all",
+  "updateFolder": "Update folder",
+  "removeFolder": "Remove from library",
+  "folderMissing": "Disk not found",
+  "notScanned": "Not read yet",
+  "scannedJustNow": "Updated just now",
+  "scannedMinutes": "Updated {n} min ago",
+  "@scannedMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "scannedHours": "Updated {n} h ago",
+  "@scannedHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "scannedDays": "{n, plural, =0{Updated today} =1{Updated yesterday} other{Updated {n} days ago}}",
+  "@scannedDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthMinutes": "{n} min",
+  "@lengthMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "lengthHours": "{h} h {m} min",
+  "@lengthHours": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "albumCount": "{n, plural, =0{0 albums} =1{1 album} other{{n} albums}}",
+  "@albumCount": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "trackCount": "{n, plural, =0{0 tracks} =1{1 track} other{{n} tracks}}",
+  "@trackCount": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "folderCount": "{n, plural, =0{0 folders} =1{1 folder} other{{n} folders}}",
+  "@folderCount": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "coversFound": "{n, plural, =0{0 covers found} =1{1 cover found} other{{n} covers found}}",
+  "@coversFound": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "filesSkipped": "{n, plural, =0{0 files skipped} =1{1 file skipped} other{{n} files skipped}}",
+  "@filesSkipped": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  }
 }

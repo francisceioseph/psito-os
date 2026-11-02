@@ -22,6 +22,16 @@ class FileChooserClient {
   Future<String?> pickFile({
     required String title,
     List<String> patterns = const [],
+  }) => _open(title: title, patterns: patterns);
+
+  /// A pasta escolhida, ou null se a pessoa cancelou ou o portal não existe.
+  Future<String?> pickFolder({required String title}) =>
+      _open(title: title, directory: true);
+
+  Future<String?> _open({
+    required String title,
+    List<String> patterns = const [],
+    bool directory = false,
   }) async {
     StreamSubscription<DBusSignal>? subscription;
     try {
@@ -50,6 +60,7 @@ class FileChooserClient {
           DBusString(title),
           DBusDict.stringVariant({
             'handle_token': DBusString(token),
+            if (directory) 'directory': const DBusBoolean(true),
             if (patterns.isNotEmpty)
               'filters': DBusArray(DBusSignature('(sa(us))'), [
                 _filter(title, patterns),

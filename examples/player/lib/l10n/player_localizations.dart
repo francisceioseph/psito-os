@@ -110,12 +110,6 @@ abstract class PlayerLocalizations {
   /// **'No track'**
   String get noTrack;
 
-  /// No description provided for @openFile.
-  ///
-  /// In en, this message translates to:
-  /// **'Open file'**
-  String get openFile;
-
   /// No description provided for @play.
   ///
   /// In en, this message translates to:
@@ -187,6 +181,372 @@ abstract class PlayerLocalizations {
   /// In en, this message translates to:
   /// **'Could not play this file: {error}'**
   String openFailed(Object error);
+
+  /// No description provided for @addFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add folder'**
+  String get addFolder;
+
+  /// No description provided for @addMusicFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add music folder'**
+  String get addMusicFolder;
+
+  /// No description provided for @folderNotVisible.
+  ///
+  /// In en, this message translates to:
+  /// **'The player can\'t see this folder. Choose one in your home or on an external disk.'**
+  String get folderNotVisible;
+
+  /// No description provided for @folderAlreadyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is already in the library.'**
+  String get folderAlreadyAdded;
+
+  /// No description provided for @libraryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the library: {error}'**
+  String libraryUnavailable(String error);
+
+  /// No description provided for @albums.
+  ///
+  /// In en, this message translates to:
+  /// **'Albums'**
+  String get albums;
+
+  /// No description provided for @unknownArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown artist'**
+  String get unknownArtist;
+
+  /// No description provided for @playAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Play {album}'**
+  String playAlbum(String album);
+
+  /// No description provided for @hasLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Has lyrics'**
+  String get hasLyrics;
+
+  /// No description provided for @moreOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get moreOptions;
+
+  /// No description provided for @playNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Play next'**
+  String get playNext;
+
+  /// No description provided for @addToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to queue'**
+  String get addToQueue;
+
+  /// No description provided for @removeFromQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from queue'**
+  String get removeFromQueue;
+
+  /// No description provided for @queue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get queue;
+
+  /// No description provided for @queueEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'The queue is empty'**
+  String get queueEmpty;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @shuffle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get shuffle;
+
+  /// No description provided for @previousTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous track'**
+  String get previousTrack;
+
+  /// No description provided for @nextTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Next track'**
+  String get nextTrack;
+
+  /// No description provided for @repeatOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat: off'**
+  String get repeatOff;
+
+  /// No description provided for @repeatAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat: all'**
+  String get repeatAll;
+
+  /// No description provided for @repeatOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat: one'**
+  String get repeatOne;
+
+  /// No description provided for @homeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your local library, the way you left it'**
+  String get homeSubtitle;
+
+  /// No description provided for @continueListening.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue where you left off'**
+  String get continueListening;
+
+  /// No description provided for @continuePlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continuePlaying;
+
+  /// No description provided for @stoppedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'{artist} · stopped at {position} of {duration}'**
+  String stoppedAt(String artist, String position, String duration);
+
+  /// No description provided for @shuffleAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle everything'**
+  String get shuffleAll;
+
+  /// No description provided for @recentlyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get recentlyAdded;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get seeAll;
+
+  /// No description provided for @mostPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most played'**
+  String get mostPlayed;
+
+  /// No description provided for @comingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'This screen arrives in a later phase.'**
+  String get comingSoon;
+
+  /// No description provided for @emptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library is empty'**
+  String get emptyTitle;
+
+  /// No description provided for @emptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Point to the folder where your music is. The player reads the files directly from your computer and sends nothing out.'**
+  String get emptyBody;
+
+  /// No description provided for @useFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {folder}'**
+  String useFolder(String folder);
+
+  /// No description provided for @acceptedFormats.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted formats'**
+  String get acceptedFormats;
+
+  /// No description provided for @scanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading your library'**
+  String get scanning;
+
+  /// No description provided for @scanSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading in progress: you can already listen to what was found'**
+  String get scanSubtitle;
+
+  /// No description provided for @scanFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} files'**
+  String scanFiles(int done, int total);
+
+  /// No description provided for @scanLessThanMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'less than a minute left'**
+  String get scanLessThanMinute;
+
+  /// No description provided for @scanMinutesLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'about {n} min left'**
+  String scanMinutesLeft(int n);
+
+  /// No description provided for @pauseScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pauseScan;
+
+  /// No description provided for @resumeScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resumeScan;
+
+  /// No description provided for @cancelScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelScan;
+
+  /// No description provided for @scanKeepsGoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading continues if you leave this screen'**
+  String get scanKeepsGoing;
+
+  /// No description provided for @foundSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Found so far'**
+  String get foundSoFar;
+
+  /// No description provided for @updateAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Update all'**
+  String get updateAll;
+
+  /// No description provided for @updateFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Update folder'**
+  String get updateFolder;
+
+  /// No description provided for @removeFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from library'**
+  String get removeFolder;
+
+  /// No description provided for @folderMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Disk not found'**
+  String get folderMissing;
+
+  /// No description provided for @notScanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Not read yet'**
+  String get notScanned;
+
+  /// No description provided for @scannedJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated just now'**
+  String get scannedJustNow;
+
+  /// No description provided for @scannedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {n} min ago'**
+  String scannedMinutes(int n);
+
+  /// No description provided for @scannedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {n} h ago'**
+  String scannedHours(int n);
+
+  /// No description provided for @scannedDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{Updated today} =1{Updated yesterday} other{Updated {n} days ago}}'**
+  String scannedDays(int n);
+
+  /// No description provided for @lengthMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min'**
+  String lengthMinutes(int n);
+
+  /// No description provided for @lengthHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{h} h {m} min'**
+  String lengthHours(int h, int m);
+
+  /// No description provided for @albumCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{0 albums} =1{1 album} other{{n} albums}}'**
+  String albumCount(int n);
+
+  /// No description provided for @trackCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{0 tracks} =1{1 track} other{{n} tracks}}'**
+  String trackCount(int n);
+
+  /// No description provided for @folderCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{0 folders} =1{1 folder} other{{n} folders}}'**
+  String folderCount(int n);
+
+  /// No description provided for @coversFound.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{0 covers found} =1{1 cover found} other{{n} covers found}}'**
+  String coversFound(int n);
+
+  /// No description provided for @filesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =0{0 files skipped} =1{1 file skipped} other{{n} files skipped}}'**
+  String filesSkipped(int n);
 }
 
 class _PlayerLocalizationsDelegate

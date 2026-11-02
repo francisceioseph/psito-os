@@ -33,9 +33,21 @@ class MediaKitEngine implements PlayerEngine {
     // Música não precisa de pouca latência, e o processo no sandbox não tem
     // prioridade de tempo real: 100 ms em vez do quantum do PipeWire (21 ms)
     unawaited(native.setProperty('pipewire-buffer', '100'));
+    // A capa embutida conta como vídeo: sem isto, o mpv decodifica a de cada faixa
+    unawaited(native.setProperty('vid', 'no'));
     final stream = _player.stream;
     _subscriptions.addAll([
       stream.playing.listen((v) => _update(_state.value.copyWith(playing: v))),
+      stream.playlist.listen(
+        (v) => _update(
+          _state.value.copyWith(
+            queue: [for (final media in v.medias) _pathOf(media)],
+            index: v.medias.isEmpty ? -1 : v.index,
+            // O mpv pula o arquivo que não abre: o erro era da faixa de antes
+            clearError: v.index != _state.value.index,
+          ),
+        ),
+      ),
       stream.position.listen(
         (v) => _update(_state.value.copyWith(position: v)),
       ),
@@ -58,6 +70,11 @@ class MediaKitEngine implements PlayerEngine {
   }
 
   void _update(PlayerState state) => _state.value = state;
+
+  /// O `Media` guarda o caminho como URI.
+  static String _pathOf(Media media) => media.uri.startsWith('file:')
+      ? Uri.parse(media.uri).toFilePath()
+      : media.uri;
 
   /// O título e o formato ficam em propriedades que o media_kit não publica.
   Future<void> _readTrack() async {
@@ -88,13 +105,70 @@ class MediaKitEngine implements PlayerEngine {
   ValueListenable<PlayerState> get state => _state;
 
   @override
-  Future<void> open(List<String> paths) async {
-    _update(PlayerState(volume: _state.value.volume));
-    await _player.open(Playlist(paths.map(Media.new).toList()));
+  Future<void> open(
+    List<String> paths, {
+    int index = 0,
+    Duration start = Duration.zero,
+    bool play = true,
+  }) async {
+    final old = _state.value;
+    _update(
+      PlayerState(volume: old.volume, shuffle: false, repeat: old.repeat),
+    );
+    await _player.setShuffle(false);
+    await _player.open(
+      Playlist(paths.map(Media.new).toList(), index: index),
+      play: play,
+    );
+    if (start > Duration.zero) {
+      // Antes de o arquivo carregar, o mpv ignora o seek
+      await _player.stream.duration
+          .firstWhere((d) => d > Duration.zero)
+          .timeout(const Duration(seconds: 5));
+      await _player.seek(start);
+    }
   }
 
   @override
   Future<void> playOrPause() => _player.playOrPause();
+
+  @override
+  Future<void> next() => _player.next();
+
+  @override
+  Future<void> previous() => _player.previous();
+
+  @override
+  Future<void> jump(int index) => _player.jump(index);
+
+  @override
+  Future<void> add(String path) => _player.add(Media(path));
+
+  @override
+  Future<void> move(int from, int to) => _player.move(from, to);
+
+  @override
+  Future<void> remove(int index) => _player.remove(index);
+
+  @override
+  Future<void> setShuffle(bool shuffle) async {
+    await _player.setShuffle(shuffle);
+    _update(_state.value.copyWith(shuffle: shuffle));
+    // O mpv embaralha a fila inteira: a atual vai para o começo, para todo o
+    // resto ainda tocar
+    final index = _player.state.playlist.index;
+    if (shuffle && index > 0) await _player.move(index, 0);
+  }
+
+  @override
+  Future<void> setRepeat(PlayerRepeat repeat) async {
+    await _player.setPlaylistMode(switch (repeat) {
+      PlayerRepeat.off => PlaylistMode.none,
+      PlayerRepeat.all => PlaylistMode.loop,
+      PlayerRepeat.one => PlaylistMode.single,
+    });
+    _update(_state.value.copyWith(repeat: repeat));
+  }
 
   @override
   Future<void> seek(Duration position) => _player.seek(position);

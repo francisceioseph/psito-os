@@ -4,6 +4,9 @@
 // interface: trocar o media_kit por outro motor não mexe na tela.
 import 'package:flutter/foundation.dart';
 
+/// O que repetir ao chegar no fim.
+enum PlayerRepeat { off, all, one }
+
 /// O que está tocando.
 @immutable
 class PlayerState {
@@ -22,6 +25,14 @@ class PlayerState {
   /// O erro da última abertura, nas palavras do motor.
   final String? error;
 
+  /// Os caminhos da fila, na ordem em que vão tocar.
+  final List<String> queue;
+
+  /// A posição na fila, ou -1 sem fila.
+  final int index;
+  final bool shuffle;
+  final PlayerRepeat repeat;
+
   const PlayerState({
     this.title,
     this.position = Duration.zero,
@@ -30,6 +41,10 @@ class PlayerState {
     this.volume = 1,
     this.format,
     this.error,
+    this.queue = const [],
+    this.index = -1,
+    this.shuffle = false,
+    this.repeat = PlayerRepeat.off,
   });
 
   PlayerState copyWith({
@@ -41,6 +56,10 @@ class PlayerState {
     String? format,
     String? error,
     bool clearError = false,
+    List<String>? queue,
+    int? index,
+    bool? shuffle,
+    PlayerRepeat? repeat,
   }) => PlayerState(
     title: title ?? this.title,
     position: position ?? this.position,
@@ -49,15 +68,40 @@ class PlayerState {
     volume: volume ?? this.volume,
     format: format ?? this.format,
     error: clearError ? null : error ?? this.error,
+    queue: queue ?? this.queue,
+    index: index ?? this.index,
+    shuffle: shuffle ?? this.shuffle,
+    repeat: repeat ?? this.repeat,
   );
 }
 
 abstract class PlayerEngine {
   ValueListenable<PlayerState> get state;
 
-  /// Abre os arquivos em fila e já toca o primeiro.
-  Future<void> open(List<String> paths);
+  /// Abre os arquivos em fila, a partir de [index]. Com [start], começa daquele
+  /// ponto. Sem [play], fica pronto e parado.
+  Future<void> open(
+    List<String> paths, {
+    int index = 0,
+    Duration start = Duration.zero,
+    bool play = true,
+  });
   Future<void> playOrPause();
+  Future<void> next();
+  Future<void> previous();
+
+  /// Vai para a faixa nessa posição da fila.
+  Future<void> jump(int index);
+
+  /// No fim da fila.
+  Future<void> add(String path);
+  Future<void> move(int from, int to);
+  Future<void> remove(int index);
+
+  /// Ligar embaralha o que vem depois da faixa atual, que continua tocando, e
+  /// desligar volta à ordem de antes.
+  Future<void> setShuffle(bool shuffle);
+  Future<void> setRepeat(PlayerRepeat repeat);
   Future<void> seek(Duration position);
 
   /// De 0 a 1.

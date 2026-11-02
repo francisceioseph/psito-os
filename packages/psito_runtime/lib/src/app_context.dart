@@ -195,4 +195,8 @@ class ProcessAppContext implements PsitoAppContext {
     required String title,
     List<String> patterns = const [],
   }) async => fileChooser?.pickFile(title: title, patterns: patterns);
+
+  @override
+  Future<String?> pickFolder({required String title}) async =>
+      fileChooser?.pickFolder(title: title);
 }

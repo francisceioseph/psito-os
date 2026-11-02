@@ -1,3 +1,4 @@
-# O que o tools/psito-deb não acha sozinho: o media_kit abre a libmpv em tempo
-# de execução (dlopen), então ela não aparece no NEEDED de nenhum arquivo.
-DEPENDS="libmpv2"
+# O que o tools/psito-deb não acha sozinho: o media_kit abre a libmpv, e o
+# sqlite3 a libsqlite3, em tempo de execução (dlopen), então elas não aparecem
+# no NEEDED de nenhum arquivo.
+DEPENDS="libmpv2, libsqlite3-0"

@@ -16,7 +16,7 @@ jobs:
           channel: stable
           cache: true
       - name: Dependencies of the tests
-        run: sudo apt-get update && sudo apt-get install -y dbus shared-mime-info
+        run: sudo apt-get update && sudo apt-get install -y dbus shared-mime-info libsqlite3-0
       - name: Packages
         run: |
           for dir in packages/*/ system_shell/ shell/ lock/ greeter/ apps/*/ examples/*/; do

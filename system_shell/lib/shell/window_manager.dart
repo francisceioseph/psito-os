@@ -504,4 +504,7 @@ class _WindowContext implements PsitoAppContext {
     required String title,
     List<String> patterns = const [],
   }) async => null;
+
+  @override
+  Future<String?> pickFolder({required String title}) async => null;
 }
