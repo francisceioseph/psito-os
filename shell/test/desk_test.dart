@@ -69,7 +69,7 @@ void main() {
       settings: SettingsStore.memory(),
       services: SystemServices.fake(),
       toplevels: ToplevelList(channel: _toplevels),
-      surfaces: const Surfaces(_surfaces),
+      surfaces: Surfaces(_surfaces),
       dock: DockStore.memory(),
     );
     opened = [];

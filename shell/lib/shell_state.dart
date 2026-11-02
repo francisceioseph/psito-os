@@ -63,12 +63,13 @@ class ShellState {
     required this.services,
     required this.toplevels,
     DockStore? dock,
-    this.surfaces = const Surfaces(),
+    Surfaces? surfaces,
     this.osdDuration = const Duration(milliseconds: 1500),
     this.sandbox,
     this.autostart,
     this.clipboardKeeper = const ClipboardKeeper(),
-  }) : dock = dock ?? DockStore.memory(defaultDock) {
+  }) : surfaces = surfaces ?? Surfaces(),
+       dock = dock ?? DockStore.memory(defaultDock) {
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
     switcher.addListener(_syncOverlay);
@@ -99,7 +100,7 @@ class ShellState {
     dockUi.hovered.addListener(() {
       if (dockUi.surface.isEmpty || !dockUi.revealed.value) return;
       unawaited(
-        surfaces.resize(
+        this.surfaces.resize(
           Surface.dock,
           dockUi.surface,
           input: dockUi.inputInsets,

@@ -61,17 +61,21 @@ class _ShellViewsState extends State<ShellViews> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.state.surfaces.secondaries.addListener(_changed);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.state.surfaces.secondaries.removeListener(_changed);
     super.dispose();
   }
 
+  void _changed() => setState(() {});
+
   // Views novas chegam como mudança de métricas
   @override
-  void didChangeMetrics() => setState(() {});
+  void didChangeMetrics() => _changed();
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +100,20 @@ class _ShellViewsState extends State<ShellViews> with WidgetsBindingObserver {
                 Surface.osd => OsdView(state),
               },
             ),
+        for (final secondary in state.surfaces.secondaries.value) ...[
+          if (views[secondary.background] case final view?)
+            View(
+              key: ValueKey('background-${secondary.id}'),
+              view: view,
+              child: _BackgroundView(state, primary: false),
+            ),
+          if (views[secondary.topbar] case final view?)
+            View(
+              key: ValueKey('topbar-${secondary.id}'),
+              view: view,
+              child: _TopBarView(state),
+            ),
+        ],
       ],
     );
   }
@@ -131,7 +149,11 @@ class _Themed extends StatelessWidget {
 
 class _BackgroundView extends StatelessWidget {
   final ShellState state;
-  const _BackgroundView(this.state);
+
+  /// O do monitor principal, com a mesa. Nos outros, só o papel de parede.
+  final bool primary;
+
+  const _BackgroundView(this.state, {this.primary = true});
 
   // O DesktopBackground tem InkWell: precisa de um Material em volta. O
   // fundo ocupa a tela toda: o tamanho dele é o da tela, para a dock (o
@@ -140,7 +162,7 @@ class _BackgroundView extends StatelessWidget {
   Widget build(BuildContext context) => _Themed(
     state,
     builder: (context) {
-      state.dockUi.screen = MediaQuery.sizeOf(context);
+      if (primary) state.dockUi.screen = MediaQuery.sizeOf(context);
       return Material(
         type: MaterialType.transparency,
         child: Stack(
@@ -150,13 +172,14 @@ class _BackgroundView extends StatelessWidget {
                 wallpaper: state.settings.value.wallpaper,
               ),
             ),
-            Positioned.fill(
-              child: ValueListenableBuilder(
-                valueListenable: state.desk,
-                builder: (context, desk, _) =>
-                    desk == null ? const SizedBox.shrink() : _DeskView(desk),
+            if (primary)
+              Positioned.fill(
+                child: ValueListenableBuilder(
+                  valueListenable: state.desk,
+                  builder: (context, desk, _) =>
+                      desk == null ? const SizedBox.shrink() : _DeskView(desk),
+                ),
               ),
-            ),
           ],
         ),
       );

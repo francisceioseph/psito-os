@@ -53,6 +53,7 @@ Future<void> main() async {
   );
   state.clipboardKeeper.listen(state.clipboard);
   final viewIds = await state.surfaces.viewIds();
+  await state.surfaces.start();
   state.applyDockSettings();
   runWidget(ShellViews(state: state, viewIds: viewIds));
 

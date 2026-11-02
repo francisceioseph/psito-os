@@ -2,6 +2,7 @@
 //
 // As superfícies layer-shell que o runner cria (linux/runner/my_application.cc),
 // uma view do Flutter em cada.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:psito_sdk/psito_sdk.dart';
@@ -15,16 +16,56 @@ enum Surface { background, topbar, dock, overlay, toasts, osd }
 /// onde estava (o menu da mesa).
 enum OverlayKeyboard { exclusive, onDemand, passive, pointer }
 
+/// O fundo e a top bar de um monitor além do principal.
+class SecondaryViews {
+  final int id;
+  final int background;
+  final int topbar;
+
+  const SecondaryViews({
+    required this.id,
+    required this.background,
+    required this.topbar,
+  });
+
+  factory SecondaryViews.fromMap(Map<Object?, Object?> map) => SecondaryViews(
+    id: map['id']! as int,
+    background: map['background']! as int,
+    topbar: map['topbar']! as int,
+  );
+}
+
 class Surfaces {
-  const Surfaces([this._channel = const MethodChannel('psito/surfaces')]);
+  Surfaces([this._channel = const MethodChannel('psito/surfaces')]);
 
   final MethodChannel _channel;
+  ValueChanged<bool>? _backgroundFocus;
+
+  /// As views dos monitores além do principal. O runner cria quando um monitor
+  /// liga, e guarda, escondidas, quando ele sai.
+  final secondaries = ValueNotifier<List<SecondaryViews>>(const []);
+
+  static List<SecondaryViews> _parse(Object? list) => [
+    for (final map in (list as List<Object?>?) ?? const [])
+      SecondaryViews.fromMap(map! as Map<Object?, Object?>),
+  ];
+
+  /// Passa a ouvir o runner e pega os monitores de agora.
+  Future<void> start() async {
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'backgroundFocus':
+          _backgroundFocus?.call(call.arguments as bool);
+        case 'secondaries':
+          secondaries.value = _parse(call.arguments);
+      }
+    });
+    secondaries.value = _parse(await _channel.invokeMethod('secondaries'));
+  }
 
   /// O fundo ganhou ou perdeu o teclado.
   void onBackgroundFocus(ValueChanged<bool> listener) {
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'backgroundFocus') listener(call.arguments as bool);
-    });
+    _backgroundFocus = listener;
   }
 
   /// O id da view de cada superfície.

@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <initializer_list>
+#include <vector>
 
 #include "flutter/generated_plugin_registrant.h"
 #include "psito_runtime/psito_dnd.h"
@@ -17,6 +18,11 @@
 // cada view e pede a sobreposição, os toasts e o OSD pelo canal
 // psito/surfaces. PSITO_SURFACES=background,topbar,... cria só as pedidas
 // (o fundo sempre), para medir o custo de cada view.
+//
+// As seis ficam no monitor principal. Cada outro monitor ganha um fundo e uma
+// top bar só dele (Secondary). Quando ele sai, as views ficam guardadas,
+// escondidas, para o próximo: destruir uma view com o engine rodando deixa
+// 1,75 MB para trás a cada ciclo (docs/FASE-12.md).
 
 // As mesmas medidas do system_shell: TopBar.height e a reserva da dock (a
 // do tamanho padrão; a de verdade vem do Dart, pelo método dock)
@@ -31,12 +37,27 @@ constexpr int kTooltipSpace = 48;
 constexpr int kToastsTop = kTopBarHeight + 8 - 20;
 constexpr int kOsdBottom = kDockReserve + 16;
 
+// O fundo e a top bar de um monitor que não é o principal. Sem monitor, estão
+// guardados
+struct Secondary {
+  int id;
+  GdkMonitor* monitor;
+  FlView* background;
+  FlView* topbar;
+  GtkWindow* background_window;
+  GtkWindow* topbar_window;
+};
+
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
   FlView* views[6];
   GtkWindow* windows[6];
   FlMethodChannel* surfaces_channel;
+  FlEngine* engine;
+  GdkMonitor* primary;
+  std::vector<Secondary>* secondaries;
+  int next_secondary;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -159,6 +180,139 @@ static void osd_size_allocate_cb(GtkWidget* widget, GdkRectangle*, gpointer) {
   set_input_region(widget, 0, 0);
 }
 
+// O compositor fecha a superfície de um monitor que saiu, e o gtk-layer-shell
+// pede para fechar a janela. Ela fica: o principal muda de monitor e continua,
+// e um secundário é guardado no monitor-removed.
+static gboolean layer_delete_cb(GtkWidget*, GdkEvent*, gpointer) {
+  return TRUE;
+}
+
+static GtkWindow* background_window_new(MyApplication* self, FlView* view) {
+  GtkWindow* window =
+      layer_window(self, view, GTK_LAYER_SHELL_LAYER_BACKGROUND, "background");
+  anchor_all(window);
+  gtk_layer_set_exclusive_zone(window, -1);
+  g_signal_connect(window, "delete-event", G_CALLBACK(layer_delete_cb),
+                   nullptr);
+  return window;
+}
+
+static GtkWindow* topbar_window_new(MyApplication* self, FlView* view) {
+  GtkWindow* window =
+      layer_window(self, view, GTK_LAYER_SHELL_LAYER_TOP, "topbar");
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
+  gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
+  gtk_widget_set_size_request(GTK_WIDGET(window), -1,
+                              kTopBarHeight + kTooltipSpace);
+  gtk_layer_set_exclusive_zone(window, kTopBarHeight);
+  g_signal_connect_after(window, "size-allocate",
+                         G_CALLBACK(topbar_size_allocate_cb), nullptr);
+  g_signal_connect(window, "delete-event", G_CALLBACK(layer_delete_cb),
+                   nullptr);
+  return window;
+}
+
+static FlValue* secondaries_value(MyApplication* self) {
+  FlValue* list = fl_value_new_list();
+  for (const Secondary& secondary : *self->secondaries) {
+    FlValue* map = fl_value_new_map();
+    fl_value_set_string_take(map, "id", fl_value_new_int(secondary.id));
+    fl_value_set_string_take(
+        map, "background",
+        fl_value_new_int(fl_view_get_id(secondary.background)));
+    fl_value_set_string_take(
+        map, "topbar", fl_value_new_int(fl_view_get_id(secondary.topbar)));
+    fl_value_append_take(list, map);
+  }
+  return list;
+}
+
+static void notify_secondaries(MyApplication* self) {
+  if (self->surfaces_channel == nullptr) return;
+  g_autoptr(FlValue) list = secondaries_value(self);
+  fl_method_channel_invoke_method(self->surfaces_channel, "secondaries", list,
+                                  nullptr, nullptr, nullptr);
+}
+
+static void secondary_add(MyApplication* self, GdkMonitor* monitor) {
+  Secondary* free_slot = nullptr;
+  for (Secondary& secondary : *self->secondaries) {
+    if (secondary.monitor == nullptr) {
+      free_slot = &secondary;
+      break;
+    }
+  }
+  if (free_slot == nullptr) {
+    Secondary secondary = {};
+    secondary.id = self->next_secondary++;
+    secondary.background = fl_view_new_for_engine(self->engine);
+    secondary.topbar = fl_view_new_for_engine(self->engine);
+    secondary.background_window =
+        background_window_new(self, secondary.background);
+    secondary.topbar_window = topbar_window_new(self, secondary.topbar);
+    self->secondaries->push_back(secondary);
+    free_slot = &self->secondaries->back();
+  }
+  free_slot->monitor = monitor;
+  gtk_layer_set_monitor(free_slot->background_window, monitor);
+  gtk_layer_set_monitor(free_slot->topbar_window, monitor);
+  gtk_widget_show(GTK_WIDGET(free_slot->background_window));
+  gtk_widget_show(GTK_WIDGET(free_slot->topbar_window));
+}
+
+static void secondary_remove(MyApplication* self, GdkMonitor* monitor) {
+  for (Secondary& secondary : *self->secondaries) {
+    if (secondary.monitor != monitor) continue;
+    gtk_widget_hide(GTK_WIDGET(secondary.background_window));
+    gtk_widget_hide(GTK_WIDGET(secondary.topbar_window));
+    secondary.monitor = nullptr;
+    return;
+  }
+}
+
+// As seis superfícies vão para [monitor]; o gtk-layer-shell refaz as que estão
+// na tela, e sem monitor elas esperam o próximo
+static void primary_set(MyApplication* self, GdkMonitor* monitor) {
+  self->primary = monitor;
+  if (monitor == nullptr) return;
+  for (GtkWindow* window : self->windows) {
+    if (window != nullptr) gtk_layer_set_monitor(window, monitor);
+  }
+}
+
+static void monitor_added_cb(GdkDisplay*, GdkMonitor* monitor,
+                             gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  g_message("monitor ligado: %s", gdk_monitor_get_model(monitor));
+  if (self->primary == nullptr) {
+    primary_set(self, monitor);
+  } else {
+    secondary_add(self, monitor);
+  }
+  notify_secondaries(self);
+}
+
+static void monitor_removed_cb(GdkDisplay* display, GdkMonitor* monitor,
+                               gpointer user_data) {
+  MyApplication* self = MY_APPLICATION(user_data);
+  g_message("monitor desligado: %s", gdk_monitor_get_model(monitor));
+  if (monitor != self->primary) {
+    secondary_remove(self, monitor);
+  } else {
+    // Um secundário vira o principal, e o fundo e a top bar dele dão lugar
+    // aos de sempre
+    GdkMonitor* next = nullptr;
+    for (int i = 0; i < gdk_display_get_n_monitors(display); i++) {
+      GdkMonitor* candidate = gdk_display_get_monitor(display, i);
+      if (candidate != monitor) next = candidate;
+    }
+    if (next != nullptr) secondary_remove(self, next);
+    primary_set(self, next);
+  }
+  notify_secondaries(self);
+}
+
 static gboolean background_focus_cb(GtkWidget* widget, GdkEventFocus* event,
                                     gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
@@ -183,6 +337,9 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
                                fl_value_new_int(fl_view_get_id(self->views[i])));
     }
     fl_method_call_respond_success(call, ids, nullptr);
+  } else if (strcmp(method, "secondaries") == 0) {
+    g_autoptr(FlValue) list = secondaries_value(self);
+    fl_method_call_respond_success(call, list, nullptr);
   } else if (strcmp(method, "showOverlay") == 0) {
     const gchar* mode = args != nullptr &&
                                 fl_value_get_type(args) == FL_VALUE_TYPE_STRING
@@ -279,32 +436,21 @@ static void my_application_activate(GApplication* application) {
   // A view implícita é o fundo; realizar ela sobe o engine, e as outras
   // views entram nele
   FlView* background = fl_view_new(project);
-  GtkWindow* background_window = layer_window(
-      self, background, GTK_LAYER_SHELL_LAYER_BACKGROUND, "background");
-  anchor_all(background_window);
-  gtk_layer_set_exclusive_zone(background_window, -1);
+  GtkWindow* background_window = background_window_new(self, background);
   // A mesa recebe o teclado quando é clicada, e uma janela clicada leva de
   // volta; o labwc só dá o foco se o modo já for on_demand antes do clique
   gtk_layer_set_keyboard_mode(background_window,
                               GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
   gtk_widget_realize(GTK_WIDGET(background));
   FlEngine* engine = fl_view_get_engine(background);
+  self->engine = engine;
 
   self->views[kBackground] = background;
   self->windows[kBackground] = background_window;
 
   if (surface_wanted(kTopBar)) {
     FlView* topbar = fl_view_new_for_engine(engine);
-    GtkWindow* window =
-        layer_window(self, topbar, GTK_LAYER_SHELL_LAYER_TOP, "topbar");
-    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
-    gtk_layer_set_anchor(window, GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-    gtk_widget_set_size_request(GTK_WIDGET(window), -1,
-                                kTopBarHeight + kTooltipSpace);
-    gtk_layer_set_exclusive_zone(window, kTopBarHeight);
-    g_signal_connect_after(window, "size-allocate",
-                           G_CALLBACK(topbar_size_allocate_cb), nullptr);
+    GtkWindow* window = topbar_window_new(self, topbar);
     self->views[kTopBar] = topbar;
     self->windows[kTopBar] = window;
   }
@@ -380,6 +526,11 @@ static void my_application_activate(GApplication* application) {
   idle_init(messenger);
   clipboard_keeper_init(messenger);
 
+  GdkDisplay* display = gdk_display_get_default();
+  primary_set(self, gdk_display_get_n_monitors(display) > 0
+                        ? gdk_display_get_monitor(display, 0)
+                        : nullptr);
+
   // A sobreposição, os toasts e o OSD ficam só realizados (a view existe
   // para o Dart) e aparecem quando o Dart pede
   for (int i = 0; i < kSurfaces; i++) {
@@ -394,6 +545,14 @@ static void my_application_activate(GApplication* application) {
   fl_register_plugins(FL_PLUGIN_REGISTRY(background));
   // Arquivos soltos na dock (o plugin já ligou o fundo, a view dele)
   if (self->views[kDock] != nullptr) psito_dnd_attach(self->views[kDock]);
+
+  for (int i = 1; i < gdk_display_get_n_monitors(display); i++) {
+    secondary_add(self, gdk_display_get_monitor(display, i));
+  }
+  g_signal_connect(display, "monitor-added", G_CALLBACK(monitor_added_cb),
+                   self);
+  g_signal_connect(display, "monitor-removed", G_CALLBACK(monitor_removed_cb),
+                   self);
 }
 
 // Implements GApplication::local_command_line.
@@ -440,6 +599,8 @@ static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
   g_clear_object(&self->surfaces_channel);
+  delete self->secondaries;
+  self->secondaries = nullptr;
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 
@@ -452,7 +613,9 @@ static void my_application_class_init(MyApplicationClass* klass) {
   G_OBJECT_CLASS(klass)->dispose = my_application_dispose;
 }
 
-static void my_application_init(MyApplication* self) {}
+static void my_application_init(MyApplication* self) {
+  self->secondaries = new std::vector<Secondary>();
+}
 
 MyApplication* my_application_new() {
   // Set the program name to the application ID, which helps various systems
