@@ -47,10 +47,6 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
       'Super e Alt+Tab ficam com o sistema do computador e não chegam à VM; por isso cada ação tem uma combinação alternativa. As duas valem ao mesmo tempo. Em Alternar janelas, segure o modificador e aperte Tab para escolher; Shift volta.';
 
   @override
-  String get aboutDescription =>
-      'Shell em Flutter como cliente Wayland do labwc, com cada app no seu processo.';
-
-  @override
   String get desktopAutoArrangeHint =>
       'Os ícones ficam em ordem de nome, sem buracos. Mover um ícone desliga, para ele ficar onde foi solto.';
 
@@ -691,4 +687,27 @@ class SettingsLocalizationsPt extends SettingsLocalizations {
 
   @override
   String get displaysBusy => 'Responda primeiro à pergunta na tela.';
+
+  @override
+  String get wallpaperImages => 'Imagens';
+
+  @override
+  String get wallpaperGradients => 'Degradês';
+
+  @override
+  String get wallpaperColors => 'Cores sólidas';
+
+  @override
+  String get thisComputer => 'Este computador';
+
+  @override
+  String get aboutTagline => 'O Sistema Operacional Penoso';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Versão $version';
+  }
+
+  @override
+  String get aboutPoweredBy => 'Feito com Linux e Flutter';
 }

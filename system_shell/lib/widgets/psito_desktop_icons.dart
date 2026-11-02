@@ -581,7 +581,11 @@ class _ItemBody extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: selected ? accent.withValues(alpha: 0.85) : null,
+                // O texto é claro, e o papel de parede pode não ser escuro: só
+                // a sombra não basta sobre uma imagem clara
+                color: selected
+                    ? accent.withValues(alpha: 0.85)
+                    : context.palette.shadow.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(

@@ -265,6 +265,48 @@ abstract class SdkLocalizations {
   /// In en, this message translates to:
   /// **'Lock the screen'**
   String get shortcutLock;
+
+  /// No description provided for @wallpaperPsitoEscuro.
+  ///
+  /// In en, this message translates to:
+  /// **'Psito dark'**
+  String get wallpaperPsitoEscuro;
+
+  /// No description provided for @wallpaperPsitoClaro.
+  ///
+  /// In en, this message translates to:
+  /// **'Psito light'**
+  String get wallpaperPsitoClaro;
+
+  /// No description provided for @wallpaperGrafite.
+  ///
+  /// In en, this message translates to:
+  /// **'Graphite'**
+  String get wallpaperGrafite;
+
+  /// No description provided for @wallpaperMarinho.
+  ///
+  /// In en, this message translates to:
+  /// **'Navy'**
+  String get wallpaperMarinho;
+
+  /// No description provided for @wallpaperMusgo.
+  ///
+  /// In en, this message translates to:
+  /// **'Moss'**
+  String get wallpaperMusgo;
+
+  /// No description provided for @wallpaperVinho.
+  ///
+  /// In en, this message translates to:
+  /// **'Wine'**
+  String get wallpaperVinho;
+
+  /// No description provided for @wallpaperAmeixa.
+  ///
+  /// In en, this message translates to:
+  /// **'Plum'**
+  String get wallpaperAmeixa;
 }
 
 class _SdkLocalizationsDelegate

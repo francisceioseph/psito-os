@@ -464,12 +464,6 @@ abstract class SystemLocalizations {
   /// **'Nothing copied in the last 15 minutes.'**
   String get clipboardEmpty;
 
-  /// No description provided for @tagline.
-  ///
-  /// In en, this message translates to:
-  /// **'The Feathered Operating System'**
-  String get tagline;
-
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:

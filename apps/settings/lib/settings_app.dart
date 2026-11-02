@@ -3,6 +3,8 @@
 // Lê e altera as configurações do sistema só pelo PsitoAppContext.
 import 'dart:math' show max;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
@@ -308,20 +310,39 @@ class _SettingsViewState extends State<SettingsView> {
     SettingsGroup(
       title: context.l10n.wallpaper,
       children: [
-        SettingsPad(
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final w in psitoWallpapers)
-                _WallpaperCard(
-                  wallpaper: w,
-                  selected: s.wallpaperId == w.id,
-                  onTap: () => _update(s.copyWith(wallpaperId: w.id)),
+        for (final (kind, title) in [
+          (PsitoWallpaperKind.image, context.l10n.wallpaperImages),
+          (PsitoWallpaperKind.gradient, context.l10n.wallpaperGradients),
+          (PsitoWallpaperKind.color, context.l10n.wallpaperColors),
+        ])
+          SettingsPad(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.palette.textQuiet,
+                  ),
                 ),
-            ],
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    for (final w in psitoWallpapers)
+                      if (w.kind == kind)
+                        _WallpaperCard(
+                          wallpaper: w,
+                          selected: s.wallpaperId == w.id,
+                          onTap: () => _update(s.copyWith(wallpaperId: w.id)),
+                        ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     ),
   ];
@@ -679,40 +700,90 @@ class _SettingsViewState extends State<SettingsView> {
   ];
 
   List<Widget> _about() => [
+    const _AboutHeader(),
     SettingsGroup(
+      title: context.l10n.thisComputer,
       footer: context.l10n.settingsPath,
       children: [
-        SettingsPad(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _Cell('Psito OS v0.0.1'),
-              _Cell(context.l10n.aboutDescription),
-              const SizedBox(height: 8),
-              ValueListenableBuilder(
-                valueListenable: widget.appContext.systemInfo,
-                builder: (context, info, _) {
-                  if (!info.available) {
-                    return SettingsNote(context.l10n.systemInfoUnavailable);
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _InfoRow(context.l10n.computerName, info.hostname),
-                      _InfoRow(context.l10n.system, info.osName),
-                      _InfoRow('Kernel', info.kernel),
-                      if (info.hardware case final hardware?)
-                        _InfoRow(context.l10n.hardware, hardware),
-                    ],
-                  );
-                },
+        ValueListenableBuilder(
+          valueListenable: widget.appContext.systemInfo,
+          builder: (context, info, _) {
+            if (!info.available) {
+              return SettingsPad(
+                child: SettingsNote(context.l10n.systemInfoUnavailable),
+              );
+            }
+            return SettingsPad(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _InfoRow(context.l10n.computerName, info.hostname),
+                  _InfoRow(context.l10n.system, info.osName),
+                  _InfoRow('Kernel', info.kernel),
+                  if (info.hardware case final hardware?)
+                    _InfoRow(context.l10n.hardware, hardware),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ],
     ),
   ];
+}
+
+/// O logo, o nome, a frase e a versão, no alto do Sobre.
+class _AboutHeader extends StatelessWidget {
+  const _AboutHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Image.file(
+            File(psitoLogoPath),
+            width: 112,
+            height: 112,
+            cacheWidth: 224,
+            excludeFromSemantics: true,
+            errorBuilder: (_, _, _) => Icon(
+              Icons.flutter_dash,
+              size: 112,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Psito OS',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l.aboutTagline,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: palette.textQuiet),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            l.aboutVersion(psitoVersion),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l.aboutPoweredBy,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: palette.textQuiet),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _WallpaperCard extends StatelessWidget {
@@ -729,7 +800,6 @@ class _WallpaperCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final colors = wallpaper.colors;
     return Semantics(
       button: true,
       selected: selected,
@@ -743,21 +813,18 @@ class _WallpaperCard extends StatelessWidget {
             Container(
               width: 112,
               height: 68,
-              decoration: BoxDecoration(
-                color: colors.first,
-                gradient: colors.length > 1
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: colors,
-                      )
-                    : null,
+              clipBehavior: Clip.antiAlias,
+              foregroundDecoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: selected ? accent : context.palette.line,
                   width: selected ? 2.5 : 1,
                 ),
               ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: PsitoWallpaperView(wallpaper: wallpaper, cacheWidth: 224),
             ),
             const SizedBox(height: 6),
             Text(

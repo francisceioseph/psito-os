@@ -100,12 +100,12 @@ class _LockScreenState extends State<LockScreen> {
     final l = LockLocalizations.of(context);
     final palette = context.palette;
     final locale = Localizations.localeOf(context).toString();
-    final colors = wallpaperById(widget.settings.wallpaperId).colors;
     final time =
         (widget.settings.use24h
                 ? DateFormat.Hm(locale)
                 : DateFormat('h:mm a', locale))
             .format(_now);
+    final wallpaper = wallpaperById(widget.settings.wallpaperId);
     final message = _waiting
         ? l.waitSeconds(_waitSeconds)
         : _wrong
@@ -116,19 +116,17 @@ class _LockScreenState extends State<LockScreen> {
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
         onTap: _focus.requestFocus,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.first,
-            gradient: colors.length > 1
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: colors,
-                  )
-                : null,
-          ),
+        child: PsitoWallpaperView(
+          wallpaper: wallpaper,
           child: Stack(
             children: [
+              // O relógio e o campo são claros, e uma imagem pode não ser escura
+              if (wallpaper.kind == PsitoWallpaperKind.image)
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: palette.shadow.withValues(alpha: 0.45),
+                  ),
+                ),
               Center(
                 child: SizedBox(
                   width: 320,

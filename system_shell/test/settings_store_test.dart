@@ -116,6 +116,20 @@ void main() {
   });
 
   test('papel de parede desconhecido cai no padrão', () {
-    expect(wallpaperById('não existe').id, 'noite');
+    expect(
+      wallpaperById('não existe').id,
+      PsitoSettings.defaults.wallpaperId,
+    );
+  });
+
+  test('os papéis de parede vêm em imagens, degradês e cores', () {
+    final kinds = {for (final w in psitoWallpapers) w.id: w.kind};
+    expect(psitoWallpapers.first.id, PsitoSettings.defaults.wallpaperId);
+    expect(kinds['psito-escuro'], PsitoWallpaperKind.image);
+    expect(kinds['oceano'], PsitoWallpaperKind.gradient);
+    expect(kinds['noite'], PsitoWallpaperKind.color);
+    for (final kind in PsitoWallpaperKind.values) {
+      expect(kinds.values, contains(kind));
+    }
   });
 }

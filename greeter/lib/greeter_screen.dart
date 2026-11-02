@@ -75,19 +75,9 @@ class _GreeterScreenState extends State<GreeterScreen> {
     final palette = context.palette;
     final locale = Localizations.localeOf(context).toString();
     final now = widget.now();
-    final colors = wallpaperById(PsitoSettings.defaults.wallpaperId).colors;
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.first,
-          gradient: colors.length > 1
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: colors,
-                )
-              : null,
-        ),
+      body: PsitoWallpaperView(
+        wallpaper: wallpaperById(PsitoSettings.defaults.wallpaperId),
         child: Stack(
           children: [
             Center(

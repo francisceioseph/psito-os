@@ -4,6 +4,7 @@
 // Na fase 4 este contrato vira o protocolo entre processos, então tudo que um
 // app pede ao shell precisa passar pelo PsitoAppContext.
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' show min;
 
 import 'package:flutter/foundation.dart';
@@ -257,34 +258,121 @@ class PsitoNotification {
   const PsitoNotification({required this.title, this.body});
 }
 
-/// Papel de parede predefinido: uma cor é sólido, duas ou mais é degradê.
+/// A versão do sistema, a que o Sobre mostra.
+const psitoVersion = '0.0.1';
+
+/// O logo, instalado pelo pacote psito-shell.
+const psitoLogoPath = '/usr/share/psito/psito-logo.png';
+
+enum PsitoWallpaperKind { image, gradient, color }
+
+/// Papel de parede predefinido: uma imagem, um degradê (duas ou mais cores) ou
+/// uma cor sólida. As imagens são instaladas pelo pacote psito-shell, e a
+/// primeira cor é o que aparece enquanto ela carrega ou se ela faltar.
 class PsitoWallpaper {
   final String id;
   final List<Color> colors;
+  final String? image;
 
-  const PsitoWallpaper(this.id, this.colors);
+  const PsitoWallpaper(this.id, this.colors, {this.image});
+
+  PsitoWallpaperKind get kind => image != null
+      ? PsitoWallpaperKind.image
+      : colors.length > 1
+      ? PsitoWallpaperKind.gradient
+      : PsitoWallpaperKind.color;
 
   String name(SdkLocalizations l) => switch (id) {
+    'psito-escuro' => l.wallpaperPsitoEscuro,
+    'psito-claro' => l.wallpaperPsitoClaro,
     'calopsita' => l.wallpaperCalopsita,
     'por-do-sol' => l.wallpaperPorDoSol,
     'floresta' => l.wallpaperFloresta,
     'oceano' => l.wallpaperOceano,
+    'grafite' => l.wallpaperGrafite,
+    'marinho' => l.wallpaperMarinho,
+    'musgo' => l.wallpaperMusgo,
+    'vinho' => l.wallpaperVinho,
+    'ameixa' => l.wallpaperAmeixa,
     _ => l.wallpaperNoite,
   };
 }
 
+const _wallpapersDir = '/usr/share/psito/wallpapers';
+
+/// O primeiro é o padrão, e também o que vale para um id desconhecido.
 const psitoWallpapers = [
-  PsitoWallpaper('noite', [Color(0xFF12181B)]),
+  PsitoWallpaper('psito-escuro', [
+    Color(0xFF141E26),
+  ], image: '$_wallpapersDir/psito-dark.jpg'),
+  PsitoWallpaper('psito-claro', [
+    Color(0xFFF0E7D7),
+  ], image: '$_wallpapersDir/psito-light.jpg'),
   PsitoWallpaper('calopsita', [Color(0xFF12181B), Color(0xFF3A2E12)]),
   PsitoWallpaper('por-do-sol', [Color(0xFF2B1220), Color(0xFF5C2A12)]),
   PsitoWallpaper('floresta', [Color(0xFF0E1F17), Color(0xFF1F3A26)]),
   PsitoWallpaper('oceano', [Color(0xFF0B1A2B), Color(0xFF12405C)]),
+  PsitoWallpaper('noite', [Color(0xFF12181B)]),
+  PsitoWallpaper('grafite', [Color(0xFF2A2F33)]),
+  PsitoWallpaper('marinho', [Color(0xFF0F2540)]),
+  PsitoWallpaper('musgo', [Color(0xFF1E2F20)]),
+  PsitoWallpaper('vinho', [Color(0xFF3B1424)]),
+  PsitoWallpaper('ameixa', [Color(0xFF2C1A3D)]),
 ];
 
 PsitoWallpaper wallpaperById(String id) => psitoWallpapers.firstWhere(
   (w) => w.id == id,
   orElse: () => psitoWallpapers.first,
 );
+
+/// Desenha um papel de parede. O [cacheWidth] serve às miniaturas, para não
+/// decodificar a imagem inteira.
+class PsitoWallpaperView extends StatelessWidget {
+  final PsitoWallpaper wallpaper;
+  final int? cacheWidth;
+  final Widget? child;
+
+  const PsitoWallpaperView({
+    super.key,
+    required this.wallpaper,
+    this.cacheWidth,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = wallpaper.colors;
+    final image = wallpaper.image;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.first,
+        gradient: colors.length > 1
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors,
+              )
+            : null,
+      ),
+      child: image == null
+          ? child
+          : Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.file(
+                  File(image),
+                  fit: BoxFit.cover,
+                  cacheWidth: cacheWidth,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+                ?child,
+              ],
+            ),
+    );
+  }
+}
 
 const psitoAccentColors = [
   Color(0xFFFFC107), // amarelo calopsita
@@ -437,7 +525,7 @@ class PsitoSettings {
 
   const PsitoSettings({
     this.accent = const Color(0xFFFFC107),
-    this.wallpaperId = 'noite',
+    this.wallpaperId = 'psito-escuro',
     this.use24h = true,
     this.showSeconds = false,
     this.doNotDisturb = false,

@@ -173,12 +173,6 @@ abstract class SettingsLocalizations {
   /// **'Super and Alt+Tab are taken by the computer\'s system and don\'t reach the VM, so each action has an alternative combination. Both work at the same time. In Switch windows, hold the modifier and press Tab to choose; Shift goes back.'**
   String get shortcutsNote;
 
-  /// No description provided for @aboutDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Flutter shell as a Wayland client of labwc, with each app in its own process.'**
-  String get aboutDescription;
-
   /// No description provided for @desktopAutoArrangeHint.
   ///
   /// In en, this message translates to:
@@ -1354,6 +1348,48 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'Answer the question on the screen first.'**
   String get displaysBusy;
+
+  /// No description provided for @wallpaperImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get wallpaperImages;
+
+  /// No description provided for @wallpaperGradients.
+  ///
+  /// In en, this message translates to:
+  /// **'Gradients'**
+  String get wallpaperGradients;
+
+  /// No description provided for @wallpaperColors.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid colors'**
+  String get wallpaperColors;
+
+  /// No description provided for @thisComputer.
+  ///
+  /// In en, this message translates to:
+  /// **'This computer'**
+  String get thisComputer;
+
+  /// No description provided for @aboutTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'The Feathered Operating System'**
+  String get aboutTagline;
+
+  /// No description provided for @aboutVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String aboutVersion(String version);
+
+  /// No description provided for @aboutPoweredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Powered by Linux & Flutter'**
+  String get aboutPoweredBy;
 }
 
 class _SettingsLocalizationsDelegate

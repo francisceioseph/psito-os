@@ -12,7 +12,6 @@
   "sectionShortcuts": "Atalhos",
   "sectionAbout": "Sobre",
   "shortcutsNote": "Super e Alt+Tab ficam com o sistema do computador e não chegam à VM; por isso cada ação tem uma combinação alternativa. As duas valem ao mesmo tempo. Em Alternar janelas, segure o modificador e aperte Tab para escolher; Shift volta.",
-  "aboutDescription": "Shell em Flutter como cliente Wayland do labwc, com cada app no seu processo.",
   "desktopAutoArrangeHint": "Os ícones ficam em ordem de nome, sem buracos. Mover um ícone desliga, para ele ficar onde foi solto.",
   "desktopHotCornerHint": "Levar o ponteiro ao canto de cima à direita da tela minimiza as janelas, e de novo traz elas de volta.",
   "deviceConnected": "Conectado",
@@ -208,5 +207,12 @@
   "displaysApply": "Aplicar",
   "displaysDiscard": "Descartar",
   "displaysFailed": "O sistema não aceitou esta configuração.",
-  "displaysBusy": "Responda primeiro à pergunta na tela."
+  "displaysBusy": "Responda primeiro à pergunta na tela.",
+  "wallpaperImages": "Imagens",
+  "wallpaperGradients": "Degradês",
+  "wallpaperColors": "Cores sólidas",
+  "thisComputer": "Este computador",
+  "aboutTagline": "O Sistema Operacional Penoso",
+  "aboutVersion": "Versão {version}",
+  "aboutPoweredBy": "Feito com Linux e Flutter"
 }

@@ -96,4 +96,25 @@ class SdkLocalizationsEn extends SdkLocalizations {
 
   @override
   String get shortcutLock => 'Lock the screen';
+
+  @override
+  String get wallpaperPsitoEscuro => 'Psito dark';
+
+  @override
+  String get wallpaperPsitoClaro => 'Psito light';
+
+  @override
+  String get wallpaperGrafite => 'Graphite';
+
+  @override
+  String get wallpaperMarinho => 'Navy';
+
+  @override
+  String get wallpaperMusgo => 'Moss';
+
+  @override
+  String get wallpaperVinho => 'Wine';
+
+  @override
+  String get wallpaperAmeixa => 'Plum';
 }

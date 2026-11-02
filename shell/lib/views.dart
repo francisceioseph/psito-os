@@ -156,8 +156,7 @@ class _BackgroundView extends StatelessWidget {
 
   const _BackgroundView(this.state, {this.primary = true});
 
-  // O DesktopBackground tem InkWell: precisa de um Material em volta. O
-  // fundo ocupa a tela toda: o tamanho dele é o da tela, para a dock (o
+  // O fundo ocupa a tela toda: o tamanho dele é o da tela, para a dock (o
   // display das views do runner é nulo)
   @override
   Widget build(BuildContext context) => _Themed(

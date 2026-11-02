@@ -61,7 +61,6 @@
   "clipboardTitle": "Clipboard",
   "clear": "Clear",
   "clipboardEmpty": "Nothing copied in the last 15 minutes.",
-  "tagline": "The Feathered Operating System",
   "cancel": "Cancel",
   "openInFiles": "Open in Files",
   "folderEmpty": "The folder is empty.",
@@ -88,9 +87,21 @@
   "networkPortalLogin": "Open the login page",
   "kindVpn": "VPN",
   "vpnFailed": "Could not turn on {name}.",
-  "@vpnFailed": {"placeholders": {"name": {"type": "String"}}},
+  "@vpnFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "hotspotSharing": "Sharing as {name}",
-  "@hotspotSharing": {"placeholders": {"name": {"type": "String"}}},
+  "@hotspotSharing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "hotspotStarting": "Starting to share…",
   "hotspotStop": "Stop"
 }

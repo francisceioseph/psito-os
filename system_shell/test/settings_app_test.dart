@@ -104,6 +104,18 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('wallpaper-card-oceano')));
     await tester.pump();
     expect(find.byKey(const ValueKey('wallpaper-oceano')), findsOneWidget);
+
+    // Uma imagem que falta fica na cor de reserva, sem erro
+    await tester.tap(find.byKey(const ValueKey('wallpaper-card-psito-claro')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('wallpaper-psito-claro')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('o fundo não tem mais o nome do sistema', (tester) async {
+    await pumpOS(tester);
+    expect(find.textContaining('Psito OS'), findsNothing);
+    expect(find.text('O Sistema Operacional Penoso'), findsNothing);
   });
 
   testWidgets('Não perturbe guarda a notificação sem toast', (tester) async {
@@ -154,6 +166,9 @@ void main() {
 
     expect(find.text('psito-fake'), findsOneWidget);
     expect(find.text('0.0.0-fake'), findsOneWidget);
+    expect(find.text('Psito OS'), findsOneWidget);
+    expect(find.text('O Sistema Operacional Penoso'), findsOneWidget);
+    expect(find.text('Versão $psitoVersion'), findsOneWidget);
 
     info.set(PsitoSystemInfo.unavailable);
     await tester.pump();

@@ -12,7 +12,6 @@
   "sectionShortcuts": "Shortcuts",
   "sectionAbout": "About",
   "shortcutsNote": "Super and Alt+Tab are taken by the computer's system and don't reach the VM, so each action has an alternative combination. Both work at the same time. In Switch windows, hold the modifier and press Tab to choose; Shift goes back.",
-  "aboutDescription": "Flutter shell as a Wayland client of labwc, with each app in its own process.",
   "desktopAutoArrangeHint": "Icons stay sorted by name, with no gaps. Moving an icon turns this off, so it stays where it was dropped.",
   "desktopHotCornerHint": "Moving the pointer to the top right corner of the screen minimizes the windows, and doing it again brings them back.",
   "deviceConnected": "Connected",
@@ -294,5 +293,19 @@
         "type": "int"
       }
     }
-  }
+  },
+  "wallpaperImages": "Images",
+  "wallpaperGradients": "Gradients",
+  "wallpaperColors": "Solid colors",
+  "thisComputer": "This computer",
+  "aboutTagline": "The Feathered Operating System",
+  "aboutVersion": "Version {version}",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "aboutPoweredBy": "Powered by Linux & Flutter"
 }

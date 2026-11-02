@@ -233,9 +233,6 @@ class SystemLocalizationsEn extends SystemLocalizations {
   String get clipboardEmpty => 'Nothing copied in the last 15 minutes.';
 
   @override
-  String get tagline => 'The Feathered Operating System';
-
-  @override
   String get cancel => 'Cancel';
 
   @override

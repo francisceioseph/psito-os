@@ -97,4 +97,25 @@ class SdkLocalizationsPt extends SdkLocalizations {
 
   @override
   String get shortcutLock => 'Bloquear a tela';
+
+  @override
+  String get wallpaperPsitoEscuro => 'Psito escuro';
+
+  @override
+  String get wallpaperPsitoClaro => 'Psito claro';
+
+  @override
+  String get wallpaperGrafite => 'Grafite';
+
+  @override
+  String get wallpaperMarinho => 'Marinho';
+
+  @override
+  String get wallpaperMusgo => 'Musgo';
+
+  @override
+  String get wallpaperVinho => 'Vinho';
+
+  @override
+  String get wallpaperAmeixa => 'Ameixa';
 }

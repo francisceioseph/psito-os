@@ -19,4 +19,6 @@ FILES=(
     session/psito-mimeapps.list:/usr/share/applications/psito-mimeapps.list
     session/90_psito.gschema.override:/usr/share/glib-2.0/schemas/90_psito.gschema.override
     session/labwc:/usr/share/psito/labwc
+    session/wallpapers:/usr/share/psito/wallpapers
+    session/psito-logo.png:/usr/share/psito/psito-logo.png
 )

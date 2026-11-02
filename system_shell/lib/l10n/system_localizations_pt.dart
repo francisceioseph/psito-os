@@ -234,9 +234,6 @@ class SystemLocalizationsPt extends SystemLocalizations {
   String get clipboardEmpty => 'Nada copiado nos últimos 15 minutos.';
 
   @override
-  String get tagline => 'O Sistema Operacional Penoso';
-
-  @override
   String get cancel => 'Cancelar';
 
   @override

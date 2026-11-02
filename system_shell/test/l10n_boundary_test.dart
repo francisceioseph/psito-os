@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 /// O que é igual em qualquer idioma: nomes próprios e o nome de cada idioma.
 const _allowed = {
   'Psito OS',
-  'Psito OS v0.0.1',
   'Hello, Psito',
   'Português',
   'English',

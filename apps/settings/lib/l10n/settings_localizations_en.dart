@@ -47,10 +47,6 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
       'Super and Alt+Tab are taken by the computer\'s system and don\'t reach the VM, so each action has an alternative combination. Both work at the same time. In Switch windows, hold the modifier and press Tab to choose; Shift goes back.';
 
   @override
-  String get aboutDescription =>
-      'Flutter shell as a Wayland client of labwc, with each app in its own process.';
-
-  @override
   String get desktopAutoArrangeHint =>
       'Icons stay sorted by name, with no gaps. Moving an icon turns this off, so it stays where it was dropped.';
 
@@ -687,4 +683,27 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get displaysBusy => 'Answer the question on the screen first.';
+
+  @override
+  String get wallpaperImages => 'Images';
+
+  @override
+  String get wallpaperGradients => 'Gradients';
+
+  @override
+  String get wallpaperColors => 'Solid colors';
+
+  @override
+  String get thisComputer => 'This computer';
+
+  @override
+  String get aboutTagline => 'The Feathered Operating System';
+
+  @override
+  String aboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get aboutPoweredBy => 'Powered by Linux & Flutter';
 }
