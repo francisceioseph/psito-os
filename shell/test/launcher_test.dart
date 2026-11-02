@@ -423,9 +423,13 @@ void main() {
       expect(launcher.waiting('org.psito.files'), isTrue);
       await gone.close();
       caller = null;
+      // O barramento avisa que ela saiu um pouco depois do close
+      for (var i = 0; i < 200 && launcher.waiting('org.psito.files'); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(launcher.waiting('org.psito.files'), isFalse);
       await launcher.openPaths([dir.path]);
       expect(launched.single.app.id, 'org.psito.files');
-      expect(launcher.waiting('org.psito.files'), isFalse);
     });
   });
 }
