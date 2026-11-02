@@ -199,4 +199,11 @@ class ProcessAppContext implements PsitoAppContext {
   @override
   Future<String?> pickFolder({required String title}) async =>
       fileChooser?.pickFolder(title: title);
+
+  @override
+  Future<String?> pickSaveFile({
+    required String title,
+    String suggestedName = '',
+  }) async =>
+      fileChooser?.pickSaveFile(title: title, suggestedName: suggestedName);
 }

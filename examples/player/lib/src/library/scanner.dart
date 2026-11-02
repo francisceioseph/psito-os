@@ -151,6 +151,10 @@ bool writeCoverThumb(Uint8List bytes, String path) {
 
 /// Os arquivos de áudio da pasta, em ordem, para os álbuns aparecerem inteiros.
 /// Uma subpasta sem permissão fica de fora, sem parar o resto.
+// A lixeira de um disco (.Trash-1000) também é uma pasta oculta
+bool _isHidden(String relative) =>
+    p.split(relative).any((part) => part.startsWith('.'));
+
 Future<List<String>> _listAudio(String folder, ScanControl control) async {
   final found = <String>[];
   final lister = Directory(folder)
@@ -161,11 +165,51 @@ Future<List<String>> _listAudio(String folder, ScanControl control) async {
   await for (final entity in lister) {
     if (control.cancelled) break;
     if (entity is File &&
-        audioExtensions.contains(p.extension(entity.path).toLowerCase())) {
+        audioExtensions.contains(p.extension(entity.path).toLowerCase()) &&
+        !_isHidden(p.relative(entity.path, from: folder))) {
       found.add(entity.path);
     }
   }
   return found..sort();
+}
+
+/// O que mudou numa pasta desde a última leitura, sem ler nenhuma tag.
+@immutable
+class FolderCheck {
+  /// Arquivos novos, alterados e removidos.
+  final int changes;
+
+  /// A pasta não está lá, ou está vazia e a biblioteca conhece faixas dela: o
+  /// ponto de montagem de um disco desligado é uma pasta vazia.
+  final bool unavailable;
+
+  const FolderCheck({this.changes = 0, this.unavailable = false});
+}
+
+/// Compara o que está na pasta com o que o banco lembra.
+Future<FolderCheck> checkFolder(LibraryDb db, MusicFolder folder) async {
+  if (!Directory(folder.path).existsSync()) {
+    return const FolderCheck(unavailable: true);
+  }
+  final files = await _listAudio(folder.path, ScanControl());
+  final known = db.knownFiles(folder.id);
+  if (files.isEmpty && known.isNotEmpty) {
+    return const FolderCheck(unavailable: true);
+  }
+  final gone = known.keys.toSet();
+  var changes = 0;
+  for (final path in files) {
+    gone.remove(path);
+    final stat = File(path).statSync();
+    if (stat.type == FileSystemEntityType.notFound) continue;
+    final old = known[path];
+    if (old == null ||
+        old.$1 != stat.modified.millisecondsSinceEpoch ||
+        old.$2 != stat.size) {
+      changes++;
+    }
+  }
+  return FolderCheck(changes: changes + gone.length);
 }
 
 /// Lê as pastas e grava em [db]. Só relê o que mudou de data ou de tamanho. No
@@ -212,6 +256,12 @@ Future<void> scanFolders({
       continue;
     }
     final files = await _listAudio(folder.path, control);
+    if (files.isEmpty &&
+        !control.cancelled &&
+        db.knownFiles(folder.id).isNotEmpty) {
+      missing++;
+      continue;
+    }
     total += files.length;
     listings.add((folder, files));
     await control.checkpoint();
@@ -263,6 +313,8 @@ Future<void> scanFolders({
       if (old != null && old.$1 == mtime && old.$2 == stat.size) {
         tracks++;
         done++;
+        // Sem nada a gravar, o progresso ainda precisa andar
+        if (clock.elapsed > _batchTime) flush();
         continue;
       }
       if (!open) {
@@ -364,6 +416,13 @@ abstract interface class ScanSession {
 
 abstract interface class LibraryScanner {
   ScanSession start(List<MusicFolder> folders);
+
+  /// O que mudou em cada pasta, por id. Fora do isolate do banco, porque listar
+  /// um disco lento seguraria as consultas.
+  Future<Map<int, FolderCheck>> check(List<MusicFolder> folders);
+
+  /// Se a pasta está lá. Sem bloquear: um disco que sumiu pode demorar a responder.
+  Future<bool> folderExists(String path);
 }
 
 class IsolateScanner implements LibraryScanner {
@@ -375,6 +434,25 @@ class IsolateScanner implements LibraryScanner {
   @override
   ScanSession start(List<MusicFolder> folders) =>
       _IsolateSession(dbPath, coverDir, folders);
+
+  @override
+  Future<bool> folderExists(String path) => Directory(path).exists();
+
+  @override
+  Future<Map<int, FolderCheck>> check(List<MusicFolder> folders) {
+    final path = dbPath;
+    return Isolate.run(() async {
+      final db = LibraryDb.open(path);
+      try {
+        return {
+          for (final folder in folders)
+            folder.id: await checkFolder(db, folder),
+        };
+      } finally {
+        db.close();
+      }
+    }, debugName: 'psito-player-check');
+  }
 }
 
 class _IsolateSession implements ScanSession {

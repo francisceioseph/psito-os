@@ -9,19 +9,15 @@ import 'package:flutter/material.dart';
 import '../../../l10n/l10n.dart';
 import '../../library/library_controller.dart';
 import '../../library/models.dart';
-import '../../player/engine.dart';
 import '../../player/playback_controller.dart';
 import '../atoms/cover_art.dart';
 import '../atoms/tag_chip.dart';
 import '../format.dart';
-import '../molecules/track_row.dart';
-import '../organisms/player_bar.dart';
-import '../templates/page_template.dart';
+import '../molecules/collection_actions.dart';
+import '../organisms/track_list.dart';
+import '../templates/collection_template.dart';
 
 class AlbumPage extends StatefulWidget {
-  /// A partir desta largura, a capa fica ao lado dos dados.
-  static const coverMinWidth = 420.0;
-
   final Album album;
   final LibraryController library;
   final PlaybackController playback;
@@ -41,6 +37,7 @@ class AlbumPage extends StatefulWidget {
 
 class _AlbumPageState extends State<AlbumPage> {
   List<Track> _tracks = const [];
+  int _revision = -1;
 
   @override
   void initState() {
@@ -51,25 +48,28 @@ class _AlbumPageState extends State<AlbumPage> {
   @override
   void didUpdateWidget(AlbumPage old) {
     super.didUpdateWidget(old);
-    if (old.album.id != widget.album.id) unawaited(_load());
+    if (old.album.id != widget.album.id ||
+        _revision != widget.library.revision) {
+      unawaited(_load());
+    }
   }
 
   Future<void> _load() async {
+    _revision = widget.library.revision;
     final tracks = await widget.library.store.albumTracks(widget.album.id);
     if (mounted) setState(() => _tracks = tracks);
   }
 
-  Widget _header(BuildContext context) {
+  Widget _details(BuildContext context) {
     final l = context.l10n;
     final theme = Theme.of(context);
     final album = widget.album;
-    final playback = widget.playback;
     final facts = [
       if (album.year != null) '${album.year}',
       l.trackCount(album.trackCount),
       formatLength(album.duration, context),
     ].join(' · ');
-    final details = Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -93,84 +93,28 @@ class _AlbumPageState extends State<AlbumPage> {
           ],
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FilledButton.icon(
-              onPressed: () => unawaited(playback.playTracks(_tracks)),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(l.play),
-            ),
-            FilledButton.tonalIcon(
-              onPressed: () => unawaited(playback.shuffleTracks(_tracks)),
-              icon: const Icon(Icons.shuffle_rounded),
-              label: Text(l.shuffle),
-            ),
-            IconButton.outlined(
-              tooltip: l.addToQueue,
-              icon: const Icon(Icons.playlist_add_rounded),
-              onPressed: () => unawaited(playback.albumToQueue(album.id)),
-            ),
-          ],
-        ),
+        CollectionActions(playback: widget.playback, tracks: _tracks),
       ],
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < AlbumPage.coverMinWidth) return details;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CoverArt(
-              path: album.coverPath,
-              seed: '${album.title}|${album.artist}',
-              size: 180,
-            ),
-            const SizedBox(width: 20),
-            Expanded(child: details),
-          ],
-        );
-      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final l = context.l10n;
-    final playback = widget.playback;
-    return PageTemplate(
-      title: widget.album.title,
-      back: TextButton.icon(
-        onPressed: widget.onBack,
-        icon: const Icon(Icons.arrow_back_rounded),
-        label: Text(l.albums),
+    final album = widget.album;
+    return CollectionTemplate(
+      title: album.title,
+      onBack: widget.onBack,
+      art: CoverArt(
+        path: album.coverPath,
+        seed: '${album.title}|${album.artist}',
       ),
+      details: _details(context),
       slivers: [
-        SliverToBoxAdapter(child: _header(context)),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ValueListenableBuilder<PlayerState>(
-          valueListenable: playback.engine.state,
-          builder: (context, s, _) {
-            final current = playback.current?.path;
-            return SliverList.builder(
-              itemCount: _tracks.length,
-              itemBuilder: (context, i) {
-                final track = _tracks[i];
-                final playing = track.path == current;
-                return TrackRow(
-                  track: track,
-                  current: playing,
-                  leading: playing
-                      ? const Icon(Icons.equalizer_rounded)
-                      : Text('${track.trackNumber ?? i + 1}'),
-                  menu: (context) => trackMenu(context, playback, track),
-                  onTap: () =>
-                      unawaited(playback.playTracks(_tracks, index: i)),
-                );
-              },
-            );
-          },
+        TrackList(
+          tracks: _tracks,
+          library: widget.library,
+          playback: widget.playback,
+          numbered: true,
         ),
       ],
     );

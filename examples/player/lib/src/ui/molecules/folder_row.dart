@@ -28,6 +28,9 @@ class FolderRow extends StatelessWidget {
 
   final MusicFolder folder;
   final bool missing;
+
+  /// O que mudou na pasta e ainda não foi lido.
+  final int changes;
   final int now;
   final VoidCallback onUpdate;
   final VoidCallback onRemove;
@@ -36,6 +39,7 @@ class FolderRow extends StatelessWidget {
     super.key,
     required this.folder,
     required this.missing,
+    this.changes = 0,
     required this.now,
     required this.onUpdate,
     required this.onRemove,
@@ -90,6 +94,12 @@ class FolderRow extends StatelessWidget {
                     ? TagChip(
                         label: l.folderMissing,
                         icon: Icons.warning_rounded,
+                        warning: true,
+                      )
+                    : changes > 0
+                    ? TagChip(
+                        label: l.folderChanges(changes),
+                        icon: Icons.fiber_new_rounded,
                         warning: true,
                       )
                     : TagChip(

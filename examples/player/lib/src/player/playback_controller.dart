@@ -27,8 +27,14 @@ class PlaybackController extends ChangeNotifier {
   final LibraryStore store;
   final int Function() _now;
 
-  /// Avisa quando uma reprodução entra no banco, para as telas contarem.
-  final VoidCallback? onPlayRecorded;
+  /// Avisa quando o que as telas contam mudou no banco.
+  final VoidCallback? onLibraryChanged;
+
+  /// Diz se o arquivo pode tocar agora. Um disco desligado não pode.
+  final bool Function(String path)? isAvailable;
+
+  /// Pediram para tocar, e nenhuma faixa está disponível.
+  final VoidCallback? onNothingAvailable;
 
   final _known = <String, Track>{};
   int _lastIndex = -1;
@@ -44,7 +50,9 @@ class PlaybackController extends ChangeNotifier {
   PlaybackController({
     required this.engine,
     required this.store,
-    this.onPlayRecorded,
+    this.onLibraryChanged,
+    this.isAvailable,
+    this.onNothingAvailable,
     int Function()? now,
   }) : _now = now ?? _clock {
     engine.state.addListener(_onEngine);
@@ -102,17 +110,50 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> _recordPlay(int id) async {
     await store.recordPlay(id, _now());
-    onPlayRecorded?.call();
+    onLibraryChanged?.call();
   }
 
-  /// Toca as faixas, a partir de [index].
+  /// Marca ou desmarca a faixa, e ela já volta certa para quem a tem na fila.
+  Future<void> setFavorite(Track track, bool favorite) async {
+    if (track.id == 0) return;
+    _known[track.path] = track.withFavorite(favorite);
+    notifyListeners();
+    await store.setFavorite(track.id, favorite);
+    onLibraryChanged?.call();
+  }
+
+  /// Toca as faixas, a partir de [index]. O que não está disponível fica de fora,
+  /// e de uma lista grande vai só um pedaço, começando um pouco antes da escolhida.
   Future<void> playTracks(List<Track> tracks, {int index = 0}) async {
     if (tracks.isEmpty) return;
-    for (final track in tracks) {
+    final chosen = tracks[index];
+    final available = isAvailable;
+    final playable = available == null
+        ? tracks
+        : [
+            for (final t in tracks)
+              if (available(t.path)) t,
+          ];
+    if (playable.isEmpty) {
+      onNothingAvailable?.call();
+      return;
+    }
+    var at = playable.indexOf(chosen);
+    if (at < 0) at = 0;
+    final first = (at - queueLimit ~/ 10).clamp(0, playable.length);
+    final window = playable.length <= queueLimit
+        ? playable
+        : playable.sublist(
+            first,
+            (first + queueLimit).clamp(0, playable.length),
+          );
+    for (final track in window) {
       _known[track.path] = track;
     }
     resumable = false;
-    await engine.open([for (final t in tracks) t.path], index: index);
+    await engine.open([
+      for (final t in window) t.path,
+    ], index: playable.length <= queueLimit ? at : at - first);
   }
 
   /// Toca as faixas embaralhadas, sem mexer no modo aleatório.
@@ -126,7 +167,7 @@ class PlaybackController extends ChangeNotifier {
       shuffleTracks(await store.albumTracks(albumId));
 
   Future<void> shuffleAll() async =>
-      playTracks(await store.randomTracks(shuffleAllLimit));
+      playTracks(await store.randomTracks(queueLimit));
 
   /// Abre arquivos de fora. Os que estão na biblioteca vêm com as tags.
   Future<void> playPaths(List<String> paths) async {
@@ -150,8 +191,11 @@ class PlaybackController extends ChangeNotifier {
     await engine.add(track.path);
   }
 
-  Future<void> albumToQueue(int albumId) async {
-    for (final track in await store.albumTracks(albumId)) {
+  Future<void> albumToQueue(int albumId) async =>
+      tracksToQueue(await store.albumTracks(albumId));
+
+  Future<void> tracksToQueue(List<Track> tracks) async {
+    for (final track in tracks) {
       await addToQueue(track);
     }
   }
@@ -219,13 +263,18 @@ class PlaybackController extends ChangeNotifier {
       if (repeat != null) await engine.setRepeat(repeat);
     }
     if (open.isNotEmpty) return playPaths(open);
-    final paths = (session?['queue'] as List?)?.whereType<String>().toList();
-    if (paths == null || paths.isEmpty) return;
-    _known.addAll(await store.tracksAt(paths));
-    final index = (session!['index'] as num? ?? 0).toInt().clamp(
+    final queue = (session?['queue'] as List?)?.whereType<String>().toList();
+    if (queue == null || queue.isEmpty) return;
+    final current = (session!['index'] as num? ?? 0).toInt().clamp(
       0,
-      paths.length - 1,
+      queue.length - 1,
     );
+    // A faixa de um disco desligado o mpv demoraria a recusar
+    final available = isAvailable ?? (_) => true;
+    if (!available(queue[current])) return;
+    final paths = queue.where(available).toList();
+    final index = queue.take(current).where(available).length;
+    _known.addAll(await store.tracksAt(paths));
     final start = Duration(
       milliseconds: (session['positionMs'] as num? ?? 0).toInt(),
     );
@@ -233,6 +282,11 @@ class PlaybackController extends ChangeNotifier {
     _restoring = true;
     try {
       await engine.open(paths, index: index, start: start, play: false);
+    } on TimeoutException catch (e) {
+      // Sem a sessão, o resto da abertura ainda vale
+      debugPrint('🎵 a sessão não abriu: $e');
+      resumable = false;
+      return;
     } finally {
       _restoring = false;
     }

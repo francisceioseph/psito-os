@@ -1,4 +1,6 @@
 // examples/player/lib/src/ui/pages/folders_page.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
@@ -24,7 +26,7 @@ class FoldersPage extends StatelessWidget {
     final locale = Localizations.localeOf(context);
     final folders = library.folders;
     final totals = library.totals;
-    final scan = library.scan;
+    final scan = library.visibleScan;
     final now = DateTime.now().millisecondsSinceEpoch;
     return PageTemplate(
       title: l.folders,
@@ -34,7 +36,7 @@ class FoldersPage extends StatelessWidget {
           '${formatSize(totals.size, locale)}',
       actions: [
         FilledButton.tonalIcon(
-          onPressed: library.scan == null && folders.isNotEmpty
+          onPressed: library.visibleScan == null && folders.isNotEmpty
               ? library.startScan
               : null,
           icon: const Icon(Icons.refresh_rounded),
@@ -47,6 +49,22 @@ class FoldersPage extends StatelessWidget {
         ),
       ],
       slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(12),
+              clipBehavior: Clip.antiAlias,
+              child: SwitchListTile(
+                title: Text(l.watchFolders),
+                subtitle: Text(l.watchFoldersBody),
+                value: library.watching,
+                onChanged: (value) => unawaited(library.setWatching(value)),
+              ),
+            ),
+          ),
+        ),
         if (scan != null)
           SliverToBoxAdapter(
             child: Padding(
@@ -66,6 +84,7 @@ class FoldersPage extends StatelessWidget {
           itemBuilder: (context, i) => FolderRow(
             folder: folders[i],
             missing: library.missing.contains(folders[i].path),
+            changes: library.pending[folders[i].id] ?? 0,
             now: now,
             onUpdate: () => library.startScan([folders[i]]),
             onRemove: () => library.removeFolder(folders[i]),

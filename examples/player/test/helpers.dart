@@ -159,6 +159,19 @@ class FakeScanner implements LibraryScanner {
     sessions.add(session);
     return session;
   }
+
+  /// O que cada pasta tem a dizer na conferência, por id.
+  Map<int, FolderCheck> checks = const {};
+
+  @override
+  Future<Map<int, FolderCheck>> check(List<MusicFolder> folders) async =>
+      checks;
+
+  /// As pastas que não estão lá.
+  Set<String> gone = const {};
+
+  @override
+  Future<bool> folderExists(String path) async => !gone.contains(path);
 }
 
 /// Grava um álbum no banco. Devolve o id dele.
@@ -203,6 +216,8 @@ Future<void> pumpPlayer(
   LibraryScanner? scanner,
   List<String> initialPaths = const [],
   String? picked,
+  String? pickedPlaylist,
+  String? pickedSave,
   String? musicDir,
   Color accent = const Color(0xFFFFC107),
   Future<LibraryServices> Function()? openLibrary,
@@ -225,6 +240,8 @@ Future<void> pumpPlayer(
         initialPaths: initialPaths,
         musicDir: musicDir,
         pickFolder: (_) async => picked,
+        pickPlaylistFile: (_) async => pickedPlaylist,
+        pickSaveFile: (_, _) async => pickedSave,
       ),
     ),
   );

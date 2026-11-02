@@ -51,9 +51,7 @@ class PlayerLocalizationsEn extends PlayerLocalizations {
   }
 
   @override
-  String openFailed(Object error) {
-    return 'Could not play this file: $error';
-  }
+  String get openFailed => 'Could not play this file';
 
   @override
   String get addFolder => 'Add folder';
@@ -344,6 +342,299 @@ class PlayerLocalizationsEn extends PlayerLocalizations {
       other: '$nString files skipped',
       one: '1 file skipped',
       zero: '0 files skipped',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get songs => 'Songs';
+
+  @override
+  String get artists => 'Artists';
+
+  @override
+  String get genres => 'Genres';
+
+  @override
+  String get allFilter => 'All';
+
+  @override
+  String get allSongs => 'All';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get mineFilter => 'Mine';
+
+  @override
+  String get automaticFilter => 'Automatic';
+
+  @override
+  String get addFavorite => 'Add to favorites';
+
+  @override
+  String get removeFavorite => 'Remove from favorites';
+
+  @override
+  String get sortBy => 'Sort by';
+
+  @override
+  String get sortRecent => 'Recent';
+
+  @override
+  String get sortAZ => 'A to Z';
+
+  @override
+  String get sortArtist => 'Artist';
+
+  @override
+  String get sortYear => 'Year';
+
+  @override
+  String get sortMostTracks => 'Most songs';
+
+  @override
+  String get columnTitle => 'Title';
+
+  @override
+  String get columnAlbum => 'Album';
+
+  @override
+  String get columnDuration => 'Duration';
+
+  @override
+  String get columnFormat => 'Format';
+
+  @override
+  String get viewGrid => 'Grid';
+
+  @override
+  String get viewList => 'List';
+
+  @override
+  String get searchHint => 'Search the library';
+
+  @override
+  String get searchSongsHint => 'Search songs';
+
+  @override
+  String get searchArtistsHint => 'Search artists';
+
+  @override
+  String get searchGenresHint => 'Search genres';
+
+  @override
+  String get searchAlbumsHint => 'Search albums';
+
+  @override
+  String get searchFoldersHint => 'Search folders';
+
+  @override
+  String get searchAllHint => 'Songs, albums, artists or folders';
+
+  @override
+  String get searchShortcut => 'Ctrl K';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String noResults(String query) {
+    return 'Nothing found for \"$query\"';
+  }
+
+  @override
+  String get searchPrompt => 'Type to search your library.';
+
+  @override
+  String get bestResult => 'Best result';
+
+  @override
+  String get playAll => 'Play all';
+
+  @override
+  String get kindArtist => 'Artist';
+
+  @override
+  String get kindAlbum => 'Album';
+
+  @override
+  String get kindSong => 'Song';
+
+  @override
+  String get nothingHere => 'Nothing here yet.';
+
+  @override
+  String get noGenre => 'No genre';
+
+  @override
+  String get fileUnavailable => 'This file is not available right now';
+
+  @override
+  String get nothingAvailable =>
+      'These songs are not available. Is the disk connected?';
+
+  @override
+  String get watchFolders => 'Watch folders for changes';
+
+  @override
+  String get watchFoldersBody =>
+      'Detects new, changed and removed files while the player is open.';
+
+  @override
+  String get newPlaylist => 'New playlist';
+
+  @override
+  String get importM3u => 'Import M3U';
+
+  @override
+  String get exportM3u => 'Export M3U';
+
+  @override
+  String get renamePlaylist => 'Rename';
+
+  @override
+  String get deletePlaylist => 'Delete playlist';
+
+  @override
+  String deletePlaylistBody(String name) {
+    return 'Delete \"$name\"? The music files stay where they are.';
+  }
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get playlistName => 'Playlist name';
+
+  @override
+  String get addToPlaylist => 'Add to playlist';
+
+  @override
+  String get removeFromPlaylist => 'Remove from playlist';
+
+  @override
+  String get moveUp => 'Move up';
+
+  @override
+  String get moveDown => 'Move down';
+
+  @override
+  String get dragToReorder => 'Drag to reorder';
+
+  @override
+  String get autoFavorites => 'Favorites';
+
+  @override
+  String get autoMostPlayed => 'Most played';
+
+  @override
+  String get autoRecent => 'Recently added';
+
+  @override
+  String get automaticSuffix => 'automatic';
+
+  @override
+  String exportFailed(String error) {
+    return 'Could not write the file: $error';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Could not read the file: $error';
+  }
+
+  @override
+  String lengthDays(int d, int h) {
+    return '$d d $h h';
+  }
+
+  @override
+  String artistCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n artists',
+      one: '1 artist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String genreCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n genres',
+      one: '1 genre',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n playlists',
+      one: '1 playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fileCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n files',
+      one: '1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String folderChanges(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n changes',
+      one: '1 change',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String imported(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n songs imported',
+      one: '1 song imported',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importedRemote(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n network addresses skipped',
+      one: '1 network address skipped',
     );
     return '$_temp0';
   }

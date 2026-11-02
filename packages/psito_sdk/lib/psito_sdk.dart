@@ -163,6 +163,13 @@ abstract class PsitoAppContext {
   /// O seletor de pastas do sistema. Devolve o caminho, ou null se a pessoa
   /// cancelou. O caminho é o de fora do sandbox, como no [pickFile].
   Future<String?> pickFolder({required String title});
+
+  /// O seletor do sistema para gravar um arquivo. Devolve o caminho, ou null se
+  /// a pessoa cancelou. O app só grava lá se as permissões dele deixarem ver.
+  Future<String?> pickSaveFile({
+    required String title,
+    String suggestedName = '',
+  });
 }
 
 /// Um app que abre um tipo de arquivo, para o "Abrir com".

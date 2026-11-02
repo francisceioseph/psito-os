@@ -188,7 +188,7 @@ void main() {
       await pumpPlayer(tester, db: db, scanner: scanner);
       await tester.tap(find.text('Biblioteca'));
       await tester.pump();
-      await tester.tap(find.text('Pastas'));
+      await tester.tap(find.text('Pastas').first);
       await tester.pump();
       await tester.tap(find.byTooltip('Atualizar pasta'));
       await tester.pump();
@@ -228,10 +228,10 @@ void main() {
   group('com música', () {
     late FakeEngine engine;
 
-    Future<void> open(WidgetTester tester) async {
+    Future<void> open(WidgetTester tester, {FakeScanner? scanner}) async {
       setWindow(tester, 1280, 800);
       engine = FakeEngine();
-      await pumpPlayer(tester, engine: engine, db: db);
+      await pumpPlayer(tester, engine: engine, db: db, scanner: scanner);
     }
 
     setUp(() => seedAlbum(db));
@@ -254,7 +254,7 @@ void main() {
       await tester.pump();
       expect(engine.opened.single, hasLength(3));
       expect(find.byIcon(Icons.equalizer_rounded), findsOneWidget);
-      await tester.tap(find.text('Álbuns'));
+      await tester.tap(find.text('Voltar'));
       await tester.pump();
       expect(find.byType(AlbumCard), findsOneWidget);
     });
@@ -358,7 +358,7 @@ void main() {
     testWidgets('a pasta mostra situação, e remover tira da biblioteca', (
       tester,
     ) async {
-      await open(tester);
+      await open(tester, scanner: FakeScanner()..gone = {'/m'});
       await tester.tap(find.text('Pastas'));
       await tester.pump();
       expect(find.byType(FolderRow), findsOneWidget);
@@ -531,7 +531,11 @@ void main() {
         void visit(SemanticsNode node) {
           final data = node.getSemanticsData();
           final tappable = data.hasAction(SemanticsAction.tap);
-          if (tappable && data.label.isEmpty && data.tooltip.isEmpty) {
+          // Quem foi fundido fala pelo nome do pai
+          if (tappable &&
+              !node.isMergedIntoParent &&
+              data.label.isEmpty &&
+              data.tooltip.isEmpty) {
             unnamed.add('$page: $node');
           }
           node.visitChildren((child) {
@@ -578,7 +582,8 @@ void main() {
       await pumpPlayer(tester, engine: engine, db: db);
       engine.set(engine.state.value.copyWith(error: 'ruim'));
       await tester.pump();
-      expect(find.textContaining('ruim'), findsOneWidget);
+      expect(find.text('Não foi possível tocar este arquivo'), findsOneWidget);
+      expect(find.textContaining('ruim'), findsNothing);
     });
 
     testWidgets('sem o motor, avisa em vez de cair', (tester) async {

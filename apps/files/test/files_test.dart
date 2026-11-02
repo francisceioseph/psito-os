@@ -130,6 +130,12 @@ class FakeContext implements PsitoAppContext {
 
   @override
   Future<String?> pickFolder({required String title}) async => null;
+
+  @override
+  Future<String?> pickSaveFile({
+    required String title,
+    String suggestedName = '',
+  }) async => null;
 }
 
 late Directory home;

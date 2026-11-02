@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:psito_player/src/library/library_controller.dart';
 import 'package:psito_player/src/library/library_db.dart';
@@ -147,7 +149,7 @@ void main() {
       final other = PlaybackController(
         engine: engine,
         store: DirectStore(db),
-        onPlayRecorded: () => recorded++,
+        onLibraryChanged: () => recorded++,
       );
       addTearDown(other.dispose);
       await other.playAlbum(albumId);
@@ -178,6 +180,54 @@ void main() {
       await again.restore(open: open);
       return again;
     }
+
+    test('uma faixa num disco desligado não abre, e a sessão fica', () async {
+      await playback.playAlbum(albumId, index: 1);
+      await playback.saveSession();
+      final saved = db.setting('session');
+      final next = FakeEngine();
+      final again = PlaybackController(
+        engine: next,
+        store: DirectStore(db),
+        isAvailable: (_) => false,
+      );
+      addTearDown(again.dispose);
+      await again.restore();
+      expect(next.opened, isEmpty);
+      expect(again.resumable, isFalse);
+      await again.saveSession();
+      expect(db.setting('session'), saved);
+    });
+
+    test('o que falta na fila sai, e a faixa continua sendo a mesma', () async {
+      await playback.playAlbum(albumId, index: 2);
+      await playback.saveSession();
+      final next = FakeEngine();
+      final again = PlaybackController(
+        engine: next,
+        store: DirectStore(db),
+        isAvailable: (path) => !path.endsWith('/1.flac'),
+      );
+      addTearDown(again.dispose);
+      await again.restore();
+      expect(next.opened.single, hasLength(2));
+      expect(
+        next.state.value.queue[next.state.value.index],
+        endsWith('/3.flac'),
+      );
+    });
+
+    test('o motor que não abre a sessão não derruba a abertura', () async {
+      await playback.playAlbum(albumId);
+      await playback.saveSession();
+      final again = PlaybackController(
+        engine: _StuckEngine(),
+        store: DirectStore(db),
+      );
+      addTearDown(again.dispose);
+      await again.restore();
+      expect(again.resumable, isFalse);
+    });
 
     test('volta parada na faixa e no ponto, com volume e repetir', () async {
       await playback.playAlbum(albumId, index: 2);
@@ -225,4 +275,14 @@ void main() {
       expect(next.opened, isEmpty);
     });
   });
+}
+
+class _StuckEngine extends FakeEngine {
+  @override
+  Future<void> open(
+    List<String> paths, {
+    int index = 0,
+    Duration start = Duration.zero,
+    bool play = true,
+  }) => Future.error(TimeoutException('não abriu'));
 }

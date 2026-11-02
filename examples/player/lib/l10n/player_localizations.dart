@@ -179,8 +179,8 @@ abstract class PlayerLocalizations {
   /// No description provided for @openFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not play this file: {error}'**
-  String openFailed(Object error);
+  /// **'Could not play this file'**
+  String get openFailed;
 
   /// No description provided for @addFolder.
   ///
@@ -547,6 +547,456 @@ abstract class PlayerLocalizations {
   /// In en, this message translates to:
   /// **'{n, plural, =0{0 files skipped} =1{1 file skipped} other{{n} files skipped}}'**
   String filesSkipped(int n);
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @songs.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs'**
+  String get songs;
+
+  /// No description provided for @artists.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get artists;
+
+  /// No description provided for @genres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get genres;
+
+  /// No description provided for @allFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFilter;
+
+  /// No description provided for @allSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allSongs;
+
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// No description provided for @mineFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Mine'**
+  String get mineFilter;
+
+  /// No description provided for @automaticFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get automaticFilter;
+
+  /// No description provided for @addFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get addFavorite;
+
+  /// No description provided for @removeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFavorite;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by'**
+  String get sortBy;
+
+  /// No description provided for @sortRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get sortRecent;
+
+  /// No description provided for @sortAZ.
+  ///
+  /// In en, this message translates to:
+  /// **'A to Z'**
+  String get sortAZ;
+
+  /// No description provided for @sortArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get sortArtist;
+
+  /// No description provided for @sortYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get sortYear;
+
+  /// No description provided for @sortMostTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Most songs'**
+  String get sortMostTracks;
+
+  /// No description provided for @columnTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get columnTitle;
+
+  /// No description provided for @columnAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get columnAlbum;
+
+  /// No description provided for @columnDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get columnDuration;
+
+  /// No description provided for @columnFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get columnFormat;
+
+  /// No description provided for @viewGrid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get viewGrid;
+
+  /// No description provided for @viewList.
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get viewList;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search the library'**
+  String get searchHint;
+
+  /// No description provided for @searchSongsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search songs'**
+  String get searchSongsHint;
+
+  /// No description provided for @searchArtistsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search artists'**
+  String get searchArtistsHint;
+
+  /// No description provided for @searchGenresHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search genres'**
+  String get searchGenresHint;
+
+  /// No description provided for @searchAlbumsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search albums'**
+  String get searchAlbumsHint;
+
+  /// No description provided for @searchFoldersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search folders'**
+  String get searchFoldersHint;
+
+  /// No description provided for @searchAllHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Songs, albums, artists or folders'**
+  String get searchAllHint;
+
+  /// No description provided for @searchShortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Ctrl K'**
+  String get searchShortcut;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found for \"{query}\"'**
+  String noResults(String query);
+
+  /// No description provided for @searchPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search your library.'**
+  String get searchPrompt;
+
+  /// No description provided for @bestResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Best result'**
+  String get bestResult;
+
+  /// No description provided for @playAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Play all'**
+  String get playAll;
+
+  /// No description provided for @kindArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get kindArtist;
+
+  /// No description provided for @kindAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get kindAlbum;
+
+  /// No description provided for @kindSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Song'**
+  String get kindSong;
+
+  /// No description provided for @nothingHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet.'**
+  String get nothingHere;
+
+  /// No description provided for @noGenre.
+  ///
+  /// In en, this message translates to:
+  /// **'No genre'**
+  String get noGenre;
+
+  /// No description provided for @fileUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not available right now'**
+  String get fileUnavailable;
+
+  /// No description provided for @nothingAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'These songs are not available. Is the disk connected?'**
+  String get nothingAvailable;
+
+  /// No description provided for @watchFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch folders for changes'**
+  String get watchFolders;
+
+  /// No description provided for @watchFoldersBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Detects new, changed and removed files while the player is open.'**
+  String get watchFoldersBody;
+
+  /// No description provided for @newPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'New playlist'**
+  String get newPlaylist;
+
+  /// No description provided for @importM3u.
+  ///
+  /// In en, this message translates to:
+  /// **'Import M3U'**
+  String get importM3u;
+
+  /// No description provided for @exportM3u.
+  ///
+  /// In en, this message translates to:
+  /// **'Export M3U'**
+  String get exportM3u;
+
+  /// No description provided for @renamePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renamePlaylist;
+
+  /// No description provided for @deletePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete playlist'**
+  String get deletePlaylist;
+
+  /// No description provided for @deletePlaylistBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? The music files stay where they are.'**
+  String deletePlaylistBody(String name);
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @playlistName.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get playlistName;
+
+  /// No description provided for @addToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to playlist'**
+  String get addToPlaylist;
+
+  /// No description provided for @removeFromPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from playlist'**
+  String get removeFromPlaylist;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get moveDown;
+
+  /// No description provided for @dragToReorder.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder'**
+  String get dragToReorder;
+
+  /// No description provided for @autoFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get autoFavorites;
+
+  /// No description provided for @autoMostPlayed.
+  ///
+  /// In en, this message translates to:
+  /// **'Most played'**
+  String get autoMostPlayed;
+
+  /// No description provided for @autoRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get autoRecent;
+
+  /// No description provided for @automaticSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'automatic'**
+  String get automaticSuffix;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not write the file: {error}'**
+  String exportFailed(String error);
+
+  /// No description provided for @importFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read the file: {error}'**
+  String importFailed(String error);
+
+  /// No description provided for @lengthDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{d} d {h} h'**
+  String lengthDays(int d, int h);
+
+  /// No description provided for @artistCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 artist} other{{n} artists}}'**
+  String artistCount(int n);
+
+  /// No description provided for @genreCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 genre} other{{n} genres}}'**
+  String genreCount(int n);
+
+  /// No description provided for @playlistCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 playlist} other{{n} playlists}}'**
+  String playlistCount(int n);
+
+  /// No description provided for @fileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 file} other{{n} files}}'**
+  String fileCount(int n);
+
+  /// No description provided for @folderChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 change} other{{n} changes}}'**
+  String folderChanges(int n);
+
+  /// No description provided for @imported.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 song imported} other{{n} songs imported}}'**
+  String imported(int n);
+
+  /// No description provided for @importedRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 network address skipped} other{{n} network addresses skipped}}'**
+  String importedRemote(int n);
 }
 
 class _PlayerLocalizationsDelegate

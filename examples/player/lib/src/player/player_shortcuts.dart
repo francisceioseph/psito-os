@@ -15,11 +15,23 @@ bool _typing(BuildContext? context) =>
     (context.widget is EditableText ||
         context.findAncestorWidgetOfExactType<EditableText>() != null);
 
-KeyEventResult handlePlayerKey(KeyEvent event, PlaybackController playback) {
+KeyEventResult handlePlayerKey(
+  KeyEvent event,
+  PlaybackController playback, {
+  VoidCallback? onSearch,
+}) {
   if (event is KeyUpEvent) return KeyEventResult.ignored;
+  final key = event.logicalKey;
+  // O único que vale digitando: é o caminho de volta para a busca
+  if (key == LogicalKeyboardKey.keyK &&
+      event is KeyDownEvent &&
+      HardwareKeyboard.instance.isControlPressed &&
+      onSearch != null) {
+    onSearch();
+    return KeyEventResult.handled;
+  }
   final focused = FocusManager.instance.primaryFocus?.context;
   if (_typing(focused)) return KeyEventResult.ignored;
-  final key = event.logicalKey;
   if (key == LogicalKeyboardKey.space && event is KeyDownEvent) {
     if (focused != null && Actions.maybeFind<ActivateIntent>(focused) != null) {
       return KeyEventResult.ignored;

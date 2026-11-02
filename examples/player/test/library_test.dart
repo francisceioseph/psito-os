@@ -392,6 +392,7 @@ void main() {
 
     test('marca a pasta que não está lá', () async {
       db.addFolder('/nao/existe');
+      scanner.gone = {'/nao/existe'};
       await library.reload();
       expect(library.missing, {'/nao/existe'});
     });

@@ -7,9 +7,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/l10n.dart';
-import '../../library/models.dart';
 import '../../player/engine.dart';
 import '../../player/playback_controller.dart';
+import '../atoms/favorite_button.dart';
 import '../molecules/now_playing_info.dart';
 import '../molecules/seek_bar.dart';
 import '../molecules/transport_controls.dart';
@@ -51,7 +51,7 @@ class PlayerBar extends StatelessWidget {
     final track = playback.current;
     if (s.error != null || track == null) {
       return Text(
-        s.error == null ? l.noTrack : l.openFailed(s.error!),
+        s.error == null ? l.noTrack : l.openFailed,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -64,9 +64,19 @@ class PlayerBar extends StatelessWidget {
     );
   }
 
+  Widget? _favorite(PlayerState s) {
+    final track = playback.current;
+    if (s.error != null || track == null || track.id == 0) return null;
+    return FavoriteButton(
+      favorite: track.favorite,
+      onChanged: (value) => unawaited(playback.setFavorite(track, value)),
+    );
+  }
+
   Widget _full(BuildContext context, PlayerState s) => Row(
     children: [
       Expanded(flex: 3, child: _info(context, s, 56)),
+      ?_favorite(s),
       const SizedBox(width: 8),
       Expanded(
         flex: 4,
@@ -148,23 +158,4 @@ class PlayerBar extends StatelessWidget {
       ),
     );
   }
-}
-
-/// O que todo menu de faixa oferece.
-List<PopupMenuEntry<VoidCallback>> trackMenu(
-  BuildContext context,
-  PlaybackController playback,
-  Track track,
-) {
-  final l = context.l10n;
-  return [
-    PopupMenuItem(
-      value: () => unawaited(playback.playNext(track)),
-      child: Text(l.playNext),
-    ),
-    PopupMenuItem(
-      value: () => unawaited(playback.addToQueue(track)),
-      child: Text(l.addToQueue),
-    ),
-  ];
 }

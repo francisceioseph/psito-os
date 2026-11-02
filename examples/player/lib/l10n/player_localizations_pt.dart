@@ -51,9 +51,7 @@ class PlayerLocalizationsPt extends PlayerLocalizations {
   }
 
   @override
-  String openFailed(Object error) {
-    return 'Não foi possível tocar este arquivo: $error';
-  }
+  String get openFailed => 'Não foi possível tocar este arquivo';
 
   @override
   String get addFolder => 'Adicionar pasta';
@@ -344,6 +342,306 @@ class PlayerLocalizationsPt extends PlayerLocalizations {
       other: '$nString arquivos ignorados',
       one: '1 arquivo ignorado',
       zero: '0 arquivo ignorado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get back => 'Voltar';
+
+  @override
+  String get songs => 'Músicas';
+
+  @override
+  String get artists => 'Artistas';
+
+  @override
+  String get genres => 'Gêneros';
+
+  @override
+  String get allFilter => 'Tudo';
+
+  @override
+  String get allSongs => 'Todas';
+
+  @override
+  String get favorites => 'Favoritas';
+
+  @override
+  String get mineFilter => 'Minhas';
+
+  @override
+  String get automaticFilter => 'Automáticas';
+
+  @override
+  String get addFavorite => 'Marcar como favorita';
+
+  @override
+  String get removeFavorite => 'Tirar das favoritas';
+
+  @override
+  String get sortBy => 'Ordenar por';
+
+  @override
+  String get sortRecent => 'Recentes';
+
+  @override
+  String get sortAZ => 'A a Z';
+
+  @override
+  String get sortArtist => 'Artista';
+
+  @override
+  String get sortYear => 'Ano';
+
+  @override
+  String get sortMostTracks => 'Mais músicas';
+
+  @override
+  String get columnTitle => 'Título';
+
+  @override
+  String get columnAlbum => 'Álbum';
+
+  @override
+  String get columnDuration => 'Duração';
+
+  @override
+  String get columnFormat => 'Formato';
+
+  @override
+  String get viewGrid => 'Grade';
+
+  @override
+  String get viewList => 'Lista';
+
+  @override
+  String get searchHint => 'Buscar na biblioteca';
+
+  @override
+  String get searchSongsHint => 'Buscar músicas';
+
+  @override
+  String get searchArtistsHint => 'Buscar artistas';
+
+  @override
+  String get searchGenresHint => 'Buscar gêneros';
+
+  @override
+  String get searchAlbumsHint => 'Buscar álbuns';
+
+  @override
+  String get searchFoldersHint => 'Buscar pastas';
+
+  @override
+  String get searchAllHint => 'Músicas, álbuns, artistas ou pastas';
+
+  @override
+  String get searchShortcut => 'Ctrl K';
+
+  @override
+  String get clearSearch => 'Limpar a busca';
+
+  @override
+  String noResults(String query) {
+    return 'Nada encontrado para \"$query\"';
+  }
+
+  @override
+  String get searchPrompt => 'Digite para buscar na sua biblioteca.';
+
+  @override
+  String get bestResult => 'Melhor resultado';
+
+  @override
+  String get playAll => 'Tocar tudo';
+
+  @override
+  String get kindArtist => 'Artista';
+
+  @override
+  String get kindAlbum => 'Álbum';
+
+  @override
+  String get kindSong => 'Música';
+
+  @override
+  String get nothingHere => 'Nada por aqui ainda.';
+
+  @override
+  String get noGenre => 'Sem gênero';
+
+  @override
+  String get fileUnavailable => 'Este arquivo não está disponível agora';
+
+  @override
+  String get nothingAvailable =>
+      'Estas músicas não estão disponíveis. O disco está ligado?';
+
+  @override
+  String get watchFolders => 'Observar mudanças nas pastas';
+
+  @override
+  String get watchFoldersBody =>
+      'Detecta arquivos novos, alterados e removidos enquanto o player está aberto.';
+
+  @override
+  String get newPlaylist => 'Nova playlist';
+
+  @override
+  String get importM3u => 'Importar M3U';
+
+  @override
+  String get exportM3u => 'Exportar M3U';
+
+  @override
+  String get renamePlaylist => 'Renomear';
+
+  @override
+  String get deletePlaylist => 'Excluir playlist';
+
+  @override
+  String deletePlaylistBody(String name) {
+    return 'Excluir \"$name\"? Os arquivos de música continuam onde estão.';
+  }
+
+  @override
+  String get delete => 'Excluir';
+
+  @override
+  String get cancel => 'Cancelar';
+
+  @override
+  String get save => 'Salvar';
+
+  @override
+  String get create => 'Criar';
+
+  @override
+  String get playlistName => 'Nome da playlist';
+
+  @override
+  String get addToPlaylist => 'Adicionar à playlist';
+
+  @override
+  String get removeFromPlaylist => 'Tirar da playlist';
+
+  @override
+  String get moveUp => 'Mover para cima';
+
+  @override
+  String get moveDown => 'Mover para baixo';
+
+  @override
+  String get dragToReorder => 'Arrastar para reordenar';
+
+  @override
+  String get autoFavorites => 'Favoritas';
+
+  @override
+  String get autoMostPlayed => 'Mais tocadas';
+
+  @override
+  String get autoRecent => 'Adicionadas recentemente';
+
+  @override
+  String get automaticSuffix => 'automática';
+
+  @override
+  String exportFailed(String error) {
+    return 'Não foi possível gravar o arquivo: $error';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Não foi possível ler o arquivo: $error';
+  }
+
+  @override
+  String lengthDays(int d, int h) {
+    return '$d dias e $h h';
+  }
+
+  @override
+  String artistCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n artistas',
+      one: '1 artista',
+      zero: '0 artista',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String genreCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n gêneros',
+      one: '1 gênero',
+      zero: '0 gênero',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String playlistCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n playlists',
+      one: '1 playlist',
+      zero: '0 playlist',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String fileCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n arquivos',
+      one: '1 arquivo',
+      zero: '0 arquivo',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String folderChanges(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n alterações',
+      one: '1 alteração',
+      zero: '0 alteração',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String imported(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n músicas importadas',
+      one: '1 música importada',
+      zero: '0 música importada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importedRemote(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n endereços da rede ignorados',
+      one: '1 endereço da rede ignorado',
+      zero: '0 endereço da rede ignorado',
     );
     return '$_temp0';
   }

@@ -7,14 +7,18 @@ import 'package:flutter/rendering.dart';
 import '../../library/models.dart';
 import '../atoms/skeleton_box.dart';
 import '../molecules/album_card.dart';
+import '../molecules/album_row.dart';
 
 /// Uma grade em que a capa fica quadrada: a altura é a largura mais os textos, o
 /// que uma proporção fixa não dá.
-class _AlbumGridDelegate extends SliverGridDelegate {
+class CardGridDelegate extends SliverGridDelegate {
   static const _maxWidth = 180.0;
   static const _spacing = 16.0;
 
-  const _AlbumGridDelegate();
+  /// O que os textos ocupam abaixo da arte.
+  final double textHeight;
+
+  const CardGridDelegate(this.textHeight);
 
   static int columns(double available) =>
       ((available + _spacing) / (_maxWidth + _spacing)).ceil();
@@ -26,19 +30,20 @@ class _AlbumGridDelegate extends SliverGridDelegate {
     final width = (available - _spacing * (count - 1)) / count;
     return SliverGridRegularTileLayout(
       crossAxisCount: count,
-      mainAxisStride: width + AlbumCard.textHeight + _spacing,
+      mainAxisStride: width + textHeight + _spacing,
       crossAxisStride: width + _spacing,
-      childMainAxisExtent: width + AlbumCard.textHeight,
+      childMainAxisExtent: width + textHeight,
       childCrossAxisExtent: width,
       reverseCrossAxis: false,
     );
   }
 
   @override
-  bool shouldRelayout(_AlbumGridDelegate oldDelegate) => false;
+  bool shouldRelayout(CardGridDelegate oldDelegate) =>
+      oldDelegate.textHeight != textHeight;
 }
 
-const _gridDelegate = _AlbumGridDelegate();
+const _gridDelegate = CardGridDelegate(AlbumCard.textHeight);
 
 class AlbumGrid extends StatelessWidget {
   final List<Album> albums;
@@ -72,11 +77,37 @@ class AlbumGrid extends StatelessWidget {
     if (!singleRow) return _grid(albums.length);
     return SliverLayoutBuilder(
       builder: (context, constraints) {
-        final columns = _AlbumGridDelegate.columns(constraints.crossAxisExtent);
+        final columns = CardGridDelegate.columns(constraints.crossAxisExtent);
         return _grid(columns < albums.length ? columns : albums.length);
       },
     );
   }
+}
+
+/// Os álbuns na vista em lista.
+class AlbumList extends StatelessWidget {
+  final List<Album> albums;
+  final ValueChanged<Album> onOpen;
+  final ValueChanged<Album> onPlay;
+
+  const AlbumList({
+    super.key,
+    required this.albums,
+    required this.onOpen,
+    required this.onPlay,
+  });
+
+  @override
+  Widget build(BuildContext context) => SliverFixedExtentList.builder(
+    itemExtent: AlbumRow.height,
+    itemCount: albums.length,
+    itemBuilder: (context, i) => AlbumRow(
+      key: ValueKey(albums[i].id),
+      album: albums[i],
+      onOpen: () => onOpen(albums[i]),
+      onPlay: () => onPlay(albums[i]),
+    ),
+  );
 }
 
 /// Os cartões vazios durante a leitura.

@@ -13,7 +13,7 @@
   "search": "Search",
   "settings": "Settings",
   "engineUnavailable": "The audio engine is unavailable: {error}",
-  "openFailed": "Could not play this file: {error}",
+  "openFailed": "Could not play this file",
   "addFolder": "Add folder",
   "addMusicFolder": "Add music folder",
   "folderNotVisible": "The player can't see this folder. Choose one in your home or on an external disk.",
@@ -203,6 +203,168 @@
       "n": {
         "type": "int",
         "format": "decimalPattern"
+      }
+    }
+  },
+  "back": "Back",
+  "songs": "Songs",
+  "artists": "Artists",
+  "genres": "Genres",
+  "allFilter": "All",
+  "allSongs": "All",
+  "favorites": "Favorites",
+  "mineFilter": "Mine",
+  "automaticFilter": "Automatic",
+  "addFavorite": "Add to favorites",
+  "removeFavorite": "Remove from favorites",
+  "sortBy": "Sort by",
+  "sortRecent": "Recent",
+  "sortAZ": "A to Z",
+  "sortArtist": "Artist",
+  "sortYear": "Year",
+  "sortMostTracks": "Most songs",
+  "columnTitle": "Title",
+  "columnAlbum": "Album",
+  "columnDuration": "Duration",
+  "columnFormat": "Format",
+  "viewGrid": "Grid",
+  "viewList": "List",
+  "searchHint": "Search the library",
+  "searchSongsHint": "Search songs",
+  "searchArtistsHint": "Search artists",
+  "searchGenresHint": "Search genres",
+  "searchAlbumsHint": "Search albums",
+  "searchFoldersHint": "Search folders",
+  "searchAllHint": "Songs, albums, artists or folders",
+  "searchShortcut": "Ctrl K",
+  "clearSearch": "Clear search",
+  "noResults": "Nothing found for \"{query}\"",
+  "@noResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPrompt": "Type to search your library.",
+  "bestResult": "Best result",
+  "playAll": "Play all",
+  "kindArtist": "Artist",
+  "kindAlbum": "Album",
+  "kindSong": "Song",
+  "nothingHere": "Nothing here yet.",
+  "noGenre": "No genre",
+  "fileUnavailable": "This file is not available right now",
+  "nothingAvailable": "These songs are not available. Is the disk connected?",
+  "watchFolders": "Watch folders for changes",
+  "watchFoldersBody": "Detects new, changed and removed files while the player is open.",
+  "newPlaylist": "New playlist",
+  "importM3u": "Import M3U",
+  "exportM3u": "Export M3U",
+  "renamePlaylist": "Rename",
+  "deletePlaylist": "Delete playlist",
+  "deletePlaylistBody": "Delete \"{name}\"? The music files stay where they are.",
+  "@deletePlaylistBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "save": "Save",
+  "create": "Create",
+  "playlistName": "Playlist name",
+  "addToPlaylist": "Add to playlist",
+  "removeFromPlaylist": "Remove from playlist",
+  "moveUp": "Move up",
+  "moveDown": "Move down",
+  "dragToReorder": "Drag to reorder",
+  "autoFavorites": "Favorites",
+  "autoMostPlayed": "Most played",
+  "autoRecent": "Recently added",
+  "automaticSuffix": "automatic",
+  "exportFailed": "Could not write the file: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "importFailed": "Could not read the file: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "lengthDays": "{d} d {h} h",
+  "@lengthDays": {
+    "placeholders": {
+      "d": {
+        "type": "int"
+      },
+      "h": {
+        "type": "int"
+      }
+    }
+  },
+  "artistCount": "{n, plural, =1{1 artist} other{{n} artists}}",
+  "@artistCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "genreCount": "{n, plural, =1{1 genre} other{{n} genres}}",
+  "@genreCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistCount": "{n, plural, =1{1 playlist} other{{n} playlists}}",
+  "@playlistCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "fileCount": "{n, plural, =1{1 file} other{{n} files}}",
+  "@fileCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "folderChanges": "{n, plural, =1{1 change} other{{n} changes}}",
+  "@folderChanges": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "imported": "{n, plural, =1{1 song imported} other{{n} songs imported}}",
+  "@imported": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "importedRemote": "{n, plural, =1{1 network address skipped} other{{n} network addresses skipped}}",
+  "@importedRemote": {
+    "placeholders": {
+      "n": {
+        "type": "int"
       }
     }
   }

@@ -7,11 +7,10 @@ import '../../../l10n/l10n.dart';
 import '../../library/library_controller.dart';
 import '../../library/models.dart';
 import '../../player/playback_controller.dart';
-import '../atoms/cover_art.dart';
-import '../molecules/track_row.dart';
+import '../molecules/section_heading.dart';
 import '../organisms/album_grid.dart';
 import '../organisms/continue_card.dart';
-import '../organisms/player_bar.dart';
+import '../organisms/track_list.dart';
 import '../templates/page_template.dart';
 
 class HomePage extends StatelessWidget {
@@ -27,24 +26,6 @@ class HomePage extends StatelessWidget {
     required this.onOpenAlbum,
     required this.onSeeAll,
   });
-
-  Widget _heading(BuildContext context, String title, {Widget? action}) =>
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20, bottom: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              ?action,
-            ],
-          ),
-        ),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -65,10 +46,11 @@ class HomePage extends StatelessWidget {
           ),
         ),
         if (library.recent.isNotEmpty) ...[
-          _heading(
-            context,
-            l.recentlyAdded,
-            action: TextButton(onPressed: onSeeAll, child: Text(l.seeAll)),
+          SliverToBoxAdapter(
+            child: SectionHeading(
+              l.recentlyAdded,
+              action: TextButton(onPressed: onSeeAll, child: Text(l.seeAll)),
+            ),
           ),
           AlbumGrid(
             singleRow: true,
@@ -78,25 +60,11 @@ class HomePage extends StatelessWidget {
           ),
         ],
         if (library.mostPlayed.isNotEmpty) ...[
-          _heading(context, l.mostPlayed),
-          SliverList.builder(
-            itemCount: library.mostPlayed.length,
-            itemBuilder: (context, i) {
-              final track = library.mostPlayed[i];
-              return TrackRow(
-                track: track,
-                leading: CoverArt(
-                  path: track.coverPath,
-                  seed: '${track.album}|${track.artist}',
-                  size: 40,
-                  radius: 8,
-                ),
-                menu: (context) => trackMenu(context, playback, track),
-                onTap: () => unawaited(
-                  playback.playTracks(library.mostPlayed, index: i),
-                ),
-              );
-            },
+          SliverToBoxAdapter(child: SectionHeading(l.mostPlayed)),
+          TrackList(
+            tracks: library.mostPlayed,
+            library: library,
+            playback: playback,
           ),
         ],
       ],

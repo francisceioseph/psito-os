@@ -29,6 +29,8 @@ class Track {
   final bool embeddedLyrics;
   final String? coverPath;
   final int playCount;
+  final String? genre;
+  final bool favorite;
 
   const Track({
     this.id = 0,
@@ -46,7 +48,29 @@ class Track {
     this.embeddedLyrics = false,
     this.coverPath,
     this.playCount = 0,
+    this.genre,
+    this.favorite = false,
   });
+
+  Track withFavorite(bool favorite) => Track(
+    id: id,
+    path: path,
+    title: title,
+    artist: artist,
+    albumId: albumId,
+    album: album,
+    trackNumber: trackNumber,
+    discNumber: discNumber,
+    year: year,
+    duration: duration,
+    format: format,
+    lyricsPath: lyricsPath,
+    embeddedLyrics: embeddedLyrics,
+    coverPath: coverPath,
+    playCount: playCount,
+    genre: genre,
+    favorite: favorite,
+  );
 
   /// Um arquivo de que só se sabe o caminho.
   factory Track.fromPath(String path) => Track(
@@ -121,8 +145,202 @@ class LibraryTotals {
   final int albums;
   final int tracks;
   final int size;
+  final Duration duration;
 
-  const LibraryTotals({this.albums = 0, this.tracks = 0, this.size = 0});
+  const LibraryTotals({
+    this.albums = 0,
+    this.tracks = 0,
+    this.size = 0,
+    this.duration = Duration.zero,
+  });
+}
+
+@immutable
+class Artist {
+  final int id;
+
+  /// Vazio quando a tag não diz.
+  final String name;
+  final int albums;
+  final int tracks;
+
+  const Artist({
+    required this.id,
+    required this.name,
+    this.albums = 0,
+    this.tracks = 0,
+  });
+}
+
+@immutable
+class Genre {
+  /// Vazio são as faixas sem gênero.
+  final String name;
+  final int tracks;
+
+  const Genre({required this.name, this.tracks = 0});
+}
+
+/// Uma pasta com música dentro, em qualquer nível de uma pasta da biblioteca.
+@immutable
+class MusicDir {
+  final String path;
+  final int albums;
+  final int tracks;
+
+  const MusicDir({required this.path, this.albums = 0, this.tracks = 0});
+}
+
+enum PlaylistKind { manual, favorites, mostPlayed, recentlyAdded }
+
+@immutable
+class Playlist {
+  /// 0 nas automáticas.
+  final int id;
+  final PlaylistKind kind;
+
+  /// Vazio nas automáticas, que têm o nome na tela.
+  final String name;
+  final int trackCount;
+  final Duration duration;
+  final int updatedAt;
+
+  /// As capas do mosaico, até quatro.
+  final List<({String? path, String seed})> covers;
+
+  const Playlist({
+    required this.id,
+    this.kind = PlaylistKind.manual,
+    this.name = '',
+    this.trackCount = 0,
+    this.duration = Duration.zero,
+    this.updatedAt = 0,
+    this.covers = const [],
+  });
+
+  bool get automatic => kind != PlaylistKind.manual;
+}
+
+enum AlbumSort { recent, title, artist, year }
+
+enum TrackSort { title, album, artist, duration, format, added }
+
+/// Que faixas e em que ordem.
+@immutable
+class TrackQuery {
+  final TrackSort sort;
+  final bool ascending;
+  final bool favorites;
+  final String? format;
+  final int? artistId;
+
+  /// O vazio são as sem gênero.
+  final String? genre;
+  final String? dir;
+
+  const TrackQuery({
+    this.sort = TrackSort.title,
+    this.ascending = true,
+    this.favorites = false,
+    this.format,
+    this.artistId,
+    this.genre,
+    this.dir,
+  });
+
+  TrackQuery sortedBy(TrackSort sort, bool ascending) => TrackQuery(
+    sort: sort,
+    ascending: ascending,
+    favorites: favorites,
+    format: format,
+    artistId: artistId,
+    genre: genre,
+    dir: dir,
+  );
+
+  /// Os filtros da tela de músicas, um de cada vez.
+  TrackQuery filtered({bool favorites = false, String? format}) => TrackQuery(
+    sort: sort,
+    ascending: ascending,
+    favorites: favorites,
+    format: format,
+    artistId: artistId,
+    genre: genre,
+    dir: dir,
+  );
+}
+
+@immutable
+class SearchResults {
+  final String query;
+  final List<Track> tracks;
+  final List<Album> albums;
+  final List<Artist> artists;
+  final List<MusicDir> dirs;
+
+  const SearchResults({
+    this.query = '',
+    this.tracks = const [],
+    this.albums = const [],
+    this.artists = const [],
+    this.dirs = const [],
+  });
+
+  bool get isEmpty =>
+      tracks.isEmpty && albums.isEmpty && artists.isEmpty && dirs.isEmpty;
+
+  /// O nome que tem as mesmas palavras da busca é o que a pessoa quis dizer. Sem
+  /// nenhum assim, vale o artista, depois o álbum, depois a música.
+  Object? get best {
+    final words = _foldedWords(query);
+    // O mesmo nome, ou o começo dele enquanto a pessoa digita
+    bool exact(String name) {
+      final own = _foldedWords(name);
+      if (own.length != words.length) return false;
+      for (var i = 0; i < own.length; i++) {
+        if (!own[i].startsWith(words[i])) return false;
+      }
+      return true;
+    }
+
+    return artists.where((a) => exact(a.name)).firstOrNull ??
+        albums.where((a) => exact(a.title)).firstOrNull ??
+        tracks.where((t) => exact(t.title)).firstOrNull ??
+        artists.firstOrNull ??
+        albums.firstOrNull ??
+        tracks.firstOrNull;
+  }
+}
+
+List<String> _foldedWords(String text) => [
+  for (final word in text.trim().split(RegExp(r'\s+')))
+    String.fromCharCodes(word.codeUnits.map(_folded)),
+];
+
+/// Compara sem acento e sem diferenciar maiúsculas, sem criar texto: roda em
+/// cada comparação de uma ordenação grande.
+int compareFolded(String? a, String? b) {
+  final x = a ?? '';
+  final y = b ?? '';
+  final shared = x.length < y.length ? x.length : y.length;
+  for (var i = 0; i < shared; i++) {
+    final diff = _folded(x.codeUnitAt(i)) - _folded(y.codeUnitAt(i));
+    if (diff != 0) return diff;
+  }
+  return x.length - y.length;
+}
+
+// De U+00C0 a U+00FF, a letra sem acento. O resto continua como está.
+const _latin1Folded =
+    'aaaaaaaceeeeiiiidnooooo\u00d7ouuuuy\u00fe\u00df'
+    'aaaaaaaceeeeiiiidnooooo\u00f7ouuuuy\u00fey';
+
+int _folded(int unit) {
+  if (unit >= 0x41 && unit <= 0x5a) return unit + 0x20;
+  if (unit >= 0xc0 && unit <= 0xff) {
+    return _latin1Folded.codeUnitAt(unit - 0xc0);
+  }
+  return unit;
 }
 
 /// O que o scanner tira de um arquivo.

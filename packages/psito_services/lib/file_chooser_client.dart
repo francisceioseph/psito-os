@@ -28,10 +28,18 @@ class FileChooserClient {
   Future<String?> pickFolder({required String title}) =>
       _open(title: title, directory: true);
 
+  /// Onde gravar, ou null se a pessoa cancelou ou o portal não existe.
+  Future<String?> pickSaveFile({
+    required String title,
+    String suggestedName = '',
+  }) => _open(title: title, method: 'SaveFile', suggestedName: suggestedName);
+
   Future<String?> _open({
     required String title,
     List<String> patterns = const [],
     bool directory = false,
+    String method = 'OpenFile',
+    String suggestedName = '',
   }) async {
     StreamSubscription<DBusSignal>? subscription;
     try {
@@ -54,13 +62,15 @@ class FileChooserClient {
           });
       await DBusRemoteObject(_bus, name: _name, path: _path).callMethod(
         _interface,
-        'OpenFile',
+        method,
         [
           const DBusString(''),
           DBusString(title),
           DBusDict.stringVariant({
             'handle_token': DBusString(token),
             if (directory) 'directory': const DBusBoolean(true),
+            if (suggestedName.isNotEmpty)
+              'current_name': DBusString(suggestedName),
             if (patterns.isNotEmpty)
               'filters': DBusArray(DBusSignature('(sa(us))'), [
                 _filter(title, patterns),
