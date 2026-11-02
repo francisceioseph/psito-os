@@ -27,6 +27,7 @@ import 'opener.dart';
 import 'polkit_agent.dart';
 import 'settings_bus.dart';
 import 'storage_bus.dart';
+import 'media_keys.dart';
 import 'shell_bus.dart';
 import 'shell_state.dart';
 import 'toplevels.dart';
@@ -52,6 +53,7 @@ Future<void> main() async {
     dock: dock,
     sandbox: ShellState.sandboxFor(Platform.environment),
     autostart: Autostart(Platform.environment),
+    mediaKeys: MediaKeys(DBusClient.session()),
   );
   state.clipboardKeeper.listen(state.clipboard);
   final viewIds = await state.surfaces.viewIds();

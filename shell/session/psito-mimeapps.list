@@ -3,3 +3,14 @@
 [Default Applications]
 inode/directory=org.psito.files.desktop
 text/plain=org.psito.notepad.desktop
+audio/flac=org.psito.player.desktop
+audio/x-flac=org.psito.player.desktop
+audio/mpeg=org.psito.player.desktop
+audio/ogg=org.psito.player.desktop
+audio/x-vorbis+ogg=org.psito.player.desktop
+audio/opus=org.psito.player.desktop
+audio/x-opus+ogg=org.psito.player.desktop
+audio/mp4=org.psito.player.desktop
+audio/x-m4a=org.psito.player.desktop
+audio/wav=org.psito.player.desktop
+audio/x-wav=org.psito.player.desktop

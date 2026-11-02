@@ -61,6 +61,12 @@ class SdkLocalizationsPt extends SdkLocalizations {
   String get shortcutVolumeKeys => 'Teclas de volume';
 
   @override
+  String get shortcutMedia => 'Tocar ou pausar / próxima / faixa anterior';
+
+  @override
+  String get shortcutMediaKeys => 'Teclas de mídia';
+
+  @override
   String get shortcutMute => 'Silenciar';
 
   @override

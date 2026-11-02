@@ -21,6 +21,7 @@ import 'package:system_shell/widgets/transfer_indicator.dart';
 import 'package:system_shell/shell/shortcuts.dart';
 import 'package:system_shell/shell/window_switcher.dart';
 
+import 'media_keys.dart';
 import 'app_icon.dart';
 import 'l10n/shell_localizations.dart';
 import 'autostart.dart';
@@ -69,6 +70,7 @@ class ShellState {
     this.sandbox,
     this.autostart,
     this.clipboardKeeper = const ClipboardKeeper(),
+    this.mediaKeys,
   }) : surfaces = surfaces ?? Surfaces(),
        dock = dock ?? DockStore.memory(defaultDock) {
     this.surfaces.monitors.addListener(_monitorsChanged);
@@ -171,6 +173,9 @@ class ShellState {
   /// recebem arquivos.
   List<DesktopEntry> Function(String mimeType)? appsForType;
   final Surfaces surfaces;
+
+  /// As teclas de mídia. Null, sem barramento.
+  final MediaKeys? mediaKeys;
 
   /// O `psito-sandbox` em que os apps do Psito abrem. Null abre sem sandbox.
   final String? sandbox;
@@ -834,6 +839,12 @@ class ShellState {
         if (!audio.state.value.available) return;
         audio.setMuted(!audio.state.value.muted);
         _showOsd();
+      case ShellAction.mediaPlayPause:
+        unawaited(mediaKeys?.send(MediaCommand.playPause));
+      case ShellAction.mediaNext:
+        unawaited(mediaKeys?.send(MediaCommand.next));
+      case ShellAction.mediaPrevious:
+        unawaited(mediaKeys?.send(MediaCommand.previous));
       case ShellAction.closeWindow ||
           ShellAction.maximize ||
           ShellAction.snapLeft ||

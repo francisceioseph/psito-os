@@ -11,7 +11,8 @@
 # com settings), settings (o Update do
 # org.psito.Settings, o org.psito.Storage, o org.psito.Displays e mudar o fuso e o nome), files:home (o $HOME de verdade),
 # files:removable (os discos externos: a /media e o org.psito.Volumes) e
-# notifications (o org.freedesktop.Notifications) e audio (tocar som: ver abaixo).
+# notifications (o org.freedesktop.Notifications) e audio (tocar som: ver abaixo;
+# e publicar os controles de mídia, só no nome org.mpris.MediaPlayer2.<app-id>).
 # Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
 # pasta) que ele não veria: o shell monta <fora> em <dentro>, que fica em
@@ -101,6 +102,7 @@ has settings && proxy+=("--call=${SETTINGS[0]}=${SETTINGS[1]}.Update@${SETTINGS[
 # O padrão de cada tipo é do usuário: só quem vê os arquivos dele
 has files:home && proxy+=("--call=${LAUNCHER[0]}=${LAUNCHER[1]}.SetDefault@${LAUNCHER[2]}")
 has notifications && proxy+=(--talk=org.freedesktop.Notifications)
+has audio && proxy+=("--own=org.mpris.MediaPlayer2.$APP")
 has files:removable && proxy+=(--talk=org.psito.Volumes)
 has settings && proxy+=(--talk=org.psito.Storage --talk=org.psito.Displays)
 

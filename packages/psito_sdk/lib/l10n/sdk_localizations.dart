@@ -200,6 +200,18 @@ abstract class SdkLocalizations {
   /// **'Volume keys'**
   String get shortcutVolumeKeys;
 
+  /// No description provided for @shortcutMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Play or pause / next / previous track'**
+  String get shortcutMedia;
+
+  /// No description provided for @shortcutMediaKeys.
+  ///
+  /// In en, this message translates to:
+  /// **'Media keys'**
+  String get shortcutMediaKeys;
+
   /// No description provided for @shortcutMute.
   ///
   /// In en, this message translates to:

@@ -17,6 +17,8 @@
   "shortcutMinimize": "Minimizar",
   "shortcutVolume": "Subir / baixar o volume",
   "shortcutVolumeKeys": "Teclas de volume",
+  "shortcutMedia": "Tocar ou pausar / próxima / faixa anterior",
+  "shortcutMediaKeys": "Teclas de mídia",
   "shortcutMute": "Silenciar",
   "shortcutMuteKey": "Tecla de mudo",
   "shortcutClipboard": "Abrir a área de transferência",

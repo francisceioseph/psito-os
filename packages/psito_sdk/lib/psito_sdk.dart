@@ -439,6 +439,7 @@ List<PsitoShortcut> psitoShortcuts(SdkLocalizations l) => [
     'Alt+Shift+PageUp / PageDown',
   ),
   PsitoShortcut(l.shortcutMute, l.shortcutMuteKey, 'Alt+Shift+M'),
+  PsitoShortcut(l.shortcutMedia, l.shortcutMediaKeys, 'Alt+Shift+P / N / B'),
   PsitoShortcut(l.shortcutClipboard, 'Super+V', 'Alt+Shift+V'),
   PsitoShortcut(
     l.shortcutClipboardCopy,

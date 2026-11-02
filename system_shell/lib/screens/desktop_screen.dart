@@ -235,8 +235,11 @@ class _DesktopScreenState extends State<DesktopScreen> {
         final audio = _services.audio;
         audio.setMuted(!audio.state.value.muted);
         _showVolumeOsd();
-      // Sem bloqueio no laboratório
-      case ShellAction.lock:
+      // Sem bloqueio nem player no laboratório
+      case ShellAction.lock ||
+          ShellAction.mediaPlayPause ||
+          ShellAction.mediaNext ||
+          ShellAction.mediaPrevious:
         break;
       case ShellAction.showDesktop ||
           ShellAction.clipboard ||

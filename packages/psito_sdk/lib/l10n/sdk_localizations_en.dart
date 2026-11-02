@@ -61,6 +61,12 @@ class SdkLocalizationsEn extends SdkLocalizations {
   String get shortcutVolumeKeys => 'Volume keys';
 
   @override
+  String get shortcutMedia => 'Play or pause / next / previous track';
+
+  @override
+  String get shortcutMediaKeys => 'Media keys';
+
+  @override
   String get shortcutMute => 'Mute';
 
   @override

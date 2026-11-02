@@ -18,6 +18,9 @@ enum ShellAction {
   volumeUp,
   volumeDown,
   volumeMute,
+  mediaPlayPause,
+  mediaNext,
+  mediaPrevious,
   clipboard,
   clipboard1,
   clipboard2,
@@ -62,6 +65,11 @@ const shellBindings = <SingleActivator, ShellAction>{
   SingleActivator(LogicalKeyboardKey.audioVolumeDown, includeRepeats: true):
       ShellAction.volumeDown,
   SingleActivator(LogicalKeyboardKey.audioVolumeMute): ShellAction.volumeMute,
+  SingleActivator(LogicalKeyboardKey.mediaPlayPause):
+      ShellAction.mediaPlayPause,
+  SingleActivator(LogicalKeyboardKey.mediaTrackNext): ShellAction.mediaNext,
+  SingleActivator(LogicalKeyboardKey.mediaTrackPrevious):
+      ShellAction.mediaPrevious,
   SingleActivator(LogicalKeyboardKey.keyV, meta: true): ShellAction.clipboard,
   SingleActivator(LogicalKeyboardKey.digit1, meta: true):
       ShellAction.clipboard1,
@@ -103,6 +111,12 @@ const shellBindings = <SingleActivator, ShellAction>{
   ): ShellAction.volumeDown,
   SingleActivator(LogicalKeyboardKey.keyM, alt: true, shift: true):
       ShellAction.volumeMute,
+  SingleActivator(LogicalKeyboardKey.keyP, alt: true, shift: true):
+      ShellAction.mediaPlayPause,
+  SingleActivator(LogicalKeyboardKey.keyN, alt: true, shift: true):
+      ShellAction.mediaNext,
+  SingleActivator(LogicalKeyboardKey.keyB, alt: true, shift: true):
+      ShellAction.mediaPrevious,
   SingleActivator(LogicalKeyboardKey.keyV, alt: true, shift: true):
       ShellAction.clipboard,
   SingleActivator(LogicalKeyboardKey.digit1, alt: true, shift: true):

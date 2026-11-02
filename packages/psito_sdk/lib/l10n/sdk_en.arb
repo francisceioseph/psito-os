@@ -17,6 +17,8 @@
   "shortcutMinimize": "Minimize",
   "shortcutVolume": "Raise / lower the volume",
   "shortcutVolumeKeys": "Volume keys",
+  "shortcutMedia": "Play or pause / next / previous track",
+  "shortcutMediaKeys": "Media keys",
   "shortcutMute": "Mute",
   "shortcutMuteKey": "Mute key",
   "shortcutClipboard": "Open the clipboard",

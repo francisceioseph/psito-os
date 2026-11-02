@@ -54,6 +54,15 @@ void main() {
     expect(plan.proxy, contains('--talk=org.psito.Volumes'));
   });
 
+  test('audio deixa publicar o MPRIS, só no nome do app', () async {
+    expect(
+      (await _dryRun('audio')).proxy,
+      contains('--own=org.mpris.MediaPlayer2.org.psito.x'),
+    );
+    final without = await _dryRun('notifications');
+    expect(without.proxy.where((arg) => arg.startsWith('--own')), isEmpty);
+  });
+
   test('audio dá um socket restrito do PipeWire, só deste app', () async {
     final without = await _dryRun('network;files:home');
     expect(without.bwrap.join(' '), isNot(contains('pipewire')));

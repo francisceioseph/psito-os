@@ -44,6 +44,9 @@ bool shellHandles(ShellAction action) => switch (action) {
   ShellAction.volumeUp ||
   ShellAction.volumeDown ||
   ShellAction.volumeMute ||
+  ShellAction.mediaPlayPause ||
+  ShellAction.mediaNext ||
+  ShellAction.mediaPrevious ||
   ShellAction.clipboard ||
   ShellAction.clipboard1 ||
   ShellAction.clipboard2 ||
@@ -82,6 +85,9 @@ final _keys = <LogicalKeyboardKey, (String, String)>{
     'KEY_VOLUMEDOWN',
   ),
   LogicalKeyboardKey.audioVolumeMute: ('XF86AudioMute', 'KEY_MUTE'),
+  LogicalKeyboardKey.mediaPlayPause: ('XF86AudioPlay', 'KEY_PLAYPAUSE'),
+  LogicalKeyboardKey.mediaTrackNext: ('XF86AudioNext', 'KEY_NEXTSONG'),
+  LogicalKeyboardKey.mediaTrackPrevious: ('XF86AudioPrev', 'KEY_PREVIOUSSONG'),
 };
 
 (String, String) _key(LogicalKeyboardKey key) {
