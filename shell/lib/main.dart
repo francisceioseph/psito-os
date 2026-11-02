@@ -18,6 +18,7 @@ import 'package:system_shell/shell/settings_store.dart';
 import 'autostart.dart';
 import 'bridge/bridge.dart';
 import 'desk.dart';
+import 'displays.dart';
 import 'launcher_bus.dart';
 import 'volumes_bus.dart';
 import 'notifications_server.dart';
@@ -54,6 +55,11 @@ Future<void> main() async {
   state.clipboardKeeper.listen(state.clipboard);
   final viewIds = await state.surfaces.viewIds();
   await state.surfaces.start();
+  final displays = Displays(
+    surfaces: state.surfaces,
+    store: await MonitorStore.load(defaultMonitorsFile()),
+  );
+  await displays.start();
   state.applyDockSettings();
   runWidget(ShellViews(state: state, viewIds: viewIds));
 
@@ -111,7 +117,10 @@ Future<void> main() async {
 
   try {
     await publishShell(
-      ShellBusObject(onRun: state.run, onSetPrimary: state.surfaces.setPrimary),
+      ShellBusObject(
+        onRun: state.run,
+        onSetPrimary: displays.setPrimaryMonitor,
+      ),
     );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');

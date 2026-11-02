@@ -45,6 +45,19 @@ rm -f /usr/local/bin/flutter-pi /etc/default/psito-os \
     "$CONF/systemd/user/psito-shell.service" \
     "$CONF/xdg-desktop-portal/labwc-portals.conf"
 rm -rf /opt/psito-app /opt/psito
+# O virtio-gpu prefere um modo pequeno, e quem aplica a resolução é o shell
+# (docs/FASE-12.md). O que já está gravado continua valendo.
+sed -i '/wlr-randr/d;/virtio-gpu anuncia/d' "$CONF/labwc/autostart" 2>/dev/null || true
+if [ ! -e "$CONF/psito/monitors.json" ]; then
+    sudo -u "$APP_USER" mkdir -p "$CONF/psito"
+    sudo -u "$APP_USER" tee "$CONF/psito/monitors.json" >/dev/null <<'MONITORS'
+{
+  "monitors": {
+    "Red Hat, Inc.|QEMU Monitor|Virtual-1": {"width": 1440, "height": 900}
+  }
+}
+MONITORS
+fi
 # A sessão é do greetd (pacote psito-greeter), com o login automático na VM para
 # os scripts acharem o shell de pé. Antes do primeiro deploy.sh o greetd falha, e
 # é o deploy que sobe ele.

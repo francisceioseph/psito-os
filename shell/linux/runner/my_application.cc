@@ -11,6 +11,7 @@
 #include "psito_runtime/psito_dnd.h"
 #include "clipboard_keeper.h"
 #include "idle.h"
+#include "outputs.h"
 #include "toplevels.h"
 
 // O shell do Psito como cliente layer-shell: um engine, uma FlView por
@@ -613,6 +614,7 @@ static void my_application_activate(GApplication* application) {
                    G_CALLBACK(background_focus_cb), self);
   toplevels_init(messenger);
   idle_init(messenger);
+  outputs_init(messenger);
   clipboard_keeper_init(messenger);
 
   GdkDisplay* display = gdk_display_get_default();

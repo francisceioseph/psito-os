@@ -42,12 +42,27 @@ add_custom_command(
   DEPENDS "${IDLE_XML}"
 )
 
+# O do wlr-output-management também (o outputs.cc)
+set(OUTPUTS_XML
+  "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/wlr-output-management-unstable-v1.xml")
+set(OUTPUTS_PROTOCOL
+  "${CMAKE_CURRENT_BINARY_DIR}/wlr-output-management-unstable-v1")
+add_custom_command(
+  OUTPUT "${OUTPUTS_PROTOCOL}-client-protocol.h" "${OUTPUTS_PROTOCOL}-protocol.c"
+  COMMAND ${WAYLAND_SCANNER} client-header "${OUTPUTS_XML}" "${OUTPUTS_PROTOCOL}-client-protocol.h"
+  COMMAND ${WAYLAND_SCANNER} private-code "${OUTPUTS_XML}" "${OUTPUTS_PROTOCOL}-protocol.c"
+  DEPENDS "${OUTPUTS_XML}"
+)
+
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
   "toplevels.cc"
   "clipboard_keeper.cc"
   "idle.cc"
+  "outputs.cc"
+  "${OUTPUTS_PROTOCOL}-protocol.c"
+  "${OUTPUTS_PROTOCOL}-client-protocol.h"
   "${IDLE_PROTOCOL}-protocol.c"
   "${IDLE_PROTOCOL}-client-protocol.h"
   "${TOPLEVEL_PROTOCOL}-protocol.c"

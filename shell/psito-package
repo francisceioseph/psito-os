@@ -9,7 +9,7 @@ DESCRIPTION="Shell do Psito OS (cliente layer-shell do labwc)"
 # at-spi2-core e o libatk-adaptor levam a árvore dos apps ao leitor de tela.
 # O udisks2 monta os discos externos, com o dosfstools e o exfatprogs para eles, e
 # o fuser (psmisc) diz quem está usando
-DEPENDS="labwc, wlr-randr, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor, udisks2, dosfstools, exfatprogs, psmisc"
+DEPENDS="labwc, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor, udisks2, dosfstools, exfatprogs, psmisc"
 FILES=(
     session/psito-session:/usr/bin/psito-session
     session/psito-shell-start:/usr/bin/psito-shell-start
