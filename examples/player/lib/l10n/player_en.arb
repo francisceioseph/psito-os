@@ -1,0 +1,18 @@
+{
+  "@@locale": "en",
+  "appName": "Music Player",
+  "noTrack": "No track",
+  "openFile": "Open file",
+  "play": "Play",
+  "pause": "Pause",
+  "progress": "Progress",
+  "volume": "Volume",
+  "library": "Library",
+  "songs": "Songs",
+  "artists": "Artists",
+  "playlists": "Playlists",
+  "folders": "Folders",
+  "genres": "Genres",
+  "engineUnavailable": "The audio engine is unavailable: {error}",
+  "openFailed": "Could not play this file: {error}"
+}

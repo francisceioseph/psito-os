@@ -1,0 +1,18 @@
+{
+  "@@locale": "pt",
+  "appName": "Player de música",
+  "noTrack": "Nenhuma faixa",
+  "openFile": "Abrir arquivo",
+  "play": "Tocar",
+  "pause": "Pausar",
+  "progress": "Progresso",
+  "volume": "Volume",
+  "engineUnavailable": "O motor de áudio não está disponível: {error}",
+  "openFailed": "Não foi possível tocar este arquivo: {error}",
+  "library": "Biblioteca",
+  "songs": "Músicas",
+  "artists": "Artistas",
+  "playlists": "Playlists",
+  "folders": "Pastas",
+  "genres": "Gêneros"
+}

@@ -1,0 +1,3 @@
+# O que o tools/psito-deb não acha sozinho: o media_kit abre a libmpv em tempo
+# de execução (dlopen), então ela não aparece no NEEDED de nenhum arquivo.
+DEPENDS="libmpv2"

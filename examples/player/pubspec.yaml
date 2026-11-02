@@ -1,0 +1,31 @@
+name: psito_player
+description: "Player de músicas locais do Psito OS."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  # A libmpv vem do sistema (o libmpv2 do Debian, ver o psito-package). O
+  # media_kit_libs_linux só registra o plugin e acerta o LC_NUMERIC.
+  media_kit: ^1.2.6
+  media_kit_libs_linux: ^1.2.1
+  psito_runtime:
+    path: ../../packages/psito_runtime
+  psito_sdk:
+    path: ../../packages/psito_sdk
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true

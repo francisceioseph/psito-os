@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Music Player
+Name[pt]=Player de música
+Exec=/usr/lib/psito/apps/org.psito.player/psito_player %F
+Icon=org.psito.player
+StartupWMClass=org.psito.player
+MimeType=audio/flac;audio/x-flac;audio/mpeg;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/mp4;audio/x-m4a;audio/wav;audio/x-wav;
+X-Psito-App=player
+X-Psito-Color=#FE8363
+X-Psito-Permissions=audio;files:home;files:removable;
