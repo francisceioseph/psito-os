@@ -1,0 +1,4 @@
+# O padrão do GNOME é só o fechar. A ponte grava no dconf da conta, mas um app no
+# sandbox, sem o home, lê o padrão do sistema, que é este.
+[org.gnome.desktop.wm.preferences]
+button-layout='appmenu:minimize,maximize,close'
