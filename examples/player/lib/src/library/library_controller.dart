@@ -63,6 +63,11 @@ extension LibraryQueries on LibraryStore {
       run((db) => db.removeFromPlaylist(id, index, now));
   Future<void> movePlaylistTrack(int id, int from, int to, int now) =>
       run((db) => db.movePlaylistTrack(id, from, to, now));
+  Future<TrackDetails?> trackDetails(String path) =>
+      run((db) => db.trackDetails(path));
+  Future<int> lyricsOffset(String path) => run((db) => db.lyricsOffset(path));
+  Future<void> setLyricsOffset(String path, int offsetMs) =>
+      run((db) => db.setLyricsOffset(path, offsetMs));
   Future<String?> setting(String key) => run((db) => db.setting(key));
   Future<void> setSetting(String key, String value) =>
       run((db) => db.setSetting(key, value));

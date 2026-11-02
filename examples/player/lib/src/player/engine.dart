@@ -95,6 +95,8 @@ abstract class PlayerEngine {
 
   /// No fim da fila.
   Future<void> add(String path);
+
+  /// Tira de [from] e deixa em [to], o índice que ela fica tendo.
   Future<void> move(int from, int to);
   Future<void> remove(int index);
 

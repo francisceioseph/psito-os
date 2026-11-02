@@ -19,6 +19,8 @@ KeyEventResult handlePlayerKey(
   KeyEvent event,
   PlaybackController playback, {
   VoidCallback? onSearch,
+  VoidCallback? onLyrics,
+  VoidCallback? onQueue,
 }) {
   if (event is KeyUpEvent) return KeyEventResult.ignored;
   final key = event.logicalKey;
@@ -38,6 +40,19 @@ KeyEventResult handlePlayerKey(
     }
     if (playback.state.queue.isEmpty) return KeyEventResult.ignored;
     unawaited(playback.togglePlay());
+    return KeyEventResult.handled;
+  }
+  final plain =
+      event is KeyDownEvent &&
+      !HardwareKeyboard.instance.isControlPressed &&
+      !HardwareKeyboard.instance.isAltPressed &&
+      !HardwareKeyboard.instance.isMetaPressed;
+  if (key == LogicalKeyboardKey.keyL && plain && onLyrics != null) {
+    onLyrics();
+    return KeyEventResult.handled;
+  }
+  if (key == LogicalKeyboardKey.keyQ && plain && onQueue != null) {
+    onQueue();
     return KeyEventResult.handled;
   }
   if (key == LogicalKeyboardKey.arrowLeft) {

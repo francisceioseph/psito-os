@@ -90,7 +90,7 @@ FileTags readFileTags(File file) {
     durationMs: tags.duration?.inMilliseconds ?? 0,
     sampleRate: tags.sampleRate,
     bitrate: tags.bitrate,
-    embeddedLyrics: _clean(tags.lyrics) != null,
+    embeddedLyrics: _clean(tags.lyrics?.replaceAll('\u0000', '')) != null,
     cover: (front.firstOrNull ?? tags.pictures.firstOrNull)?.bytes,
   );
 }

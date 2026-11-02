@@ -1,7 +1,8 @@
 // examples/player/lib/src/ui/templates/shell_template.dart
 //
-// A janela: a navegação, o conteúdo, o painel ao lado e a barra do player. Decide
-// o que cabe, até o mínimo de 240x160 do Psito, em que só a barra fica.
+// A janela: a navegação, o conteúdo, o painel ao lado e a barra do player, que dá
+// lugar ao painel. Decide o que cabe, até o mínimo de 240x160 do Psito, em que só a
+// barra fica.
 import 'package:flutter/material.dart';
 
 class ShellTemplate extends StatelessWidget {
@@ -50,23 +51,16 @@ class ShellTemplate extends StatelessWidget {
                 if (showContent) ...[
                   if (!showRail) compactNav,
                   Expanded(
-                    child: Row(
-                      children: [
-                        if (panel == null || panelBeside)
-                          Expanded(child: content),
-                        if (panelBeside)
-                          SizedBox(width: panelWidth, child: panel)
-                        else
-                          ?panel == null ? null : Expanded(child: panel),
-                      ],
-                    ),
+                    child: panel == null || panelBeside ? content : panel,
                   ),
                 ] else
                   const Spacer(),
-                bar,
+                if (panel == null || !showContent) bar,
               ],
             ),
           ),
+          if (showContent && panelBeside)
+            SizedBox(width: panelWidth, child: panel),
         ],
       );
     },

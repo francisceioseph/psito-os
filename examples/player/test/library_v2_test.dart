@@ -79,7 +79,7 @@ void main() {
       );
       // O caminho antes da pasta da biblioteca não conta
       expect(migrated.search('home').dirs, isEmpty);
-      expect(raw.userVersion, 2);
+      expect(raw.userVersion, 3);
       migrated.close();
     });
   });

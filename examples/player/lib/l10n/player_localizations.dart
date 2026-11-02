@@ -997,6 +997,144 @@ abstract class PlayerLocalizations {
   /// In en, this message translates to:
   /// **'{n, plural, =1{1 network address skipped} other{{n} network addresses skipped}}'**
   String importedRemote(int n);
+
+  /// No description provided for @lyricsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics'**
+  String get lyricsTab;
+
+  /// No description provided for @coverTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get coverTab;
+
+  /// No description provided for @noLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'This track has no lyrics'**
+  String get noLyrics;
+
+  /// No description provided for @lyricsSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'synced'**
+  String get lyricsSynced;
+
+  /// No description provided for @lyricsUnsynced.
+  ///
+  /// In en, this message translates to:
+  /// **'not synced'**
+  String get lyricsUnsynced;
+
+  /// No description provided for @lyricsEmbedded.
+  ///
+  /// In en, this message translates to:
+  /// **'In the tags'**
+  String get lyricsEmbedded;
+
+  /// No description provided for @lyricsTiming.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the lyrics timing'**
+  String get lyricsTiming;
+
+  /// No description provided for @lyricsEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the lyrics earlier'**
+  String get lyricsEarlier;
+
+  /// No description provided for @lyricsLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the lyrics later'**
+  String get lyricsLater;
+
+  /// No description provided for @lyricsResetTiming.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the timing'**
+  String get lyricsResetTiming;
+
+  /// No description provided for @withLyrics.
+  ///
+  /// In en, this message translates to:
+  /// **'With lyrics'**
+  String get withLyrics;
+
+  /// No description provided for @upNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Up next'**
+  String get upNext;
+
+  /// No description provided for @clearQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearQueue;
+
+  /// No description provided for @saveAsPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as playlist'**
+  String get saveAsPlaylist;
+
+  /// No description provided for @detailAlbum.
+  ///
+  /// In en, this message translates to:
+  /// **'Album'**
+  String get detailAlbum;
+
+  /// No description provided for @detailGenre.
+  ///
+  /// In en, this message translates to:
+  /// **'Genre'**
+  String get detailGenre;
+
+  /// No description provided for @detailFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get detailFile;
+
+  /// No description provided for @detailCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Cover'**
+  String get detailCover;
+
+  /// No description provided for @detailFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get detailFolder;
+
+  /// No description provided for @coverEmbedded.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded'**
+  String get coverEmbedded;
+
+  /// No description provided for @coverGenerated.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated'**
+  String get coverGenerated;
+
+  /// No description provided for @secondsOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} s'**
+  String secondsOffset(String value);
+
+  /// No description provided for @playlistSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as “{name}”'**
+  String playlistSaved(String name);
 }
 
 class _PlayerLocalizationsDelegate

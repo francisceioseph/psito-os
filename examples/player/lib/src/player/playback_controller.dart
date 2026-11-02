@@ -202,6 +202,17 @@ class PlaybackController extends ChangeNotifier {
 
   Future<void> jump(int index) => engine.jump(index);
   Future<void> removeAt(int index) => engine.remove(index);
+  Future<void> moveInQueue(int from, int to) => engine.move(from, to);
+
+  /// Tira o que vem depois da atual. Do fim para o começo, para os índices não
+  /// andarem.
+  Future<void> clearUpcoming() async {
+    final s = state;
+    for (var i = s.queue.length - 1; i > s.index; i--) {
+      await engine.remove(i);
+    }
+  }
+
   Future<void> togglePlay() => engine.playOrPause();
   Future<void> next() => engine.next();
 

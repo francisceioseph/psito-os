@@ -11,7 +11,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import 'models.dart';
 
-const _schemaVersion = 2;
+const _schemaVersion = 3;
 
 @visibleForTesting
 const schemaV1 = '''
@@ -235,6 +235,7 @@ class LibraryDb {
     final from = _db.userVersion;
     if (from < 1) _db.execute(schemaV1);
     if (from < 2) _toV2();
+    if (from < 3) _toV3();
     _db.userVersion = _schemaVersion;
     _db.execute('COMMIT');
   }
@@ -264,6 +265,15 @@ class LibraryDb {
     update.dispose();
     _db.execute(_schemaV2Tables);
   }
+
+  /// O ajuste da letra é pelo caminho, para valer também em quem está fora da
+  /// biblioteca e voltar com a faixa.
+  void _toV3() => _db.execute('''
+    CREATE TABLE lyrics_offsets (
+      path TEXT PRIMARY KEY,
+      offset_ms INTEGER NOT NULL
+    ) WITHOUT ROWID;
+  ''');
 
   /// A pasta da faixa como a busca vê: a partir da pasta da biblioteca, com o nome
   /// dela. O resto do caminho (`/home/...`) acharia tudo.
@@ -349,6 +359,20 @@ class LibraryDb {
     ))
       r['path'] as String: (r['mtime'] as int, r['size'] as int),
   };
+
+  /// As letras ao lado das faixas de [folderId], como a última leitura viu.
+  Map<String, String?> knownLyrics(int folderId) => {
+    for (final r in _db.select(
+      'SELECT path, lyrics_path FROM tracks WHERE folder_id = ?',
+      [folderId],
+    ))
+      r['path'] as String: r['lyrics_path'] as String?,
+  };
+
+  void setLyricsPath(String path, String? lyricsPath) => _db.execute(
+    'UPDATE tracks SET lyrics_path = ? WHERE path = ?',
+    [lyricsPath, path],
+  );
 
   int _artist(String name) {
     _db.execute('INSERT OR IGNORE INTO artists (name) VALUES (?)', [name]);
@@ -541,6 +565,9 @@ class LibraryDb {
     }
 
     if (query.favorites) where.add('t.favorite = 1');
+    if (query.withLyrics) {
+      where.add('(t.lyrics_path IS NOT NULL OR t.embedded_lyrics = 1)');
+    }
     if (query.format != null) filter('t.format = ?', query.format);
     if (query.artistId != null) filter('t.artist_id = ?', query.artistId);
     if (query.dir != null) filter('t.dir = ?', query.dir);
@@ -870,6 +897,43 @@ class LibraryDb {
     statement.dispose();
     return found;
   }
+
+  /// O que o painel Capa conta além do que a [Track] já tem. Null fora da
+  /// biblioteca.
+  TrackDetails? trackDetails(String path) {
+    final rows = _db.select(
+      '''
+      SELECT t.sample_rate, t.bitrate, al.cover_source
+      FROM tracks t JOIN albums al ON al.id = t.album_id
+      WHERE t.path = ?
+      ''',
+      [path],
+    );
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    return TrackDetails(
+      sampleRate: r['sample_rate'] as int?,
+      bitrate: r['bitrate'] as int?,
+      coverSource: r['cover_source'] as String?,
+    );
+  }
+
+  /// Em milissegundos. Positivo adianta a letra, como o `[offset]` do LRC.
+  int lyricsOffset(String path) {
+    final rows = _db.select(
+      'SELECT offset_ms FROM lyrics_offsets WHERE path = ?',
+      [path],
+    );
+    return rows.isEmpty ? 0 : rows.first['offset_ms'] as int;
+  }
+
+  void setLyricsOffset(String path, int offsetMs) => offsetMs == 0
+      ? _db.execute('DELETE FROM lyrics_offsets WHERE path = ?', [path])
+      : _db.execute(
+          'INSERT OR REPLACE INTO lyrics_offsets (path, offset_ms) '
+          'VALUES (?, ?)',
+          [path, offsetMs],
+        );
 
   void recordPlay(int trackId, int at) => _db.execute(
     '''

@@ -49,6 +49,9 @@ class TrackRow extends StatelessWidget {
   /// Marca como favorita, ou null sem o botão.
   final ValueChanged<bool>? onFavorite;
 
+  /// Com a duração mesmo sem largura para o resto, como na fila.
+  final bool showDuration;
+
   const TrackRow({
     super.key,
     required this.track,
@@ -60,6 +63,7 @@ class TrackRow extends StatelessWidget {
     this.columns = false,
     this.missing = false,
     this.onFavorite,
+    this.showDuration = false,
   });
 
   Widget _muted(BuildContext context, String text) {
@@ -208,6 +212,8 @@ class TrackRow extends StatelessWidget {
                           ),
                         ),
                       ],
+                      if (showDuration && !details)
+                        _muted(context, formatDuration(track.duration, locale)),
                       if (details) ?_favorite(),
                       if (menu != null)
                         PopupMenuButton<VoidCallback>(

@@ -315,18 +315,19 @@ void main() {
       await tester.tap(find.byTooltip('Fila'));
       await tester.pump();
       expect(find.byType(QueuePanel), findsOneWidget);
-      expect(find.text('3 músicas · 9 min'), findsOneWidget);
+      expect(find.text('A SEGUIR · 3 MÚSICAS · 9 MIN'), findsOneWidget);
       final rows = find.descendant(
         of: find.byType(QueuePanel),
         matching: find.byType(TrackRow),
       );
       expect(rows, findsNWidgets(3));
-      await tester.tap(rows.last);
-      await tester.pump();
-      expect(engine.state.value.index, 2);
       await tester.tap(find.byTooltip('Tirar da fila').first);
       await tester.pump();
       expect(engine.state.value.queue, hasLength(2));
+      await tester.tap(rows.last);
+      await tester.pump();
+      expect(engine.state.value.index, 1);
+      expect(rows, findsOneWidget);
       await tester.tap(find.byTooltip('Fechar'));
       await tester.pump();
       expect(find.byType(QueuePanel), findsNothing);

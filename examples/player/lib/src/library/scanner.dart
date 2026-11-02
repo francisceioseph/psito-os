@@ -293,6 +293,7 @@ Future<void> scanFolders({
   for (final (folder, files) in listings) {
     if (control.cancelled) break;
     final known = db.knownFiles(folder.id);
+    final knownLyrics = db.knownLyrics(folder.id);
     final gone = known.keys.toSet();
     for (final path in files) {
       gone.remove(path);
@@ -311,6 +312,13 @@ Future<void> scanFolders({
       final mtime = stat.modified.millisecondsSinceEpoch;
       final old = known[path];
       if (old != null && old.$1 == mtime && old.$2 == stat.size) {
+        // A letra pode chegar ou sair sem a música mudar
+        final dir = p.dirname(path);
+        final lyrics = findLyricsFile(path, namesIn(dir));
+        final lyricsPath = lyrics == null ? null : p.join(dir, lyrics);
+        if (lyricsPath != knownLyrics[path]) {
+          db.setLyricsPath(path, lyricsPath);
+        }
         tracks++;
         done++;
         // Sem nada a gravar, o progresso ainda precisa andar

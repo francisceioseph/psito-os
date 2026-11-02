@@ -189,6 +189,19 @@ void main() {
       },
     );
 
+    test('a letra que chega ou sai depois, sem a música mudar', () async {
+      await scan(readTags: byName);
+      final album = db.albums().firstWhere((a) => a.title == 'Álbum A');
+      expect(db.albumTracks(album.id).first.lyricsPath, isNull);
+      write('Álbum A/1.lrc');
+      await scan(readTags: (_) => fail('a música não mudou'));
+      final lyrics = db.albumTracks(album.id).first.lyricsPath!;
+      expect(p.basename(lyrics), '1.lrc');
+      File(lyrics).deleteSync();
+      await scan(readTags: (_) => fail('a música não mudou'));
+      expect(db.albumTracks(album.id).first.lyricsPath, isNull);
+    });
+
     test('registra a letra ao lado, com o .lrc na frente', () async {
       write('Álbum A/1.SRT');
       write('Álbum A/1.lrc');

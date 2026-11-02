@@ -93,13 +93,21 @@ class LibraryPage extends StatelessWidget {
         options: [
           ('', l.allSongs),
           ('*', l.favorites),
+          ('~', l.withLyrics),
           for (final format in library.formats) (format, format),
         ],
-        selected: query.favorites ? '*' : (query.format ?? ''),
+        selected: query.favorites
+            ? '*'
+            : query.withLyrics
+            ? '~'
+            : (query.format ?? ''),
         onSelected: (value) => library.setSongQuery(
           query.filtered(
             favorites: value == '*',
-            format: value.isEmpty || value == '*' ? null : value,
+            withLyrics: value == '~',
+            format: value.isEmpty || value == '*' || value == '~'
+                ? null
+                : value,
           ),
         ),
       );

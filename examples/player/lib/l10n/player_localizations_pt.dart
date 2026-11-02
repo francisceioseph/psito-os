@@ -645,4 +645,77 @@ class PlayerLocalizationsPt extends PlayerLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get lyricsTab => 'Letra';
+
+  @override
+  String get coverTab => 'Capa';
+
+  @override
+  String get noLyrics => 'Esta faixa não tem letra';
+
+  @override
+  String get lyricsSynced => 'sincronizada';
+
+  @override
+  String get lyricsUnsynced => 'sem tempo';
+
+  @override
+  String get lyricsEmbedded => 'Nas tags';
+
+  @override
+  String get lyricsTiming => 'Ajustar o tempo da letra';
+
+  @override
+  String get lyricsEarlier => 'Adiantar a letra';
+
+  @override
+  String get lyricsLater => 'Atrasar a letra';
+
+  @override
+  String get lyricsResetTiming => 'Zerar o ajuste';
+
+  @override
+  String get withLyrics => 'Com letra';
+
+  @override
+  String get upNext => 'A seguir';
+
+  @override
+  String get clearQueue => 'Limpar';
+
+  @override
+  String get saveAsPlaylist => 'Salvar como playlist';
+
+  @override
+  String get detailAlbum => 'Álbum';
+
+  @override
+  String get detailGenre => 'Gênero';
+
+  @override
+  String get detailFile => 'Arquivo';
+
+  @override
+  String get detailCover => 'Capa';
+
+  @override
+  String get detailFolder => 'Pasta';
+
+  @override
+  String get coverEmbedded => 'Embutida';
+
+  @override
+  String get coverGenerated => 'Gerada';
+
+  @override
+  String secondsOffset(String value) {
+    return '$value s';
+  }
+
+  @override
+  String playlistSaved(String name) {
+    return 'Salva como “$name”';
+  }
 }

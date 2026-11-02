@@ -7,6 +7,7 @@ import 'package:psito_player/src/library/library_db.dart';
 import 'package:psito_player/src/library/library_store.dart';
 import 'package:psito_player/src/library/models.dart';
 import 'package:psito_player/src/library/scanner.dart';
+import 'package:psito_player/src/lyrics/lyrics_loader.dart';
 import 'package:psito_player/src/player/engine.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
@@ -221,6 +222,7 @@ Future<void> pumpPlayer(
   String? musicDir,
   Color accent = const Color(0xFFFFC107),
   Future<LibraryServices> Function()? openLibrary,
+  LyricsLoader? readLyrics,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -242,6 +244,7 @@ Future<void> pumpPlayer(
         pickFolder: (_) async => picked,
         pickPlaylistFile: (_) async => pickedPlaylist,
         pickSaveFile: (_, _) async => pickedSave,
+        readLyrics: readLyrics ?? (_) async => null,
       ),
     ),
   );

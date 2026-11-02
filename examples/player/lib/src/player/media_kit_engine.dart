@@ -35,6 +35,9 @@ class MediaKitEngine implements PlayerEngine {
     unawaited(native.setProperty('pipewire-buffer', '100'));
     // A capa embutida conta como vídeo: sem isto, o mpv decodifica a de cada faixa
     unawaited(native.setProperty('vid', 'no'));
+    // O mpv tenta abrir o .lrc e o .srt ao lado da música como legenda, não
+    // consegue e avisa como erro. Quem lê as letras é o app
+    unawaited(native.setProperty('sub-auto', 'no'));
     final stream = _player.stream;
     _subscriptions.addAll([
       stream.playing.listen((v) => _update(_state.value.copyWith(playing: v))),
@@ -145,7 +148,10 @@ class MediaKitEngine implements PlayerEngine {
   Future<void> add(String path) => _player.add(Media(path));
 
   @override
-  Future<void> move(int from, int to) => _player.move(from, to);
+  // No mpv, o destino é a faixa que perde o lugar: para descer até [to], é a de
+  // depois dela
+  Future<void> move(int from, int to) =>
+      _player.move(from, to > from ? to + 1 : to);
 
   @override
   Future<void> remove(int index) => _player.remove(index);

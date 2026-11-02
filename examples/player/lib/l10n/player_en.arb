@@ -367,5 +367,42 @@
         "type": "int"
       }
     }
+  },
+  "lyricsTab": "Lyrics",
+  "coverTab": "Cover",
+  "noLyrics": "This track has no lyrics",
+  "lyricsSynced": "synced",
+  "lyricsUnsynced": "not synced",
+  "lyricsEmbedded": "In the tags",
+  "lyricsTiming": "Adjust the lyrics timing",
+  "lyricsEarlier": "Show the lyrics earlier",
+  "lyricsLater": "Show the lyrics later",
+  "lyricsResetTiming": "Reset the timing",
+  "withLyrics": "With lyrics",
+  "upNext": "Up next",
+  "clearQueue": "Clear",
+  "saveAsPlaylist": "Save as playlist",
+  "detailAlbum": "Album",
+  "detailGenre": "Genre",
+  "detailFile": "File",
+  "detailCover": "Cover",
+  "detailFolder": "Folder",
+  "coverEmbedded": "Embedded",
+  "coverGenerated": "Generated",
+  "secondsOffset": "{value} s",
+  "@secondsOffset": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSaved": "Saved as “{name}”",
+  "@playlistSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

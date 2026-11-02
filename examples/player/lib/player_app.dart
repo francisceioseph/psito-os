@@ -18,6 +18,8 @@ import 'src/library/library_search.dart';
 import 'src/library/library_store.dart';
 import 'src/library/models.dart';
 import 'src/library/scanner.dart';
+import 'src/lyrics/lyrics_controller.dart';
+import 'src/lyrics/lyrics_loader.dart';
 import 'src/player/engine.dart';
 import 'src/player/media_kit_engine.dart';
 import 'src/player/playback_controller.dart';
@@ -27,8 +29,8 @@ import 'src/ui/atoms/monogram.dart';
 import 'src/ui/format.dart';
 import 'src/ui/molecules/track_menu.dart';
 import 'src/ui/organisms/navigation.dart';
+import 'src/ui/organisms/now_playing_panel.dart';
 import 'src/ui/organisms/player_bar.dart';
-import 'src/ui/organisms/queue_panel.dart';
 import 'src/ui/pages/album_page.dart';
 import 'src/ui/pages/empty_library_page.dart';
 import 'src/ui/pages/folders_page.dart';
@@ -83,6 +85,9 @@ class PlayerView extends StatefulWidget {
   /// A pasta de música da pessoa, se existe.
   final String? musicDir;
 
+  /// Acha a letra de um arquivo.
+  final LyricsLoader readLyrics;
+
   const PlayerView({
     super.key,
     required this.createEngine,
@@ -92,6 +97,7 @@ class PlayerView extends StatefulWidget {
     required this.pickSaveFile,
     this.initialPaths = const [],
     this.musicDir,
+    this.readLyrics = loadLyrics,
   });
 
   @override
@@ -104,6 +110,7 @@ class _PlayerViewState extends State<PlayerView> {
   LibraryController? _library;
   PlaybackController? _playback;
   LibrarySearch? _search;
+  LyricsController? _lyrics;
   final _searchFocus = FocusNode();
 
   /// O erro de abrir o motor ou a biblioteca.
@@ -115,7 +122,9 @@ class _PlayerViewState extends State<PlayerView> {
   /// O que foi aberto a partir do destino: um álbum, um artista, um gênero, uma
   /// pasta ou uma playlist, com o que estava atrás.
   final _stack = <Object>[];
-  bool _queueOpen = false;
+
+  /// A aba do painel Tocando agora, ou null fechado.
+  PanelTab? _panel;
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -168,6 +177,11 @@ class _PlayerViewState extends State<PlayerView> {
       _library = library;
       _playback = playback;
       _search = LibrarySearch(services.store);
+      _lyrics = LyricsController(
+        playback: playback,
+        store: services.store,
+        load: widget.readLyrics,
+      );
     });
     await library.reload();
     if (!mounted) return;
@@ -188,6 +202,7 @@ class _PlayerViewState extends State<PlayerView> {
     final store = _store;
     final engine = _engine;
     _lifecycle.dispose();
+    _lyrics?.dispose();
     _library?.dispose();
     _search?.dispose();
     _searchFocus.dispose();
@@ -200,10 +215,36 @@ class _PlayerViewState extends State<PlayerView> {
     super.dispose();
   }
 
-  void _navigate(PlayerDestination destination) => setState(() {
-    _destination = destination;
-    _stack.clear();
-  });
+  void _navigate(PlayerDestination destination) {
+    // Sem largura para os dois, o painel esconderia o destino
+    final covers =
+        MediaQuery.sizeOf(context).width < ShellTemplate.panelSideMinWidth;
+    setState(() {
+      _destination = destination;
+      _stack.clear();
+    });
+    if (covers) _setPanel(null);
+  }
+
+  void _setPanel(PanelTab? tab) {
+    _lyrics?.active = tab == PanelTab.lyrics;
+    setState(() => _panel = tab);
+  }
+
+  /// O atalho de uma aba: abre nela e, se já está nela, fecha.
+  void _togglePanel(PanelTab tab) => _setPanel(_panel == tab ? null : tab);
+
+  Future<void> _saveQueue(List<String> paths) async {
+    final l = context.l10n;
+    final name = await askPlaylistName(
+      context,
+      title: l.saveAsPlaylist,
+      action: l.create,
+    );
+    if (name == null || !mounted) return;
+    await _library!.createPlaylist(name, paths);
+    if (mounted) _snack(context.l10n.playlistSaved(name));
+  }
 
   void _open(Object item) => setState(() => _stack.add(item));
 
@@ -387,8 +428,13 @@ class _PlayerViewState extends State<PlayerView> {
         listenable: Listenable.merge([library, playback]),
         builder: (context, _) => Focus(
           autofocus: true,
-          onKeyEvent: (_, event) =>
-              handlePlayerKey(event, playback, onSearch: _openSearch),
+          onKeyEvent: (_, event) => handlePlayerKey(
+            event,
+            playback,
+            onSearch: _openSearch,
+            onLyrics: () => _togglePanel(PanelTab.lyrics),
+            onQueue: () => _togglePanel(PanelTab.queue),
+          ),
           child: ShellTemplate(
             rail: PlayerRail(
               selected: _destination,
@@ -401,16 +447,23 @@ class _PlayerViewState extends State<PlayerView> {
               onAddFolder: () => unawaited(_pickFolder()),
             ),
             content: _page(library, playback),
-            panel: _queueOpen
-                ? QueuePanel(
+            panel: _panel == null
+                ? null
+                : NowPlayingPanel(
+                    tab: _panel!,
                     playback: playback,
-                    onClose: () => setState(() => _queueOpen = false),
-                  )
-                : null,
+                    lyrics: _lyrics!,
+                    store: _store!,
+                    onTab: _setPanel,
+                    onClose: () => _setPanel(null),
+                    onSaveQueue: (paths) => unawaited(_saveQueue(paths)),
+                  ),
             bar: PlayerBar(
               playback: playback,
-              queueOpen: _queueOpen,
-              onToggleQueue: () => setState(() => _queueOpen = !_queueOpen),
+              canOpenPanel:
+                  MediaQuery.sizeOf(context).height >=
+                  ShellTemplate.contentMinHeight,
+              onOpenPanel: _setPanel,
             ),
           ),
         ),

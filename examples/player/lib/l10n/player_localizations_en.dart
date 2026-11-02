@@ -638,4 +638,77 @@ class PlayerLocalizationsEn extends PlayerLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get lyricsTab => 'Lyrics';
+
+  @override
+  String get coverTab => 'Cover';
+
+  @override
+  String get noLyrics => 'This track has no lyrics';
+
+  @override
+  String get lyricsSynced => 'synced';
+
+  @override
+  String get lyricsUnsynced => 'not synced';
+
+  @override
+  String get lyricsEmbedded => 'In the tags';
+
+  @override
+  String get lyricsTiming => 'Adjust the lyrics timing';
+
+  @override
+  String get lyricsEarlier => 'Show the lyrics earlier';
+
+  @override
+  String get lyricsLater => 'Show the lyrics later';
+
+  @override
+  String get lyricsResetTiming => 'Reset the timing';
+
+  @override
+  String get withLyrics => 'With lyrics';
+
+  @override
+  String get upNext => 'Up next';
+
+  @override
+  String get clearQueue => 'Clear';
+
+  @override
+  String get saveAsPlaylist => 'Save as playlist';
+
+  @override
+  String get detailAlbum => 'Album';
+
+  @override
+  String get detailGenre => 'Genre';
+
+  @override
+  String get detailFile => 'File';
+
+  @override
+  String get detailCover => 'Cover';
+
+  @override
+  String get detailFolder => 'Folder';
+
+  @override
+  String get coverEmbedded => 'Embedded';
+
+  @override
+  String get coverGenerated => 'Generated';
+
+  @override
+  String secondsOffset(String value) {
+    return '$value s';
+  }
+
+  @override
+  String playlistSaved(String name) {
+    return 'Saved as “$name”';
+  }
 }

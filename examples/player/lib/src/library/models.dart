@@ -231,6 +231,7 @@ class TrackQuery {
   final TrackSort sort;
   final bool ascending;
   final bool favorites;
+  final bool withLyrics;
   final String? format;
   final int? artistId;
 
@@ -242,6 +243,7 @@ class TrackQuery {
     this.sort = TrackSort.title,
     this.ascending = true,
     this.favorites = false,
+    this.withLyrics = false,
     this.format,
     this.artistId,
     this.genre,
@@ -252,6 +254,7 @@ class TrackQuery {
     sort: sort,
     ascending: ascending,
     favorites: favorites,
+    withLyrics: withLyrics,
     format: format,
     artistId: artistId,
     genre: genre,
@@ -259,15 +262,34 @@ class TrackQuery {
   );
 
   /// Os filtros da tela de músicas, um de cada vez.
-  TrackQuery filtered({bool favorites = false, String? format}) => TrackQuery(
+  TrackQuery filtered({
+    bool favorites = false,
+    bool withLyrics = false,
+    String? format,
+  }) => TrackQuery(
     sort: sort,
     ascending: ascending,
     favorites: favorites,
+    withLyrics: withLyrics,
     format: format,
     artistId: artistId,
     genre: genre,
     dir: dir,
   );
+}
+
+/// O que só o painel Capa precisa saber de uma faixa.
+@immutable
+class TrackDetails {
+  final int? sampleRate;
+
+  /// Em bits por segundo.
+  final int? bitrate;
+
+  /// `embedded` ou o nome do arquivo, como `cover.jpg`. Null sem capa.
+  final String? coverSource;
+
+  const TrackDetails({this.sampleRate, this.bitrate, this.coverSource});
 }
 
 @immutable

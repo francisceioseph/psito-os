@@ -14,6 +14,7 @@ import '../molecules/now_playing_info.dart';
 import '../molecules/seek_bar.dart';
 import '../molecules/transport_controls.dart';
 import '../molecules/volume_control.dart';
+import 'now_playing_panel.dart';
 
 class PlayerBar extends StatelessWidget {
   /// A altura com a margem.
@@ -26,24 +27,34 @@ class PlayerBar extends StatelessWidget {
   static const coverMinWidth = 380.0;
 
   final PlaybackController playback;
-  final VoidCallback onToggleQueue;
-  final bool queueOpen;
+  final ValueChanged<PanelTab> onOpenPanel;
+
+  /// A janela tem altura para o painel. Sem ela, os botões dele saem.
+  final bool canOpenPanel;
 
   const PlayerBar({
     super.key,
     required this.playback,
-    required this.onToggleQueue,
-    this.queueOpen = false,
+    required this.onOpenPanel,
+    this.canOpenPanel = true,
   });
 
   void _seek(Duration position) => unawaited(playback.engine.seek(position));
 
-  Widget _queueButton(BuildContext context) => IconButton(
-    tooltip: context.l10n.queue,
-    isSelected: queueOpen,
-    icon: const Icon(Icons.queue_music_rounded),
-    onPressed: onToggleQueue,
-  );
+  List<Widget> _panelButtons(BuildContext context) => [
+    if (canOpenPanel) ...[
+      IconButton(
+        tooltip: context.l10n.lyricsTab,
+        icon: const Icon(Icons.lyrics_rounded),
+        onPressed: () => onOpenPanel(PanelTab.lyrics),
+      ),
+      IconButton(
+        tooltip: context.l10n.queue,
+        icon: const Icon(Icons.queue_music_rounded),
+        onPressed: () => onOpenPanel(PanelTab.queue),
+      ),
+    ],
+  ];
 
   /// A faixa, ou o aviso de que deu erro ou não há nenhuma.
   Widget _info(BuildContext context, PlayerState s, double? coverSize) {
@@ -56,11 +67,20 @@ class PlayerBar extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       );
     }
-    return NowPlayingInfo(
+    final info = NowPlayingInfo(
       track: track,
       coverSize: coverSize,
       // Fora da biblioteca, quem leu as tags foi o motor
       title: track.id == 0 ? s.title : null,
+    );
+    if (!canOpenPanel) return info;
+    return Tooltip(
+      message: l.coverTab,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => onOpenPanel(PanelTab.cover),
+        child: info,
+      ),
     );
   }
 
@@ -94,7 +114,7 @@ class PlayerBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _queueButton(context),
+            ..._panelButtons(context),
             Flexible(
               child: VolumeControl(
                 volume: s.volume,
@@ -126,7 +146,7 @@ class PlayerBar extends StatelessWidget {
           ),
         ),
         TransportControls(playback: playback, state: s, compact: true),
-        if (roomy) _queueButton(context),
+        if (roomy) ..._panelButtons(context),
       ],
     );
   }
