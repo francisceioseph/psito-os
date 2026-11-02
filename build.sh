@@ -23,6 +23,12 @@ for dir in shell lock greeter apps system_shell packages tools; do
         "$dir/" "psito@localhost:psito-src/$dir/"
 done
 
+# A versão vem da última tag, que o CI cria: o Sobre mostra o que o psito-shell
+# instala, e o deploy.sh dá a mesma versão aos pacotes
+git fetch -q --tags origin 2>/dev/null || true
+VERSION="$(git describe --tags --match 'v[0-9]*' --dirty 2>/dev/null || echo v0.0.0-dev)"
+ssh -p "$VM_PORT" psito@localhost "echo '${VERSION#v}' > psito-src/shell/session/version"
+
 echo "🔨 [Psito OS] flutter build linux --$MODE na VM..."
 ssh -p "$VM_PORT" psito@localhost "
     set -e

@@ -28,3 +28,23 @@ jobs:
         run: git diff --exit-code -- '*/l10n/*.dart'
       - name: Test
         run: TEST_MEM=0 ./test.sh
+
+  # A versão do sistema é a última tag: feat sobe o minor, fix o patch e
+  # BREAKING CHANGE o major. Nada volta para o repositório como commit.
+  release:
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tag and publish the release
+        run: npx --yes semantic-release@24.2.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

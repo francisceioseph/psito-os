@@ -21,4 +21,5 @@ FILES=(
     session/labwc:/usr/share/psito/labwc
     session/wallpapers:/usr/share/psito/wallpapers
     session/psito-logo.png:/usr/share/psito/psito-logo.png
+    session/version:/usr/share/psito/version
 )

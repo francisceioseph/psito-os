@@ -258,8 +258,16 @@ class PsitoNotification {
   const PsitoNotification({required this.title, this.body});
 }
 
-/// A versão do sistema, a que o Sobre mostra.
-const psitoVersion = '0.0.1';
+/// A versão do sistema, a que o Sobre mostra. Vem da última tag do git: o
+/// build.sh grava o arquivo, e o pacote psito-shell instala. Fora da VM, como
+/// no laboratório e nos testes, ele não existe.
+final String psitoVersion = () {
+  try {
+    return File('/usr/share/psito/version').readAsStringSync().trim();
+  } on FileSystemException {
+    return 'dev';
+  }
+}();
 
 /// O logo, instalado pelo pacote psito-shell.
 const psitoLogoPath = '/usr/share/psito/psito-logo.png';

@@ -165,7 +165,9 @@ EOF
 fi
 
 PUBSPEC="$PROJECT/pubspec.yaml"
-VERSION="$(pubspec_field version "$PUBSPEC")"
+# O sistema tem uma versão só, a da tag (PSITO_VERSION, do deploy.sh); um app de
+# fora tem a do pubspec
+VERSION="${PSITO_VERSION:-$(pubspec_field version "$PUBSPEC")}"
 [ -n "$VERSION" ] || die "o pubspec.yaml não tem version"
 
 if [ "$MODE" = system ]; then

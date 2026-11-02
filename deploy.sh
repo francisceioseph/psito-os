@@ -27,6 +27,9 @@ ssh -p "$VM_PORT" psito@localhost '
     if [ "$mode" = release ]; then
         debs=~/psito-src/debs
         rm -rf $debs && mkdir -p $debs
+        # 0.12.0-3-gabc1234 vira 0.12.0+3.gabc1234, que o dpkg ordena depois da tag
+        version=$(sed "s/-/+/; s/-/./g" ~/psito-src/shell/session/version)
+        export PSITO_VERSION=$version
         $deb -o $debs --runtime ~/psito-src/shell >/dev/null
         $deb -o $debs --system ~/psito-src/shell >/dev/null
         $deb -o $debs --system ~/psito-src/lock >/dev/null
@@ -36,15 +39,15 @@ ssh -p "$VM_PORT" psito@localhost '
             [ -f $dir/pubspec.yaml ] || continue
             apps+=("$(dpkg-deb -f "$($deb -o $debs $dir)" Package)")
         done
-        version=$(sed -n "s/^version: *//p" ~/psito-src/shell/pubspec.yaml)
         $deb -o $debs --meta psito-desktop "$version" psito-shell psito-lock psito-greeter "${apps[@]}" >/dev/null
         # O que as versões antigas instalavam à mão ganharia do pacote
         sudo rm -rf /opt/psito /usr/local/bin/psito-shell-start /usr/local/bin/psito-sandbox
         rm -f ~/.config/systemd/user/psito-shell.service \
             ~/.config/xdg-desktop-portal/labwc-portals.conf \
             ~/.local/share/applications/org.psito.*.desktop
-        # O build de desenvolvimento repete a versão: --reinstall
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --reinstall \
+        # O build de desenvolvimento repete a versão (--reinstall), ou volta a
+        # um commit de antes (--allow-downgrades)
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --reinstall --allow-downgrades \
             $debs/*.deb >/dev/null
         echo "📦 $(ls $debs | tr "\n" " ")"
     else
