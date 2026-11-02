@@ -134,6 +134,8 @@ class DeskController extends ChangeNotifier implements FileIconEnv {
     state.apps.addListener(_appsChanged);
     state.services.disks.volumes.addListener(_volumesChanged);
     state.deskMenu.addListener(notifyListeners);
+    // A dock que encolhe reserva menos da tela
+    state.dockUi.fittedIcon.addListener(notifyListeners);
     this.clipboard.current.addListener(notifyListeners);
     _settings = state.settings.value;
   }

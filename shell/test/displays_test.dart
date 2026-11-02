@@ -65,6 +65,11 @@ void main() {
     });
   });
 
+  test('o tamanho lógico corta a fração, como o compositor', () {
+    const config = OutputConfig(mode: OutputMode(1400, 1050), scale: 1.5);
+    expect(config.rect.size, const Size(933, 700));
+  });
+
   group('planOutputs', () {
     test('um novo vai à direita, na melhor forma', () {
       final plan = planOutputs([_head('a'), _head('b')], MonitorStore.memory());

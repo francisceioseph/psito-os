@@ -515,10 +515,10 @@ class _DockViewState extends State<_DockView>
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
-    valueListenable: state.settings,
-    builder: (context, settings, _) {
-      final position = settings.dockPosition;
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([state.settings, ui.fittedIcon]),
+    builder: (context, _) {
+      final position = state.settings.value.dockPosition;
       final alignment = PsitoDock.edgeAlignment(position);
       if (_collapsed) {
         return _Sized(
@@ -624,12 +624,12 @@ class _DockViewState extends State<_DockView>
               DockDragSource.dock,
               ui.origin + position,
             ),
-            iconSize: settings.dockIconSize,
+            iconSize: ui.iconSize,
             magnification: settings.dockMagnification && drag == null,
             wrapTile: (tile, child) => _TileDropTarget(
               ui: ui,
               item: byKey[tile.key]!,
-              radius: settings.dockIconSize * 0.3,
+              radius: ui.iconSize * 0.3,
               alignment: PsitoDock.edgeAlignment(settings.dockPosition),
               child: child,
             ),
@@ -782,7 +782,7 @@ class _OverlayView extends StatelessWidget {
                 valueListenable: ui.drag,
                 builder: (context, drag, _) {
                   if (drag == null) return const SizedBox.shrink();
-                  final size = state.settings.value.dockIconSize;
+                  final size = ui.iconSize;
                   return Positioned(
                     left: drag.position.dx - size / 2,
                     top: drag.position.dy - size / 2,

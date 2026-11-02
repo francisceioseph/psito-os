@@ -26,6 +26,59 @@ void main() {
     );
   });
 
+  group('fittedIconSize', () {
+    test('com espaço, fica o tamanho escolhido', () {
+      expect(
+        PsitoDock.fittedIconSize(count: 10, iconSize: 52, room: 1392),
+        52,
+      );
+    });
+
+    test('sem espaço, encolhe até a fileira caber', () {
+      // 10 ícones em 672: (672 - 28 - 13) / 10 - 12 = 51,1
+      final size = PsitoDock.fittedIconSize(
+        count: 10,
+        separators: {8},
+        iconSize: 64,
+        room: 672,
+      );
+      expect(size, 51);
+      expect(28 + 13 + 10 * PsitoDock.span(size), lessThanOrEqualTo(672));
+    });
+
+    test('para no mínimo, e não aumenta um ícone já menor', () {
+      expect(PsitoDock.fittedIconSize(count: 50, iconSize: 52, room: 300), 16);
+      expect(PsitoDock.fittedIconSize(count: 50, iconSize: 12, room: 300), 12);
+    });
+
+    test('uma dock vazia não divide por zero', () {
+      expect(PsitoDock.fittedIconSize(count: 0, iconSize: 52, room: 0), 52);
+    });
+  });
+
+  testWidgets('a fileira encolhida cabe e não engrossa', (tester) async {
+    const size = 16.0;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testL10nDelegates,
+        supportedLocales: psitoLocales,
+        home: Center(
+          child: PsitoDock(
+            tiles: [_tile('a'), _tile('b')],
+            separators: const {1},
+            iconSize: size,
+            onTap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(PsitoDock)).height,
+      PsitoDock.thickness(size),
+    );
+  });
+
   testWidgets('os centros batem com o desenho', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

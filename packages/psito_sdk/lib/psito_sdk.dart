@@ -1236,7 +1236,8 @@ class PsitoDisplay {
     modes: modes,
   );
 
-  /// O retângulo no layout, em pixels lógicos: a rotação troca os lados.
+  /// O retângulo no layout, em pixels lógicos: a rotação troca os lados, e o
+  /// compositor corta a fração.
   Rect get rect {
     final mode = this.mode;
     if (mode == null) return Rect.fromLTWH(x.toDouble(), y.toDouble(), 0, 0);
@@ -1244,8 +1245,8 @@ class PsitoDisplay {
     return Rect.fromLTWH(
       x.toDouble(),
       y.toDouble(),
-      (sideways ? mode.height : mode.width) / scale,
-      (sideways ? mode.width : mode.height) / scale,
+      ((sideways ? mode.height : mode.width) / scale).floorToDouble(),
+      ((sideways ? mode.width : mode.height) / scale).floorToDouble(),
     );
   }
 

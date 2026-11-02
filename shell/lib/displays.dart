@@ -175,8 +175,9 @@ class OutputConfig {
     return Rect.fromLTWH(
       x.toDouble(),
       y.toDouble(),
-      (sideways ? mode.height : mode.width) / scale,
-      (sideways ? mode.width : mode.height) / scale,
+      // O compositor corta a fração
+      ((sideways ? mode.height : mode.width) / scale).floorToDouble(),
+      ((sideways ? mode.width : mode.height) / scale).floorToDouble(),
     );
   }
 

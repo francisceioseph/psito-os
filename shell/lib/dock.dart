@@ -98,7 +98,17 @@ class DockRow {
 }
 
 class DockController {
-  DockController(this.state);
+  DockController(this.state) {
+    Listenable.merge([
+      state.toplevels,
+      state.apps,
+      state.dock,
+      drag,
+    ]).addListener(refit);
+    refit();
+    // A reserva da tela vai com o tamanho
+    fittedIcon.addListener(state.applyDockSettings);
+  }
 
   final ShellState state;
 
@@ -160,11 +170,39 @@ class DockController {
 
   /// A tela, e o tamanho da superfície da dock (centrada na borda). A view
   /// da dock avisa os dois.
-  Size screen = const Size(1440, 900);
+  Size get screen => _screen;
+  Size _screen = const Size(1440, 900);
+  set screen(Size value) {
+    if (value == _screen) return;
+    _screen = value;
+    // Quem avisa é o build do fundo: a dock muda depois dele
+    scheduleMicrotask(refit);
+  }
+
   Size surface = Size.zero;
 
   PsitoDockPosition get position => state.settings.value.dockPosition;
-  double get iconSize => state.settings.value.dockIconSize;
+
+  /// O lado dos ícones agora: o das configurações, ou menos se a fileira não
+  /// couber na tela (2x num monitor pequeno, ou uma dock muito cheia).
+  late final fittedIcon = ValueNotifier(state.settings.value.dockIconSize);
+  double get iconSize => fittedIcon.value;
+
+  /// Confere o lado dos ícones. Um arrastar conta o espaço que ele abre, e
+  /// o arrastado da dock já saiu da fileira.
+  void refit() {
+    final row = this.row;
+    final ends = position.vertical ? padding.vertical : padding.horizontal;
+    final length = position.vertical
+        ? screen.height - TopBar.height
+        : screen.width;
+    fittedIcon.value = PsitoDock.fittedIconSize(
+      count: row.items.length + (drag.value == null ? 0 : 1),
+      separators: row.separators,
+      iconSize: state.settings.value.dockIconSize,
+      room: length - ends,
+    );
+  }
 
   /// O espaço entre a dock e a borda da tela.
   static const edgeMargin = 20.0;

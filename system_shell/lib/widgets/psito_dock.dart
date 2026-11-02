@@ -112,6 +112,29 @@ class PsitoDock extends StatefulWidget {
   /// A largura que um ícone ocupa na fila.
   static double span(double iconSize) => iconSize + 2 * tileMargin;
 
+  /// O menor lado a que um ícone encolhe. Abaixo disso, a fileira é cortada.
+  static const minIconSize = 16.0;
+
+  /// O enchimento e a borda (a do destaque, a mais grossa) nas pontas da
+  /// fileira.
+  static const _rowEnds = 2 * (12.0 + 2);
+
+  /// O lado de cada ícone para [count] ícones caberem em [room]: [iconSize],
+  /// ou menos se não couberem. Só encolhe: uma tela grande não aumenta os
+  /// ícones além do escolhido.
+  static double fittedIconSize({
+    required int count,
+    Set<int> separators = const {},
+    required double iconSize,
+    required double room,
+  }) {
+    if (count == 0) return iconSize;
+    final seps = separators.where((i) => i > 0 && i < count).length;
+    final free = room - _rowEnds - seps * separatorWidth;
+    final fit = (free / count - 2 * tileMargin).floorToDouble();
+    return fit.clamp(math.min(minIconSize, iconSize), iconSize);
+  }
+
   /// O centro de cada um de [count] ícones, sem espaço aberto nem ampliação,
   /// com a fila centrada em [centerX].
   static List<double> centers({
@@ -188,7 +211,7 @@ class _PsitoDockState extends State<PsitoDock> {
         children: [
           for (var i = 0; i < count; i++) ...[
             if (i > 0 && widget.separators.contains(i))
-              _Separator(vertical: vertical),
+              _Separator(vertical: vertical, iconSize: widget.iconSize),
             gap(i),
             _tile(widget.tiles[i]),
           ],
@@ -318,6 +341,8 @@ extension on _PsitoDockState {
   /// Os pontos das janelas, no lado do ícone virado para a borda.
   Widget _dots(DockTile tile, double size) {
     final vertical = widget.position.vertical;
+    // Numa dock que encolheu, o ponto encolhe junto
+    final dot = math.min(5.0, size * 0.18);
     final dots = Flex(
       key: ValueKey('running-${tile.key}'),
       direction: vertical ? Axis.vertical : Axis.horizontal,
@@ -325,8 +350,8 @@ extension on _PsitoDockState {
       children: [
         for (var i = 0; i < tile.windows.clamp(1, 2); i++)
           Container(
-            width: 5,
-            height: 5,
+            width: dot,
+            height: dot,
             margin: const EdgeInsets.all(1.5),
             decoration: BoxDecoration(
               color: tile.entry.color,
@@ -442,17 +467,21 @@ class _BounceState extends State<_Bounce> with SingleTickerProviderStateMixin {
 class _Separator extends StatelessWidget {
   final bool vertical;
 
-  const _Separator({this.vertical = false});
+  /// O traço não passa do ícone, para não engrossar a dock que encolheu.
+  final double iconSize;
+
+  const _Separator({this.vertical = false, required this.iconSize});
 
   @override
   Widget build(BuildContext context) {
     const across = (PsitoDock.separatorWidth - 1) / 2;
+    final length = math.min(32.0, iconSize);
     return Container(
-      width: vertical ? 32 : 1,
-      height: vertical ? 1 : 32,
+      width: vertical ? length : 1,
+      height: vertical ? 1 : length,
       margin: vertical
-          ? const EdgeInsets.symmetric(vertical: across, horizontal: 4)
-          : const EdgeInsets.symmetric(horizontal: across, vertical: 4),
+          ? const EdgeInsets.symmetric(vertical: across)
+          : const EdgeInsets.symmetric(horizontal: across),
       color: context.palette.line,
     );
   }

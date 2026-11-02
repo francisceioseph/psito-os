@@ -86,6 +86,62 @@ void main() {
     return Offset(centers[index], y);
   }
 
+  group('a dock que não cabe', () {
+    test('encolhe com a tela, e a reserva e o runner vão junto', () async {
+      expect(ui.iconSize, 52);
+      state.applyDockSettings();
+      ui.screen = const Size(300, 450);
+      await pumpEventQueue();
+      expect(ui.iconSize, lessThan(52));
+      final row = ui.row;
+      expect(
+        2 * 14 +
+            row.separators.length * PsitoDock.separatorWidth +
+            row.items.length * PsitoDock.span(ui.iconSize),
+        lessThanOrEqualTo(300 - ui.padding.horizontal),
+      );
+      expect(
+        surfaceCalls.last.arguments['exclusive'],
+        ui.exclusiveZone,
+      );
+      expect(ui.exclusiveZone, lessThan(100));
+
+      ui.screen = const Size(1440, 900);
+      await pumpEventQueue();
+      expect(ui.iconSize, 52);
+    });
+
+    test('um item a mais na fileira também encolhe', () async {
+      ui.screen = const Size(400, 450);
+      await pumpEventQueue();
+      final before = ui.iconSize;
+      await state.dock.pin(const DockApp('gimp'));
+      expect(ui.iconSize, lessThan(before));
+    });
+
+    test('o espaço de um arrastar do launcher conta', () async {
+      ui.screen = const Size(400, 450);
+      await pumpEventQueue();
+      final before = ui.iconSize;
+      ui.startDrag(const DockApp('gimp'), DockDragSource.launcher, Offset.zero);
+      expect(ui.iconSize, lessThan(before));
+      ui.cancelDrag();
+      expect(ui.iconSize, before);
+    });
+
+    test('dos lados, conta a altura abaixo da top bar', () async {
+      await state.settings.update(
+        state.settings.value.copyWith(dockPosition: PsitoDockPosition.left),
+      );
+      ui.screen = const Size(1440, 300);
+      await pumpEventQueue();
+      expect(ui.iconSize, lessThan(52));
+      ui.screen = const Size(300, 1440);
+      await pumpEventQueue();
+      expect(ui.iconSize, 52);
+    });
+  });
+
   test('arrastar dentro da dock muda a ordem', () async {
     ui.startDrag(const DockApp('org.psito.files'), DockDragSource.dock, at(3));
     // O arrastado sai da fileira; antes do primeiro, abre o espaço no 1,

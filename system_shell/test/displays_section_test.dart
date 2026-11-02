@@ -11,6 +11,15 @@ import 'helpers.dart';
 void main() {
   final l = lookupSettingsLocalizations(const Locale('pt'));
 
+  test('o tamanho lógico corta a fração, como o compositor', () {
+    const display = PsitoDisplay(
+      name: 'a',
+      mode: PsitoDisplayMode(1400, 1050),
+      scale: 1.5,
+    );
+    expect(display.rect.size, const Size(933, 700));
+  });
+
   group('snapDisplay', () {
     const other = Rect.fromLTWH(0, 0, 1920, 1080);
     const size = Size(1280, 720);

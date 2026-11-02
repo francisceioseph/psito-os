@@ -281,7 +281,10 @@ class ShellState {
     dockUi.syncAutoHide();
   }
 
-  void _dockSettingsChanged() => applyDockSettings();
+  void _dockSettingsChanged() {
+    dockUi.refit();
+    applyDockSettings();
+  }
 
   /// Sobe a tela de bloqueio, e só volta com a tela já bloqueada (o `READY=1`
   /// da unidade). Com ela de pé, não faz nada.
