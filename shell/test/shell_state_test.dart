@@ -252,6 +252,139 @@ void main() {
     });
   });
 
+  group('com dois monitores', () {
+    const primary = Monitor(
+      id: 1,
+      rect: Rect.fromLTWH(0, 0, 1440, 900),
+      primary: true,
+    );
+    const other = Monitor(id: 2, rect: Rect.fromLTWH(1440, 100, 1280, 720));
+
+    List<MethodCall> places() =>
+        surfaceCalls.where((call) => call.method == 'place').toList();
+
+    Matcher place(String surface, int monitor) => isMethodCall(
+      'place',
+      arguments: {'surface': surface, 'monitor': monitor},
+    );
+
+    setUp(() => state.surfaces.monitors.value = const [primary, other]);
+
+    test('o painel abre no monitor da top bar clicada', () {
+      state.toggle(ShellOverlay.network, monitor: 2);
+      expect(state.overlay.value, ShellOverlay.network);
+      expect(places().single, place('overlay', 2));
+      expect(surfaceCalls.last.method, 'showOverlay');
+      expect(state.overlayOrigin, const Offset(1440, 100));
+    });
+
+    test('o mesmo painel em outra top bar muda de monitor, sem fechar', () {
+      state.toggle(ShellOverlay.network);
+      state.toggle(ShellOverlay.network, monitor: 2);
+      expect(state.overlay.value, ShellOverlay.network);
+      expect(places().single, place('overlay', 2));
+      state.toggle(ShellOverlay.network, monitor: 2);
+      expect(state.overlay.value, isNull);
+    });
+
+    test('os atalhos abrem no monitor da janela em foco', () async {
+      await state.toplevels.handle(
+        const MethodCall('changed', {
+          'id': 1,
+          'appId': 'foot',
+          'activated': true,
+          'monitors': [2],
+        }),
+      );
+      state.run(ShellAction.launcher);
+      expect(places().single, place('overlay', 2));
+    });
+
+    test('um menu da dock volta a sobreposição ao principal', () {
+      state.toggle(ShellOverlay.network, monitor: 2);
+      state.closeOverlay();
+      state.dockUi.startDrag(
+        const DockFolder('/tmp'),
+        DockDragSource.dock,
+        Offset.zero,
+      );
+      expect(places().last, place('overlay', 0));
+      expect(state.overlayOrigin, Offset.zero);
+    });
+
+    test('o ícone arrastado da dock vai com o ponteiro para o outro', () {
+      state.dockUi.startDrag(
+        const DockFolder('/tmp'),
+        DockDragSource.dock,
+        const Offset(100, 800),
+      );
+      expect(places(), isEmpty);
+      state.dockUi.moveDrag(const Offset(1500, 300));
+      expect(places().single, place('overlay', 2));
+      expect(state.overlayOrigin, const Offset(1440, 100));
+      state.dockUi.moveDrag(const Offset(1400, 300));
+      expect(places().last, place('overlay', 0));
+    });
+
+    test('arrastar do launcher fica no monitor dele, contando na dock', () {
+      state.toggle(ShellOverlay.launcher, monitor: 2);
+      state.dockUi.startDrag(
+        const DockApp('foot'),
+        DockDragSource.launcher,
+        const Offset(10, 10) + state.overlayOrigin,
+      );
+      expect(state.overlay.value, isNull);
+      expect(state.dockUi.drag.value!.position, const Offset(1450, 110));
+      expect(places().single, place('overlay', 2));
+    });
+
+    test('uma janela ganhando o foco fecha o painel do outro monitor', () async {
+      await window(1, 'foot', activated: true);
+      state.toggle(ShellOverlay.network, monitor: 2);
+      await window(1, 'foot', activated: true);
+      expect(state.overlay.value, ShellOverlay.network);
+      await window(1, 'foot');
+      await window(2, 'firefox-esr', activated: true);
+      expect(state.overlay.value, isNull);
+    });
+
+    test('um clique no papel de parede fecha o painel do outro monitor', () {
+      state.toggle(ShellOverlay.network, monitor: 2);
+      state.closeOnBackground();
+      expect(state.overlay.value, isNull);
+    });
+
+    test('o OSD abre no monitor da janela em foco', () async {
+      await state.toplevels.handle(
+        const MethodCall('changed', {
+          'id': 1,
+          'appId': 'foot',
+          'activated': true,
+          'monitors': [2],
+        }),
+      );
+      state.run(ShellAction.volumeUp);
+      await Future<void>.delayed(Duration.zero);
+      expect(places().single, place('osd', 2));
+      expect(surfaceCalls.last, isMethodCall('show', arguments: 'osd'));
+    });
+
+    test('um monitor que sai leva a conta de volta ao principal', () {
+      state.toggle(ShellOverlay.network, monitor: 2);
+      state.surfaces.monitors.value = const [primary];
+      expect(state.overlayOrigin, Offset.zero);
+      surfaceCalls.clear();
+      state.toggle(ShellOverlay.volume);
+      // O runner já tinha levado: nada de pedir de novo
+      expect(places(), isEmpty);
+    });
+
+    test('o principal de agora nunca conta como outro monitor', () {
+      state.toggle(ShellOverlay.network, monitor: 1);
+      expect(places(), isEmpty);
+    });
+  });
+
   test('o volume pelo atalho mostra o OSD por um tempo', () async {
     final before = state.services.audio.state.value.volume;
     state.run(ShellAction.volumeUp);

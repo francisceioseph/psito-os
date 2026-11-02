@@ -71,6 +71,8 @@ class ShellState {
     this.clipboardKeeper = const ClipboardKeeper(),
   }) : surfaces = surfaces ?? Surfaces(),
        dock = dock ?? DockStore.memory(defaultDock) {
+    this.surfaces.monitors.addListener(_monitorsChanged);
+    toplevels.addListener(_focusChanged);
     overlay.addListener(_syncOverlay);
     confirm.addListener(_syncOverlay);
     switcher.addListener(_syncOverlay);
@@ -344,10 +346,18 @@ class ShellState {
     unawaited(loadApps(Platform.environment));
   }
 
-  /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha.
-  void toggle(ShellOverlay value) {
+  /// Abrir uma camada fecha a que estiver aberta; abrir a mesma fecha. Ela abre
+  /// no [monitor] (a top bar de cada um diz o dela; null, o principal), e a
+  /// mesma camada aberta em outro monitor vai para lá.
+  void toggle(ShellOverlay value, {int? monitor}) {
+    final target = _secondaryOrNull(monitor);
+    final closes = overlay.value == value && _overlayMonitor == target;
+    _placingOverlay = true;
+    _overlayMonitor = target;
     dockUi.closePopups();
-    overlay.value = overlay.value == value ? null : value;
+    overlay.value = closes ? null : value;
+    _syncOverlay();
+    _placingOverlay = false;
     if (overlay.value == ShellOverlay.notifications) {
       notifications.markAllRead();
     }
@@ -797,14 +807,14 @@ class ShellState {
     switch (action) {
       case ShellAction.launcher:
         switcher.cancel();
-        toggle(ShellOverlay.launcher);
+        toggle(ShellOverlay.launcher, monitor: focusedMonitor);
       case ShellAction.switchNext:
         _switch(reverse: false);
       case ShellAction.switchPrev:
         _switch(reverse: true);
       case ShellAction.clipboard:
         switcher.cancel();
-        toggle(ShellOverlay.clipboard);
+        toggle(ShellOverlay.clipboard, monitor: focusedMonitor);
       case ShellAction.clipboard1 ||
           ShellAction.clipboard2 ||
           ShellAction.clipboard3 ||
@@ -1061,6 +1071,7 @@ class ShellState {
   void _setShown(Surface surface, bool shown) {
     if (_shown[surface] == shown) return;
     _shown[surface] = shown;
+    if (shown) _place(surface, focusedMonitor);
     unawaited(shown ? surfaces.show(surface) : surfaces.hide(surface));
   }
 
@@ -1087,18 +1098,116 @@ class ShellState {
 
   void _syncOverlay() {
     final drag = dockUi.drag.value;
-    if (overlayHoldsKeyboard) {
-      unawaited(surfaces.showOverlay(OverlayKeyboard.exclusive));
-    } else if (overlay.value != null ||
-        dockUi.menu.value != null ||
-        dockUi.stack.value != null) {
-      unawaited(surfaces.showOverlay(OverlayKeyboard.onDemand));
-    } else if (deskMenu.value != null) {
-      unawaited(surfaces.showOverlay(OverlayKeyboard.pointer));
-    } else if (drag != null) {
-      unawaited(surfaces.showOverlay(OverlayKeyboard.passive));
-    } else {
+    final keyboard = overlayHoldsKeyboard
+        ? OverlayKeyboard.exclusive
+        : overlay.value != null ||
+              dockUi.menu.value != null ||
+              dockUi.stack.value != null
+        ? OverlayKeyboard.onDemand
+        : deskMenu.value != null
+        ? OverlayKeyboard.pointer
+        : drag != null
+        ? OverlayKeyboard.passive
+        : null;
+    if (keyboard == null) {
+      _overlayShown = false;
       unawaited(surfaces.hideOverlay());
+      return;
     }
+    // Os menus da dock e da mesa são contados na tela delas
+    if (dockUi.menu.value != null ||
+        dockUi.stack.value != null ||
+        deskMenu.value != null) {
+      _overlayMonitor = null;
+    } else if (drag?.source == DockDragSource.dock) {
+      // Passiva, ela pode ir atrás do ponteiro. A do launcher não: é ela que
+      // está com o ponteiro, e refazer a superfície soltaria o arrastar
+      _overlayMonitor = _monitorUnder(drag!.position);
+    } else if (!_overlayShown && !_placingOverlay) {
+      _overlayMonitor = focusedMonitor;
+    }
+    _overlayShown = true;
+    _place(Surface.overlay, _overlayMonitor);
+    unawaited(surfaces.showOverlay(keyboard));
+  }
+
+  // Onde cada coisa aparece. O Wayland não diz onde o ponteiro está, a não ser
+  // sobre as superfícies do próprio shell: uma top bar sabe o monitor dela, e
+  // os atalhos vão para o da janela em foco.
+
+  /// O monitor em que a sobreposição está; null, o principal.
+  int? _overlayMonitor;
+  bool _overlayShown = false;
+  bool _placingOverlay = false;
+  final _placed = <Surface, int?>{};
+  int? _primaryId;
+
+  int? _secondaryOrNull(int? id) {
+    final monitor = surfaces.monitorOf(id);
+    return monitor == null || monitor.primary ? null : monitor.id;
+  }
+
+  /// O monitor da janela em foco, se não for o principal.
+  int? get focusedMonitor {
+    final monitors = toplevels.activated?.monitors ?? const <int>[];
+    return monitors.isEmpty ? null : _secondaryOrNull(monitors.first);
+  }
+
+  int? _focusedWindow;
+
+  // A barreira que fecha um painel só existe no monitor dele: uma janela
+  // ganhando o foco em outro também fecha
+  void _focusChanged() {
+    final window = toplevels.activated?.id;
+    if (window == _focusedWindow) return;
+    _focusedWindow = window;
+    if (window != null && surfaces.monitors.value.length > 1) closeOverlay();
+  }
+
+  /// Um clique no papel de parede: fecha o que estiver aberto em outro monitor.
+  void closeOnBackground() {
+    closeOverlay();
+    dockUi.closePopups();
+  }
+
+  /// O monitor de um ponto contado na tela do principal, se não for ele.
+  int? _monitorUnder(Offset position) {
+    final primary = surfaces.primaryMonitor;
+    if (primary == null) return null;
+    final at = position + primary.rect.topLeft;
+    for (final monitor in surfaces.monitors.value) {
+      if (monitor.rect.contains(at)) return _secondaryOrNull(monitor.id);
+    }
+    return null;
+  }
+
+  /// Quanto somar a um ponto da sobreposição para ter o ponto na tela do
+  /// principal, em que a dock e a mesa contam.
+  Offset get overlayOrigin {
+    final monitor = surfaces.monitorOf(_overlayMonitor);
+    final primary = surfaces.primaryMonitor;
+    return monitor == null || primary == null
+        ? Offset.zero
+        : monitor.rect.topLeft - primary.rect.topLeft;
+  }
+
+  void _place(Surface surface, int? monitor) {
+    if (_placed[surface] == monitor) return;
+    _placed[surface] = monitor;
+    unawaited(surfaces.place(surface, monitor));
+  }
+
+  // O runner já levou para o principal o que estava num monitor que saiu ou
+  // que virou o principal
+  void _monitorsChanged() {
+    final primary = surfaces.primaryMonitor?.id;
+    final changed = primary != _primaryId;
+    _primaryId = primary;
+    if (changed || surfaces.monitorOf(_overlayMonitor) == null) {
+      _overlayMonitor = null;
+    }
+    _placed.removeWhere(
+      (_, id) => changed || id != null && surfaces.monitorOf(id) == null,
+    );
   }
 }

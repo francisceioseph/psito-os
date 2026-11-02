@@ -221,6 +221,12 @@ static FlValue* secondaries_value(MyApplication* self) {
     FlValue* map = fl_value_new_map();
     fl_value_set_string_take(map, "id", fl_value_new_int(secondary.id));
     fl_value_set_string_take(
+        map, "monitor",
+        fl_value_new_int(secondary.monitor == nullptr
+                             ? 0
+                             : GPOINTER_TO_INT(g_object_get_data(
+                                   G_OBJECT(secondary.monitor), kMonitorIdKey))));
+    fl_value_set_string_take(
         map, "background",
         fl_value_new_int(fl_view_get_id(secondary.background)));
     fl_value_set_string_take(
@@ -360,26 +366,31 @@ static void monitor_added_cb(GdkDisplay*, GdkMonitor* monitor,
   notify_monitors(self);
 }
 
-// [monitor] passa a ter a dock, a mesa e as sobreposições, e troca de lugar
-// com o principal de agora: as views dele ficam com o outro.
-static bool primary_change(MyApplication* self, int id) {
+static GdkMonitor* monitor_by_id(int id) {
   GdkDisplay* display = gdk_display_get_default();
   for (int i = 0; i < gdk_display_get_n_monitors(display); i++) {
     GdkMonitor* monitor = gdk_display_get_monitor(display, i);
-    if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(monitor), kMonitorIdKey)) !=
+    if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(monitor), kMonitorIdKey)) ==
         id) {
-      continue;
+      return monitor;
     }
-    if (monitor == self->primary) return true;
-    GdkMonitor* previous = self->primary;
-    secondary_remove(self, monitor);
-    primary_set(self, monitor);
-    if (previous != nullptr) secondary_add(self, previous);
-    notify_secondaries(self);
-    notify_monitors(self);
-    return true;
   }
-  return false;
+  return nullptr;
+}
+
+// [monitor] passa a ter a dock, a mesa e as sobreposições, e troca de lugar
+// com o principal de agora: as views dele ficam com o outro.
+static bool primary_change(MyApplication* self, int id) {
+  GdkMonitor* monitor = monitor_by_id(id);
+  if (monitor == nullptr) return false;
+  if (monitor == self->primary) return true;
+  GdkMonitor* previous = self->primary;
+  secondary_remove(self, monitor);
+  primary_set(self, monitor);
+  if (previous != nullptr) secondary_add(self, previous);
+  notify_secondaries(self);
+  notify_monitors(self);
+  return true;
 }
 
 static void monitor_removed_cb(GdkDisplay* display, GdkMonitor* monitor,
@@ -389,6 +400,13 @@ static void monitor_removed_cb(GdkDisplay* display, GdkMonitor* monitor,
   g_object_set_data(G_OBJECT(monitor), kMonitorIdKey, nullptr);
   if (monitor != self->primary) {
     secondary_remove(self, monitor);
+    // Um painel, um toast ou o OSD que estavam nele voltam para o principal
+    for (int i : {kOverlay, kToasts, kOsd}) {
+      GtkWindow* window = self->windows[i];
+      if (window != nullptr && gtk_layer_get_monitor(window) == monitor) {
+        gtk_layer_set_monitor(window, self->primary);
+      }
+    }
   } else {
     // Um secundário vira o principal, e o fundo e a top bar dele dão lugar
     // aos de sempre
@@ -459,6 +477,22 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
       if (!overlay_passive) {
         gtk_widget_grab_focus(GTK_WIDGET(self->views[kOverlay]));
       }
+    }
+    fl_method_call_respond_success(call, nullptr, nullptr);
+  } else if (strcmp(method, "place") == 0 && args != nullptr &&
+             fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+    // A sobreposição, os toasts e o OSD podem sair do principal por um tempo.
+    // Um monitor que não está mais ligado vale como o principal
+    int i = surface_index(fl_value_lookup_string(args, "surface"));
+    FlValue* id = fl_value_lookup_string(args, "monitor");
+    GdkMonitor* monitor =
+        id != nullptr && fl_value_get_type(id) == FL_VALUE_TYPE_INT
+            ? monitor_by_id(fl_value_get_int(id))
+            : nullptr;
+    if (monitor == nullptr) monitor = self->primary;
+    if (i >= 0 && self->windows[i] != nullptr && monitor != nullptr &&
+        gtk_layer_get_monitor(self->windows[i]) != monitor) {
+      gtk_layer_set_monitor(self->windows[i], monitor);
     }
     fl_method_call_respond_success(call, nullptr, nullptr);
   } else if (strcmp(method, "hideOverlay") == 0) {

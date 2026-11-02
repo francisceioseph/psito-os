@@ -19,17 +19,22 @@ enum OverlayKeyboard { exclusive, onDemand, passive, pointer }
 /// O fundo e a top bar de um monitor além do principal.
 class SecondaryViews {
   final int id;
+
+  /// O id do monitor em que está agora; 0 guardada.
+  final int monitor;
   final int background;
   final int topbar;
 
   const SecondaryViews({
     required this.id,
+    this.monitor = 0,
     required this.background,
     required this.topbar,
   });
 
   factory SecondaryViews.fromMap(Map<Object?, Object?> map) => SecondaryViews(
     id: map['id']! as int,
+    monitor: map['monitor'] as int? ?? 0,
     background: map['background']! as int,
     topbar: map['topbar']! as int,
   );
@@ -102,6 +107,20 @@ class Surfaces {
     return index < 0 ? null : index + 1;
   }
 
+  Monitor? monitorOf(int? id) {
+    for (final monitor in monitors.value) {
+      if (monitor.id == id) return monitor;
+    }
+    return null;
+  }
+
+  Monitor? get primaryMonitor {
+    for (final monitor in monitors.value) {
+      if (monitor.primary) return monitor;
+    }
+    return null;
+  }
+
   /// Leva a dock, a mesa e as sobreposições para o monitor [id]. O principal
   /// de agora fica com o fundo e a top bar. False se ele não estiver ligado.
   Future<bool> setPrimary(int id) async =>
@@ -146,6 +165,13 @@ class Surfaces {
         OverlayKeyboard.passive => 'passive',
         OverlayKeyboard.pointer => 'pointer',
       });
+
+  /// Põe a sobreposição, os toasts ou o OSD no monitor [id] (null, o principal).
+  /// Não muda quem eles são: é só o lugar, até a próxima vez.
+  Future<void> place(Surface surface, int? id) => _channel.invokeMethod(
+    'place',
+    {'surface': surface.name, 'monitor': id ?? 0},
+  );
 
   Future<void> hideOverlay() => _channel.invokeMethod('hideOverlay');
 

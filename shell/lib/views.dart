@@ -112,7 +112,7 @@ class _ShellViewsState extends State<ShellViews> with WidgetsBindingObserver {
             View(
               key: ValueKey('topbar-${secondary.id}'),
               view: view,
-              child: _TopBarView(state),
+              child: _TopBarView(state, monitor: secondary.monitor),
             ),
         ],
       ],
@@ -165,22 +165,26 @@ class _BackgroundView extends StatelessWidget {
       if (primary) state.dockUi.screen = MediaQuery.sizeOf(context);
       return Material(
         type: MaterialType.transparency,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: DesktopBackground(
-                wallpaper: state.settings.value.wallpaper,
-              ),
-            ),
-            if (primary)
+        child: Listener(
+          onPointerDown: (_) => state.closeOnBackground(),
+          child: Stack(
+            children: [
               Positioned.fill(
-                child: ValueListenableBuilder(
-                  valueListenable: state.desk,
-                  builder: (context, desk, _) =>
-                      desk == null ? const SizedBox.shrink() : _DeskView(desk),
+                child: DesktopBackground(
+                  wallpaper: state.settings.value.wallpaper,
                 ),
               ),
-          ],
+              if (primary)
+                Positioned.fill(
+                  child: ValueListenableBuilder(
+                    valueListenable: state.desk,
+                    builder: (context, desk, _) => desk == null
+                        ? const SizedBox.shrink()
+                        : _DeskView(desk),
+                  ),
+                ),
+            ],
+          ),
         ),
       );
     },
@@ -301,7 +305,13 @@ class _DeskView extends StatelessWidget {
 
 class _TopBarView extends StatelessWidget {
   final ShellState state;
-  const _TopBarView(this.state);
+
+  /// O monitor desta top bar, em que os painéis dela abrem; null, o principal.
+  final int? monitor;
+
+  const _TopBarView(this.state, {this.monitor});
+
+  void _toggle(ShellOverlay overlay) => state.toggle(overlay, monitor: monitor);
 
   @override
   Widget build(BuildContext context) {
@@ -328,13 +338,12 @@ class _TopBarView extends StatelessWidget {
               child: Stack(
                 children: [
                   TopBar(
-                    onMenuTap: () => state.toggle(ShellOverlay.launcher),
-                    onNotificationsTap: () =>
-                        state.toggle(ShellOverlay.notifications),
+                    onMenuTap: () => _toggle(ShellOverlay.launcher),
+                    onNotificationsTap: () => _toggle(ShellOverlay.notifications),
                     network: services.network.state.value,
-                    onNetworkTap: () => state.toggle(ShellOverlay.network),
+                    onNetworkTap: () => _toggle(ShellOverlay.network),
                     audio: services.audio.state.value,
-                    onVolumeTap: () => state.toggle(ShellOverlay.volume),
+                    onVolumeTap: () => _toggle(ShellOverlay.volume),
                     onVolumeScroll: (direction) {
                       final audio = services.audio;
                       final s = audio.state.value;
@@ -344,12 +353,12 @@ class _TopBarView extends StatelessWidget {
                     },
                     battery: services.battery.state.value,
                     showBatteryPercentage: settings.showBatteryPercentage,
-                    onBatteryTap: () => state.toggle(ShellOverlay.battery),
+                    onBatteryTap: () => _toggle(ShellOverlay.battery),
                     clipboardCount: state.clipboard.entries.length,
-                    onClipboardTap: () => state.toggle(ShellOverlay.clipboard),
+                    onClipboardTap: () => _toggle(ShellOverlay.clipboard),
                     transfer: state.deskTransfer.value,
                     onCancelTransfer: () => state.desk.value?.cancelJobs(),
-                    onPowerTap: () => state.toggle(ShellOverlay.power),
+                    onPowerTap: () => _toggle(ShellOverlay.power),
                     now: services.time.now,
                     unreadCount: state.notifications.unreadCount,
                     use24h: settings.use24h,
@@ -761,7 +770,7 @@ class _OverlayView extends StatelessWidget {
           onPointerMove: (event) {
             ui.lastPointer = event.position;
             if (ui.drag.value?.source == DockDragSource.launcher) {
-              ui.moveDrag(event.position);
+              ui.moveDrag(event.position + state.overlayOrigin);
             }
           },
           onPointerUp: (_) {
@@ -782,12 +791,34 @@ class _OverlayView extends StatelessWidget {
                 builder: (context, drag, _) {
                   if (drag == null) return const SizedBox.shrink();
                   final size = ui.iconSize;
-                  return Positioned(
-                    left: drag.position.dx - size / 2,
-                    top: drag.position.dy - size / 2,
-                    child: IgnorePointer(
-                      child: _DockGhost(ui.visual(drag.item), size),
-                    ),
+                  final at = drag.position - state.overlayOrigin;
+                  return Stack(
+                    children: [
+                      // Com o ponteiro em outro monitor, o quadro sairia vazio,
+                      // e um quadro vazio não apaga o anterior: o ícone ficaria
+                      // parado na beira da tela
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        child: IgnorePointer(
+                          child: SizedBox.square(
+                            dimension: 1,
+                            child: ColoredBox(
+                              color: context.palette.shadow.withValues(
+                                alpha: 0.004,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: at.dx - size / 2,
+                        top: at.dy - size / 2,
+                        child: IgnorePointer(
+                          child: _DockGhost(ui.visual(drag.item), size),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -961,7 +992,7 @@ class _OverlayView extends StatelessWidget {
           onDragStart: (entry) => state.dockUi.startDrag(
             DockApp(entry.id),
             DockDragSource.launcher,
-            state.dockUi.lastPointer,
+            state.dockUi.lastPointer + state.overlayOrigin,
           ),
           menuFor: (entry) => _launcherMenu(entry),
         ),
