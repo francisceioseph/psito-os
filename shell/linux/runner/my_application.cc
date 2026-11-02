@@ -259,6 +259,10 @@ static FlValue* monitors_value(MyApplication* self) {
         map, "scale", fl_value_new_int(gdk_monitor_get_scale_factor(monitor)));
     fl_value_set_string_take(map, "model",
                              fl_value_new_string(model == nullptr ? "" : model));
+    const char* connector = outputs_monitor_connector(monitor);
+    fl_value_set_string_take(
+        map, "connector",
+        fl_value_new_string(connector == nullptr ? "" : connector));
     fl_value_set_string_take(map, "primary",
                              fl_value_new_bool(monitor == self->primary));
     fl_value_append_take(list, map);
@@ -280,6 +284,10 @@ static void monitor_notify_cb(GdkMonitor*, GParamSpec*, gpointer user_data) {
   notify_monitors(MY_APPLICATION(user_data));
 }
 
+static void monitor_connector_cb(gpointer user_data) {
+  notify_monitors(MY_APPLICATION(user_data));
+}
+
 static void monitor_track(MyApplication* self, GdkMonitor* monitor) {
   int id = self->next_monitor++;
   g_object_set_data(G_OBJECT(monitor), kMonitorIdKey, GINT_TO_POINTER(id));
@@ -290,6 +298,7 @@ static void monitor_track(MyApplication* self, GdkMonitor* monitor) {
   g_signal_connect_object(monitor, "notify::scale-factor",
                           G_CALLBACK(monitor_notify_cb), self,
                           G_CONNECT_DEFAULT);
+  outputs_monitor_watch(monitor, monitor_connector_cb, G_OBJECT(self));
 }
 
 static void secondary_add(MyApplication* self, GdkMonitor* monitor) {

@@ -95,5 +95,9 @@
   "diskPulledBody": "O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos.",
   "diskFullTitle": "O disco está quase cheio",
   "diskFullBody": "Restam {free}. Clique para ver o que ocupa espaço.",
-  "windowOnScreen": "{title} (tela {screen})"
+  "windowOnScreen": "{title} (tela {screen})",
+  "displaysConfirmTitle": "Manter esta configuração?",
+  "displaysConfirmBody": "Voltando para a anterior em {seconds} s.",
+  "displaysConfirmKeep": "Manter",
+  "displaysConfirmRevert": "Voltar"
 }

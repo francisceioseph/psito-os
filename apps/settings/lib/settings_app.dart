@@ -10,6 +10,7 @@ import 'l10n/l10n.dart';
 import 'format_disk_view.dart';
 import 'network_section.dart';
 import 'settings_ui.dart';
+import 'displays_section.dart';
 import 'storage_section.dart';
 import 'users_section.dart';
 
@@ -20,6 +21,7 @@ enum _Section {
   notifications(Icons.notifications_none),
   language(Icons.language),
   network(Icons.lan_outlined),
+  displays(Icons.monitor_outlined),
   storage(Icons.storage_outlined),
   power(Icons.battery_std_outlined),
   dateTime(Icons.schedule),
@@ -41,6 +43,7 @@ enum _Section {
     desktop => l.sectionDesktop,
     dateTime => l.sectionDateTime,
     network => l.sectionNetwork,
+    displays => l.sectionDisplays,
     storage => l.sectionStorage,
     notifications => l.sectionNotifications,
     power => l.sectionPower,
@@ -111,6 +114,7 @@ class _SettingsViewState extends State<SettingsView> {
       l.sectionGroupSystem,
       const [
         _Section.network,
+        _Section.displays,
         _Section.storage,
         _Section.power,
         _Section.dateTime,
@@ -160,6 +164,9 @@ class _SettingsViewState extends State<SettingsView> {
                       _Section.desktop => _desktop(settings),
                       _Section.dateTime => _dateTime(settings),
                       _Section.network => _network(),
+                      _Section.displays => [
+                        DisplaysSection(displays: widget.appContext.displays),
+                      ],
                       _Section.storage => [
                         StorageSection(storage: widget.appContext.storage),
                       ],

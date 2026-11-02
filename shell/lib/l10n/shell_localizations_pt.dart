@@ -328,4 +328,18 @@ class ShellLocalizationsPt extends ShellLocalizations {
   String windowOnScreen(String title, int screen) {
     return '$title (tela $screen)';
   }
+
+  @override
+  String get displaysConfirmTitle => 'Manter esta configuração?';
+
+  @override
+  String displaysConfirmBody(int seconds) {
+    return 'Voltando para a anterior em $seconds s.';
+  }
+
+  @override
+  String get displaysConfirmKeep => 'Manter';
+
+  @override
+  String get displaysConfirmRevert => 'Voltar';
 }

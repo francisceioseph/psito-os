@@ -115,6 +115,10 @@ abstract class PsitoAppContext {
   /// nenhuma ação vale.
   PsitoStorage get storage;
 
+  /// Os monitores. Sem [PsitoApp.canChangeSettings], é a lista vazia e nenhuma
+  /// ação vale.
+  PsitoDisplays get displays;
+
   /// Os discos externos. Sem a permissão `files:removable`, a lista fica vazia.
   PsitoVolumes get volumes;
 
@@ -1146,6 +1150,147 @@ enum PsitoDiskFormat {
   final int maxLabel;
 
   const PsitoDiskFormat(this.maxLabel);
+}
+
+/// Uma forma de ligar um monitor.
+@immutable
+class PsitoDisplayMode {
+  final int width;
+  final int height;
+
+  /// Em milésimos de hertz.
+  final int refresh;
+  final bool preferred;
+
+  const PsitoDisplayMode(
+    this.width,
+    this.height, {
+    this.refresh = 60000,
+    this.preferred = false,
+  });
+
+  bool sameSize(PsitoDisplayMode other) =>
+      width == other.width && height == other.height;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PsitoDisplayMode &&
+      other.width == width &&
+      other.height == height &&
+      other.refresh == refresh;
+
+  @override
+  int get hashCode => Object.hash(width, height, refresh);
+}
+
+/// Um monitor conectado, ligado ou não. O [name] é o do conector.
+@immutable
+class PsitoDisplay {
+  final String name;
+
+  /// Fabricante e modelo, para mostrar.
+  final String label;
+  final bool enabled;
+  final bool primary;
+  final int x;
+  final int y;
+
+  /// Como no `wl_output`: de 0 a 3, a rotação em quartos de volta no sentido
+  /// anti-horário.
+  final int transform;
+  final double scale;
+  final PsitoDisplayMode? mode;
+  final List<PsitoDisplayMode> modes;
+
+  const PsitoDisplay({
+    required this.name,
+    this.label = '',
+    this.enabled = true,
+    this.primary = false,
+    this.x = 0,
+    this.y = 0,
+    this.transform = 0,
+    this.scale = 1,
+    this.mode,
+    this.modes = const [],
+  });
+
+  PsitoDisplay copyWith({
+    bool? enabled,
+    bool? primary,
+    int? x,
+    int? y,
+    int? transform,
+    double? scale,
+    PsitoDisplayMode? mode,
+  }) => PsitoDisplay(
+    name: name,
+    label: label,
+    enabled: enabled ?? this.enabled,
+    primary: primary ?? this.primary,
+    x: x ?? this.x,
+    y: y ?? this.y,
+    transform: transform ?? this.transform,
+    scale: scale ?? this.scale,
+    mode: mode ?? this.mode,
+    modes: modes,
+  );
+
+  /// O retângulo no layout, em pixels lógicos: a rotação troca os lados.
+  Rect get rect {
+    final mode = this.mode;
+    if (mode == null) return Rect.fromLTWH(x.toDouble(), y.toDouble(), 0, 0);
+    final sideways = transform.isOdd;
+    return Rect.fromLTWH(
+      x.toDouble(),
+      y.toDouble(),
+      (sideways ? mode.height : mode.width) / scale,
+      (sideways ? mode.width : mode.height) / scale,
+    );
+  }
+
+  /// O que mudaria na tela: o rótulo e os modos vêm do monitor.
+  bool sameConfig(PsitoDisplay other) =>
+      enabled == other.enabled &&
+      (!enabled ||
+          (x == other.x &&
+              y == other.y &&
+              transform == other.transform &&
+              scale == other.scale &&
+              mode == other.mode));
+}
+
+enum PsitoDisplaysResult { ok, failed, busy }
+
+/// Os monitores, para as Configurações. Quem fala com o compositor é o shell, e
+/// é ele quem pergunta se a configuração fica, porque o app pode fechar ou não
+/// aparecer mais.
+abstract class PsitoDisplays {
+  ValueListenable<List<PsitoDisplay>> get displays;
+
+  /// Vale na hora e volta sozinha, se ninguém confirmar. [busy] enquanto outra
+  /// espera a confirmação.
+  Future<PsitoDisplaysResult> apply(List<PsitoDisplay> displays);
+
+  /// Vale na hora, e não apaga nada, então não pede confirmação.
+  Future<void> setPrimary(String name);
+}
+
+/// Sem a permissão: nada a mostrar, e nada acontece.
+class PsitoNoDisplays implements PsitoDisplays {
+  static final _empty = ValueNotifier<List<PsitoDisplay>>(const []);
+
+  const PsitoNoDisplays();
+
+  @override
+  ValueListenable<List<PsitoDisplay>> get displays => _empty;
+
+  @override
+  Future<PsitoDisplaysResult> apply(List<PsitoDisplay> displays) async =>
+      PsitoDisplaysResult.failed;
+
+  @override
+  Future<void> setPrimary(String name) async {}
 }
 
 /// O espaço em disco, para as Configurações: o shell mede, porque no sandbox o

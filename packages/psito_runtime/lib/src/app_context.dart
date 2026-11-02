@@ -25,6 +25,7 @@ class AppServices {
   final PsitoAccounts Function() accounts;
   final PsitoNetworkConnections Function() networkConnections;
   final PsitoStorage Function() storage;
+  final PsitoDisplays Function() displays;
 
   /// Só nasce para quem pede. Sem a permissão, o proxy do sandbox recusa.
   final PsitoVolumes Function() volumes;
@@ -36,11 +37,13 @@ class AppServices {
     this.accounts = _noAccounts,
     this.networkConnections = _noConnections,
     this.storage = _noStorage,
+    this.displays = _noDisplays,
     this.volumes = _noVolumes,
   });
 
   static PsitoVolumes _noVolumes() => FakeDisksService();
   static PsitoStorage _noStorage() => const PsitoNoStorage();
+  static PsitoDisplays _noDisplays() => const PsitoNoDisplays();
   static PsitoAccounts _noAccounts() => const PsitoNoAccounts();
   static PsitoNetworkConnections _noConnections() =>
       const PsitoNoNetworkConnections();
@@ -141,6 +144,11 @@ class ProcessAppContext implements PsitoAppContext {
   late final PsitoStorage storage = app.canChangeSettings
       ? services.storage()
       : const PsitoNoStorage();
+
+  @override
+  late final PsitoDisplays displays = app.canChangeSettings
+      ? services.displays()
+      : const PsitoNoDisplays();
 
   @override
   void setTimezone(String timezone) {

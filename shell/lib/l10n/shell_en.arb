@@ -113,8 +113,23 @@
   "@windowOnScreen": {
     "description": "Window in the dock menu, when there are several monitors",
     "placeholders": {
-      "title": {"type": "String"},
-      "screen": {"type": "int"}
+      "title": {
+        "type": "String"
+      },
+      "screen": {
+        "type": "int"
+      }
+    }
+  },
+  "displaysConfirmTitle": "Keep this display configuration?",
+  "displaysConfirmBody": "Going back to the previous one in {seconds} s.",
+  "displaysConfirmKeep": "Keep",
+  "displaysConfirmRevert": "Go back",
+  "@displaysConfirmBody": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
     }
   }
 }

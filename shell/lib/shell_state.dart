@@ -28,6 +28,7 @@ import 'clipboard_keeper.dart';
 import 'desk.dart';
 import 'desktop_entries.dart';
 import 'disk_unlock_dialog.dart';
+import 'displays.dart';
 import 'idle.dart';
 import 'dock.dart';
 import 'notifications_server.dart';
@@ -81,6 +82,7 @@ class ShellState {
     deskTrust.addListener(_syncOverlay);
     polkit.current.addListener(_syncOverlay);
     diskUnlock.addListener(_syncOverlay);
+    displaysConfirm.addListener(_syncOverlay);
     services.disks.askUnlock = unlockVolume;
     // O que segura a dock na tela, com o ocultar sozinha
     for (final listenable in [
@@ -587,6 +589,9 @@ class ShellState {
 
   /// O pedido da senha de um disco criptografado, na sobreposição.
   final diskUnlock = ValueNotifier<DiskUnlockRequest?>(null);
+
+  /// A configuração nova dos monitores, esperando quem diga se fica.
+  final displaysConfirm = ValueNotifier<DisplaysConfirm?>(null);
   final _unlocks = <String, Future<String?>>{};
 
   /// Pede a senha e destranca. Devolve onde montou, ou null se a pessoa
@@ -1064,6 +1069,7 @@ class ShellState {
   // o da dock só é desenhado nela
   /// A sobreposição fica com o teclado só para ela.
   bool get overlayHoldsKeyboard =>
+      displaysConfirm.value != null ||
       polkit.current.value != null ||
       diskUnlock.value != null ||
       confirm.value != null ||

@@ -18,6 +18,7 @@ import 'package:psito_services/settings_client.dart';
 import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/system_info_service.dart';
 import 'package:psito_services/time_service.dart';
+import 'package:psito_services/displays_client.dart';
 import 'package:psito_services/storage_client.dart';
 import 'package:psito_services/storage_service.dart';
 import 'package:psito_services/volumes_client.dart';
@@ -43,6 +44,7 @@ AppServices startServices(
       networkConnections: FakeNetworkConnections.new,
       volumes: FakeDisksService.new,
       storage: FakeStorage.new,
+      displays: FakeDisplays.new,
     );
   }
   final bus = DBusClient.system();
@@ -55,6 +57,7 @@ AppServices startServices(
         NetworkManagerConnections(bus, importer: launcher?.importVpn),
     volumes: () => VolumesClient(session ?? DBusClient.session()),
     storage: () => StorageClient(session ?? DBusClient.session()),
+    displays: () => DisplaysClient(session ?? DBusClient.session()),
   );
 }
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_shell/displays.dart';
 import 'package:psito_shell/surfaces.dart';
 
@@ -284,12 +285,18 @@ void main() {
     late String answer;
     late Surfaces surfaces;
 
-    Displays displays(MonitorStore store) =>
-        Displays(surfaces: surfaces, store: store, channel: _channel);
+    Displays displays(MonitorStore store) => Displays(
+      surfaces: surfaces,
+      store: store,
+      // A contagem inteira, em poucos milissegundos
+      confirmTick: const Duration(milliseconds: 1),
+      channel: _channel,
+    );
 
     Monitor monitor(int id, double x, {bool primary = false}) => Monitor(
       id: id,
       rect: Rect.fromLTWH(x, 0, 1920, 1080),
+      connector: x == 0 ? 'a' : 'b',
       primary: primary,
     );
 
@@ -344,17 +351,38 @@ void main() {
       await d.start();
       await pumpEventQueue();
 
-      // Um novo, em cima do outro: vai para a direita
+      // Um novo, em cima do outro: vai para a direita, com o que fica fixado antes
       await d.handle(MethodCall('changed', [_headMap('a'), _headMap('b')]));
       await pumpEventQueue();
-      expect(applied, hasLength(1));
+      expect(applied, hasLength(2));
 
       // Uma mudança de fora, com os mesmos monitores, fica como está
       await d.handle(
         MethodCall('changed', [_headMap('a'), _headMap('b', x: 3000)]),
       );
       await pumpEventQueue();
-      expect(applied, hasLength(1));
+      expect(applied, hasLength(2));
+    });
+
+    test('quem fica no lugar é fixado antes de mover o vizinho', () async {
+      final d = displays(MonitorStore.memory());
+      await d.start();
+      await pumpEventQueue();
+      await d.handle(
+        MethodCall('changed', [_headMap('a'), _headMap('b', x: 1920)]),
+      );
+      await pumpEventQueue();
+      applied.clear();
+      final [a, b] = d.displays.value;
+
+      await d.apply([a, b.copyWith(x: 0, y: 1080)]);
+      Object? xOf(Map<Object?, Object?> call, int i) =>
+          ((call['heads']! as List<Object?>)[i]! as Map<Object?, Object?>)['x'];
+      expect(applied.map((c) => c['test']), [true, false, false]);
+      // O primeiro tira todos do lugar, e o segundo é o de verdade
+      expect(xOf(applied[1], 0), 1);
+      expect(xOf(applied[2], 0), 0);
+      d.confirm.value!.keep();
     });
 
     test('uma recusa não vira um laço', () async {
@@ -421,30 +449,144 @@ void main() {
       final d = displays(store);
       await d.start();
       await pumpEventQueue();
-      expect(await d.setPrimaryMonitor(2), isTrue);
+      await d.setPrimary('b');
+      expect(primaries, [2]);
       expect(store.primary, OutputHead.fromMap(_headMap('b')).key);
-      expect(await d.setPrimaryMonitor(9), isFalse);
+
+      // Um conector que não existe não muda nada
+      await d.setPrimary('z');
+      expect(primaries, [2]);
+      expect(store.primary, OutputHead.fromMap(_headMap('b')).key);
     });
 
-    test('configurar guarda só o que valeu', () async {
-      final store = MonitorStore.memory();
+    test('dois espelhados são dois monitores: vale o conector', () async {
+      final store = MonitorStore.memory(
+        primary: OutputHead.fromMap(_headMap('b')).key,
+      );
+      current = [_headMap('a'), _headMap('b')];
+      surfaces.monitors.value = const [
+        Monitor(
+          id: 1,
+          rect: Rect.fromLTWH(0, 0, 1920, 1080),
+          connector: 'a',
+          primary: true,
+        ),
+        Monitor(id: 2, rect: Rect.fromLTWH(0, 0, 1920, 1080), connector: 'b'),
+      ];
       final d = displays(store);
       await d.start();
-      final key = d.heads.value.single.key;
-      const plan = {'a': OutputConfig(mode: _small)};
+      await pumpEventQueue();
+      expect(primaries, [2]);
+      expect(d.displays.value.first.primary, isTrue);
+    });
 
-      expect(await d.configure(plan, test: true), 'ok');
-      expect(applied.last['test'], isTrue);
-      expect(store[key], isNull);
+    group('aplicar', () {
+      const smaller = PsitoDisplayMode(1280, 720, refresh: 60000);
+      late MonitorStore store;
+      late Displays d;
+      late String key;
 
-      answer = 'failed';
-      expect(await d.configure(plan), 'failed');
-      expect(store[key], isNull);
+      setUp(() async {
+        store = MonitorStore.memory();
+        d = displays(store);
+        await d.start();
+        await pumpEventQueue();
+        key = d.heads.value.single.key;
+      });
 
-      answer = 'ok';
-      expect(await d.configure(plan), 'ok');
-      expect(applied.last['test'], isFalse);
-      expect(store[key]!.mode!.width, 1280);
+      List<PsitoDisplay> smallerPlan() => [
+        d.displays.value.single.copyWith(mode: smaller),
+      ];
+
+      Map<Object?, Object?> onlyHead(Map<Object?, Object?> call) =>
+          (call['heads']! as List<Object?>).single! as Map<Object?, Object?>;
+
+      test('testa, aplica e pergunta, sem guardar ainda', () async {
+        expect(await d.apply(smallerPlan()), PsitoDisplaysResult.ok);
+        expect(applied.map((a) => a['test']), [true, false]);
+        expect(onlyHead(applied.last)['width'], 1280);
+        expect(d.confirm.value, isNotNull);
+        expect(store[key], isNull);
+        d.confirm.value!.revert();
+      });
+
+      test('manter guarda, e a contagem para', () async {
+        await d.apply(smallerPlan());
+        d.confirm.value!.keep();
+        expect(d.confirm.value, isNull);
+        await pumpEventQueue();
+        expect(store[key]!.mode!.width, 1280);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+        expect(applied, hasLength(2));
+      });
+
+      test('voltar reaplica o de antes e não guarda', () async {
+        await d.apply(smallerPlan());
+        d.confirm.value!.revert();
+        await pumpEventQueue();
+        expect(d.confirm.value, isNull);
+        expect(applied, hasLength(3));
+        expect(onlyHead(applied.last)['width'], 1920);
+        expect(store[key], isNull);
+      });
+
+      test('sem resposta, volta sozinha', () async {
+        await d.apply(smallerPlan());
+        final request = d.confirm.value!;
+        expect(request.secondsLeft, Displays.confirmSeconds);
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        expect(request.secondsLeft, 0);
+        expect(d.confirm.value, isNull);
+        expect(onlyHead(applied.last)['width'], 1920);
+        expect(store[key], isNull);
+      });
+
+      test('uma pergunta de cada vez', () async {
+        await d.apply(smallerPlan());
+        expect(await d.apply(smallerPlan()), PsitoDisplaysResult.busy);
+        expect(applied, hasLength(2));
+        d.confirm.value!.revert();
+      });
+
+      test('o que o compositor recusa no teste nem é aplicado', () async {
+        answer = 'failed';
+        expect(await d.apply(smallerPlan()), PsitoDisplaysResult.failed);
+        expect(applied.single['test'], isTrue);
+        expect(d.confirm.value, isNull);
+      });
+
+      test('sem nenhum ligado, nem pergunta ao compositor', () async {
+        final off = d.displays.value.single.copyWith(enabled: false);
+        expect(await d.apply([off]), PsitoDisplaysResult.failed);
+        expect(applied, isEmpty);
+      });
+
+      test('nada mudou: nada a confirmar', () async {
+        expect(await d.apply(d.displays.value), PsitoDisplaysResult.ok);
+        expect(applied, isEmpty);
+        expect(d.confirm.value, isNull);
+      });
+
+      test('o layout aplicado começa em 0,0', () async {
+        current = [_headMap('a'), _headMap('b', x: 1920)];
+        await d.handle(MethodCall('changed', current));
+        await pumpEventQueue();
+        applied.clear();
+        final [a, b] = d.displays.value;
+        await d.apply([a.copyWith(x: 100), b.copyWith(x: 2020, y: 50)]);
+        final heads = applied.last['heads']! as List<Object?>;
+        final first = heads.first! as Map<Object?, Object?>;
+        final second = heads.last! as Map<Object?, Object?>;
+        expect((first['x'], first['y']), (0, 0));
+        expect((second['x'], second['y']), (1920, 50));
+        d.confirm.value!.keep();
+      });
+
+      test('um monitor que entra acaba com a pergunta', () async {
+        await d.apply(smallerPlan());
+        await d.handle(MethodCall('changed', [_headMap('a'), _headMap('b')]));
+        expect(d.confirm.value, isNull);
+      });
     });
   });
 }

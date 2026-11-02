@@ -12,6 +12,7 @@ import 'package:psito_sdk/psito_sdk.dart';
 import 'package:psito_services/accounts_service.dart';
 import 'package:psito_services/disks_service.dart';
 import 'package:psito_services/network_connections.dart';
+import 'package:psito_services/displays_client.dart';
 import 'package:psito_services/storage_service.dart';
 import 'package:psito_services/time_service.dart';
 
@@ -100,6 +101,7 @@ class WindowManager extends ChangeNotifier {
 
   /// Idem para o uso dos discos.
   final PsitoStorage storage = FakeStorage();
+  final PsitoDisplays displays = FakeDisplays();
 
   /// Os discos do laboratório: um pendrive, nunca os de verdade do host.
   final PsitoVolumes volumes = FakeDisksService([FakeDisksService.sample]);
@@ -434,6 +436,14 @@ class _WindowContext implements PsitoAppContext {
     return window != null && window.app.canChangeSettings
         ? _manager.storage
         : const PsitoNoStorage();
+  }
+
+  @override
+  PsitoDisplays get displays {
+    final window = _manager._byId(windowId);
+    return window != null && window.app.canChangeSettings
+        ? _manager.displays
+        : const PsitoNoDisplays();
   }
 
   @override

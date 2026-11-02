@@ -673,6 +673,30 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'{title} (screen {screen})'**
   String windowOnScreen(String title, int screen);
+
+  /// No description provided for @displaysConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this display configuration?'**
+  String get displaysConfirmTitle;
+
+  /// No description provided for @displaysConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Going back to the previous one in {seconds} s.'**
+  String displaysConfirmBody(int seconds);
+
+  /// No description provided for @displaysConfirmKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get displaysConfirmKeep;
+
+  /// No description provided for @displaysConfirmRevert.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get displaysConfirmRevert;
 }
 
 class _ShellLocalizationsDelegate

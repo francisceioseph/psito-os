@@ -1162,6 +1162,198 @@ abstract class SettingsLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get storageFormatOk;
+
+  /// No description provided for @sectionDisplays.
+  ///
+  /// In en, this message translates to:
+  /// **'Displays'**
+  String get sectionDisplays;
+
+  /// No description provided for @displaysUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The display list is unavailable.'**
+  String get displaysUnavailable;
+
+  /// No description provided for @displaysHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the displays to match how they sit on your desk.'**
+  String get displaysHint;
+
+  /// No description provided for @displaysLayout.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrangement'**
+  String get displaysLayout;
+
+  /// No description provided for @displaysTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Display {number}: {label}'**
+  String displaysTile(int number, String label);
+
+  /// No description provided for @displaysPrimaryBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get displaysPrimaryBadge;
+
+  /// No description provided for @displaysPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary display'**
+  String get displaysPrimary;
+
+  /// No description provided for @displaysMakePrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'Make primary'**
+  String get displaysMakePrimary;
+
+  /// No description provided for @displaysIsPrimary.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the primary display.'**
+  String get displaysIsPrimary;
+
+  /// No description provided for @displaysEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turned on'**
+  String get displaysEnabled;
+
+  /// No description provided for @displaysResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get displaysResolution;
+
+  /// No description provided for @displaysResolutionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{width} × {height}'**
+  String displaysResolutionValue(int width, int height);
+
+  /// No description provided for @displaysRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh rate'**
+  String get displaysRefresh;
+
+  /// No description provided for @displaysRefreshValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{hertz} Hz'**
+  String displaysRefreshValue(String hertz);
+
+  /// No description provided for @displaysRotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotation'**
+  String get displaysRotation;
+
+  /// No description provided for @displaysRotationNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get displaysRotationNormal;
+
+  /// No description provided for @displaysRotationLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'90° to the left'**
+  String get displaysRotationLeft;
+
+  /// No description provided for @displaysRotationInverted.
+  ///
+  /// In en, this message translates to:
+  /// **'Upside down'**
+  String get displaysRotationInverted;
+
+  /// No description provided for @displaysRotationRight.
+  ///
+  /// In en, this message translates to:
+  /// **'90° to the right'**
+  String get displaysRotationRight;
+
+  /// No description provided for @displaysScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get displaysScale;
+
+  /// No description provided for @displaysScaleValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String displaysScaleValue(int percent);
+
+  /// No description provided for @displaysMirror.
+  ///
+  /// In en, this message translates to:
+  /// **'Mirror displays'**
+  String get displaysMirror;
+
+  /// No description provided for @displaysMirrorNote.
+  ///
+  /// In en, this message translates to:
+  /// **'All displays show the same image.'**
+  String get displaysMirrorNote;
+
+  /// No description provided for @displaysMirrorNone.
+  ///
+  /// In en, this message translates to:
+  /// **'These displays have no resolution in common.'**
+  String get displaysMirrorNone;
+
+  /// No description provided for @displaysMoveLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to the left'**
+  String get displaysMoveLeft;
+
+  /// No description provided for @displaysMoveRight.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to the right'**
+  String get displaysMoveRight;
+
+  /// No description provided for @displaysMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get displaysMoveUp;
+
+  /// No description provided for @displaysMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get displaysMoveDown;
+
+  /// No description provided for @displaysApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get displaysApply;
+
+  /// No description provided for @displaysDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get displaysDiscard;
+
+  /// No description provided for @displaysFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The system did not accept this configuration.'**
+  String get displaysFailed;
+
+  /// No description provided for @displaysBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer the question on the screen first.'**
+  String get displaysBusy;
 }
 
 class _SettingsLocalizationsDelegate

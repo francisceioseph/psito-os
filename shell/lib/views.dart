@@ -38,6 +38,7 @@ import 'app_icon.dart';
 import 'desk.dart';
 import 'dock.dart';
 import 'disk_unlock_dialog.dart';
+import 'displays_confirm_dialog.dart';
 import 'polkit_dialog.dart';
 import 'shell_state.dart';
 import 'size_reporter.dart';
@@ -830,9 +831,14 @@ class _OverlayView extends StatelessWidget {
       state.deskTrust,
       state.polkit.current,
       state.diskUnlock,
+      state.displaysConfirm,
     ]),
     builder: (context, _) {
       final accent = Theme.of(context).colorScheme.primary;
+      // Antes de tudo: é o que tira a pessoa de uma tela que ficou ruim
+      if (state.displaysConfirm.value case final request?) {
+        return DisplaysConfirmDialog(request: request, l10n: state.l10n);
+      }
       if (state.polkit.current.value case final request?) {
         return PolkitDialog(
           key: ValueKey(request.cookie),

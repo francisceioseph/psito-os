@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "wlr-output-management-unstable-v1-client-protocol.h"
+#include "xdg-output-unstable-v1-client-protocol.h"
 
 namespace {
 
@@ -38,6 +39,9 @@ struct Head {
 FlMethodChannel* channel = nullptr;
 wl_display* display = nullptr;
 zwlr_output_manager_v1* manager = nullptr;
+zxdg_output_manager_v1* xdg_manager = nullptr;
+
+constexpr char kConnectorKey[] = "psito-connector";
 std::vector<Head*> heads;
 uint32_t serial = 0;
 
@@ -361,6 +365,11 @@ void registry_global(void*, wl_registry* registry, uint32_t name,
         registry, name, &zwlr_output_manager_v1_interface,
         version < 4 ? version : 4));
     zwlr_output_manager_v1_add_listener(manager, &manager_listener, nullptr);
+  } else if (strcmp(interface, zxdg_output_manager_v1_interface.name) == 0 &&
+             version >= 2) {
+    // O nome do conector vem da versão 2
+    xdg_manager = static_cast<zxdg_output_manager_v1*>(wl_registry_bind(
+        registry, name, &zxdg_output_manager_v1_interface, 2));
   }
 }
 
@@ -371,7 +380,53 @@ const wl_registry_listener registry_listener = {
     registry_global_remove,
 };
 
+struct MonitorWatch {
+  GdkMonitor* monitor;
+  void (*changed)(gpointer);
+  GObject* data;
+};
+
+void xdg_output_position(void*, zxdg_output_v1*, int32_t, int32_t) {}
+void xdg_output_size(void*, zxdg_output_v1*, int32_t, int32_t) {}
+void xdg_output_done(void*, zxdg_output_v1*) {}
+void xdg_output_description(void*, zxdg_output_v1*, const char*) {}
+
+// O nome só vem uma vez, e o objeto não serve para mais nada
+void xdg_output_name(void* data, zxdg_output_v1* output, const char* name) {
+  auto* watch = static_cast<MonitorWatch*>(data);
+  g_object_set_data_full(G_OBJECT(watch->monitor), kConnectorKey,
+                         g_strdup(name), g_free);
+  watch->changed(watch->data);
+  g_object_unref(watch->monitor);
+  g_object_unref(watch->data);
+  delete watch;
+  zxdg_output_v1_destroy(output);
+}
+
+const zxdg_output_v1_listener xdg_output_listener = {
+    xdg_output_position, xdg_output_size,        xdg_output_done,
+    xdg_output_name,     xdg_output_description,
+};
+
 }  // namespace
+
+void outputs_monitor_watch(GdkMonitor* monitor, void (*changed)(gpointer),
+                           GObject* data) {
+  if (xdg_manager == nullptr || !GDK_IS_WAYLAND_MONITOR(monitor)) return;
+  wl_output* output = gdk_wayland_monitor_get_wl_output(monitor);
+  if (output == nullptr) return;
+  auto* watch = new MonitorWatch{GDK_MONITOR(g_object_ref(monitor)), changed,
+                                 G_OBJECT(g_object_ref(data))};
+  zxdg_output_v1_add_listener(
+      zxdg_output_manager_v1_get_xdg_output(xdg_manager, output),
+      &xdg_output_listener, watch);
+  wl_display_flush(display);
+}
+
+const char* outputs_monitor_connector(GdkMonitor* monitor) {
+  return static_cast<const char*>(
+      g_object_get_data(G_OBJECT(monitor), kConnectorKey));
+}
 
 void outputs_init(FlBinaryMessenger* messenger) {
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();

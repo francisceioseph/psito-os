@@ -42,6 +42,10 @@ class Monitor {
   final Rect rect;
   final int scale;
   final String model;
+
+  /// O nome do conector, que o protocolo dos monitores também diz. Vazio até o
+  /// compositor responder.
+  final String connector;
   final bool primary;
 
   const Monitor({
@@ -49,6 +53,7 @@ class Monitor {
     required this.rect,
     this.scale = 1,
     this.model = '',
+    this.connector = '',
     this.primary = false,
   });
 
@@ -62,6 +67,7 @@ class Monitor {
     ),
     scale: map['scale'] as int? ?? 1,
     model: map['model'] as String? ?? '',
+    connector: map['connector'] as String? ?? '',
     primary: map['primary'] as bool? ?? false,
   );
 }

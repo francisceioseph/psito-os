@@ -19,6 +19,7 @@ import 'autostart.dart';
 import 'bridge/bridge.dart';
 import 'desk.dart';
 import 'displays.dart';
+import 'displays_bus.dart';
 import 'launcher_bus.dart';
 import 'volumes_bus.dart';
 import 'notifications_server.dart';
@@ -58,6 +59,7 @@ Future<void> main() async {
   final displays = Displays(
     surfaces: state.surfaces,
     store: await MonitorStore.load(defaultMonitorsFile()),
+    confirm: state.displaysConfirm,
   );
   await displays.start();
   state.applyDockSettings();
@@ -117,10 +119,7 @@ Future<void> main() async {
 
   try {
     await publishShell(
-      ShellBusObject(
-        onRun: state.run,
-        onSetPrimary: displays.setPrimaryMonitor,
-      ),
+      ShellBusObject(onRun: state.run),
     );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');
@@ -177,6 +176,19 @@ Future<void> main() async {
     );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o org.psito.Storage ($e)');
+  }
+  try {
+    final displaysBus = DBusClient.session();
+    await publishDisplays(
+      displaysBus,
+      DisplaysBusObject(
+        displays,
+        mayChange: (sender) async =>
+            state.maySetSettings(await senderAppId(displaysBus, sender)),
+      ),
+    );
+  } on Exception catch (e) {
+    debugPrint('🦜 shell: sem o org.psito.Displays ($e)');
   }
   state.watchDiskSpace();
   unawaited(_publishPolkit(state, settings));

@@ -581,4 +581,110 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
 
   @override
   String get storageFormatOk => 'OK';
+
+  @override
+  String get sectionDisplays => 'Displays';
+
+  @override
+  String get displaysUnavailable => 'The display list is unavailable.';
+
+  @override
+  String get displaysHint =>
+      'Drag the displays to match how they sit on your desk.';
+
+  @override
+  String get displaysLayout => 'Arrangement';
+
+  @override
+  String displaysTile(int number, String label) {
+    return 'Display $number: $label';
+  }
+
+  @override
+  String get displaysPrimaryBadge => 'Primary';
+
+  @override
+  String get displaysPrimary => 'Primary display';
+
+  @override
+  String get displaysMakePrimary => 'Make primary';
+
+  @override
+  String get displaysIsPrimary => 'This is the primary display.';
+
+  @override
+  String get displaysEnabled => 'Turned on';
+
+  @override
+  String get displaysResolution => 'Resolution';
+
+  @override
+  String displaysResolutionValue(int width, int height) {
+    return '$width × $height';
+  }
+
+  @override
+  String get displaysRefresh => 'Refresh rate';
+
+  @override
+  String displaysRefreshValue(String hertz) {
+    return '$hertz Hz';
+  }
+
+  @override
+  String get displaysRotation => 'Rotation';
+
+  @override
+  String get displaysRotationNormal => 'Normal';
+
+  @override
+  String get displaysRotationLeft => '90° to the left';
+
+  @override
+  String get displaysRotationInverted => 'Upside down';
+
+  @override
+  String get displaysRotationRight => '90° to the right';
+
+  @override
+  String get displaysScale => 'Scale';
+
+  @override
+  String displaysScaleValue(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get displaysMirror => 'Mirror displays';
+
+  @override
+  String get displaysMirrorNote => 'All displays show the same image.';
+
+  @override
+  String get displaysMirrorNone =>
+      'These displays have no resolution in common.';
+
+  @override
+  String get displaysMoveLeft => 'Move to the left';
+
+  @override
+  String get displaysMoveRight => 'Move to the right';
+
+  @override
+  String get displaysMoveUp => 'Move up';
+
+  @override
+  String get displaysMoveDown => 'Move down';
+
+  @override
+  String get displaysApply => 'Apply';
+
+  @override
+  String get displaysDiscard => 'Discard';
+
+  @override
+  String get displaysFailed => 'The system did not accept this configuration.';
+
+  @override
+  String get displaysBusy => 'Answer the question on the screen first.';
 }

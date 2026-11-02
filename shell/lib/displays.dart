@@ -10,6 +10,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:psito_sdk/psito_sdk.dart';
 
 import 'surfaces.dart';
 
@@ -42,10 +43,17 @@ class OutputMode {
     preferred: map['preferred'] as bool? ?? false,
   );
 
+  PsitoDisplayMode toDisplay() =>
+      PsitoDisplayMode(width, height, refresh: refresh, preferred: preferred);
+
   bool sameAs(OutputMode other) =>
       width == other.width &&
       height == other.height &&
       refresh == other.refresh;
+}
+
+extension on PsitoDisplayMode {
+  OutputMode toOutput() => OutputMode(width, height, refresh: refresh);
 }
 
 /// Um monitor conectado, ligado ou não. O nome é o do conector (`HDMI-A-1`).
@@ -97,6 +105,22 @@ class OutputHead {
       current: current >= 0 && current < modes.length ? modes[current] : null,
     );
   }
+
+  /// Para mostrar. Sem fabricante nem modelo, o conector.
+  String get label {
+    final label = [make, model].where((s) => s.isNotEmpty).join(' ');
+    return label.isEmpty ? name : label;
+  }
+
+  /// Como está agora.
+  OutputConfig get config => OutputConfig(
+    enabled: enabled,
+    mode: current,
+    x: x,
+    y: y,
+    transform: transform,
+    scale: scale,
+  );
 
   /// Quem é este monitor, em qualquer conector. Sem a série, dois iguais só se
   /// distinguem pelo conector.
@@ -347,6 +371,11 @@ Map<String, OutputConfig> planOutputs(
     plan[head.name] = OutputConfig(mode: bestMode(head.modes));
   }
 
+  return _fromOrigin(plan);
+}
+
+/// O layout começa em 0,0.
+Map<String, OutputConfig> _fromOrigin(Map<String, OutputConfig> plan) {
   final enabled = plan.values.where((c) => c.enabled);
   if (enabled.isEmpty) return plan;
   final left = enabled.map((c) => c.x).reduce((a, b) => a < b ? a : b);
@@ -357,28 +386,62 @@ Map<String, OutputConfig> planOutputs(
   };
 }
 
+/// A configuração nova, esperando quem diga se fica. Sem resposta, volta sozinha.
+class DisplaysConfirm extends ChangeNotifier {
+  final VoidCallback keep;
+  final VoidCallback revert;
+  int secondsLeft;
+
+  DisplaysConfirm({
+    required this.keep,
+    required this.revert,
+    this.secondsLeft = Displays.confirmSeconds,
+  });
+
+  void tick() {
+    secondsLeft--;
+    notifyListeners();
+  }
+}
+
 /// Os monitores do compositor, e quem manda neles: um conjunto novo de monitores
 /// conectados é arrumado uma vez, e uma mudança de fora (o `wlr-randr`) fica até
 /// o próximo.
-class Displays {
+class Displays implements PsitoDisplays {
+  static const confirmSeconds = 15;
+
   Displays({
     required this.surfaces,
     required this.store,
+    ValueNotifier<DisplaysConfirm?>? confirm,
+    this.confirmTick = const Duration(seconds: 1),
     this._channel = const MethodChannel('psito/outputs'),
-  });
+  }) : confirm = confirm ?? ValueNotifier(null);
 
   final Surfaces surfaces;
   final MonitorStore store;
   final MethodChannel _channel;
 
+  /// O que o shell desenha, na sobreposição.
+  final ValueNotifier<DisplaysConfirm?> confirm;
+
+  /// Um segundo da contagem.
+  final Duration confirmTick;
+
   final heads = ValueNotifier<List<OutputHead>>(const []);
+  final _displays = ValueNotifier<List<PsitoDisplay>>(const []);
+
+  @override
+  ValueListenable<List<PsitoDisplay>> get displays => _displays;
 
   String? _connected;
   bool _arranging = false;
   bool _arrangeAgain = false;
+  bool _applying = false;
+  Timer? _confirmTimer;
 
   Future<void> start() async {
-    surfaces.monitors.addListener(_syncPrimary);
+    surfaces.monitors.addListener(_monitorsChanged);
     _channel.setMethodCallHandler(handle);
     _update(await _channel.invokeMethod('list'));
   }
@@ -389,16 +452,42 @@ class Displays {
     if (call.method == 'changed') _update(call.arguments);
   }
 
+  void _monitorsChanged() {
+    _publish();
+    _syncPrimary();
+  }
+
+  void _publish() {
+    _displays.value = [
+      for (final head in heads.value)
+        PsitoDisplay(
+          name: head.name,
+          label: head.label,
+          enabled: head.enabled,
+          primary: _monitorOf(head)?.primary ?? false,
+          x: head.x,
+          y: head.y,
+          transform: head.transform,
+          scale: head.scale,
+          mode: head.current?.toDisplay(),
+          modes: [for (final mode in head.modes) mode.toDisplay()],
+        ),
+    ];
+  }
+
   void _update(Object? list) {
     heads.value = [
       for (final map in (list as List<Object?>?) ?? const [])
         OutputHead.fromMap(map! as Map<Object?, Object?>),
     ];
+    _publish();
     final connected = (heads.value.map((h) => h.key).toList()..sort()).join(
       '\n',
     );
     if (connected != _connected) {
       _connected = connected;
+      // Quem esperava a confirmação não vale mais: volta o guardado
+      _closeConfirm();
       unawaited(_arrange());
     } else {
       _syncPrimary();
@@ -416,7 +505,7 @@ class Displays {
       _arrangeAgain = false;
       final plan = planOutputs(heads.value, store);
       if (heads.value.every((h) => plan[h.name]?.matches(h) ?? true)) break;
-      final result = await _apply(plan);
+      final result = await _applyPinned(plan);
       if (result == 'cancelled') {
         // O compositor mudou no meio: vale o que vier agora
         _arrangeAgain = true;
@@ -443,37 +532,114 @@ class Displays {
       }) ??
       'failed';
 
-  /// Pede ao compositor e, se valer, guarda. Com [test], só pergunta se ele
-  /// aceitaria.
-  Future<String> configure(
-    Map<String, OutputConfig> plan, {
-    bool test = false,
-  }) async {
-    final result = await _apply(plan, test: test);
-    if (result == 'ok' && !test) {
-      await store.put({
-        for (final head in heads.value) head.key: ?plan[head.name],
-      });
+  /// Aplica sem o compositor mexer em quem fica no lugar. O monitor que ele
+  /// mesmo posicionou continua automático (`wlr_output_layout_add_auto`) enquanto
+  /// não pedirem outra posição, e o labwc não pede a que ele já tem: ao mover o
+  /// vizinho, ele iria para a direita de todos. Um pixel ao lado antes fixa todos.
+  Future<String> _applyPinned(Map<String, OutputConfig> plan) async {
+    bool same(OutputHead h) {
+      final config = plan[h.name];
+      return config != null && config.x == h.x && config.y == h.y;
     }
-    return result;
+
+    final enabled = heads.value.where(
+      (h) => h.enabled && (plan[h.name]?.enabled ?? false),
+    );
+    if (enabled.any(same) && !enabled.every(same)) {
+      final result = await _apply({
+        for (final MapEntry(:key, :value) in plan.entries)
+          key: value.at(value.x + 1, value.y),
+      });
+      if (result != 'ok') return result;
+    }
+    return _apply(plan);
   }
 
-  // O protocolo dos monitores e o GDK não têm um nome em comum: o que os liga é
-  // o lugar no layout
+  /// Testa e aplica. Só fica guardado com o [DisplaysConfirm.keep]: até lá, o
+  /// tempo, o outro botão ou o shell reiniciado voltam para o de antes.
+  @override
+  Future<PsitoDisplaysResult> apply(List<PsitoDisplay> displays) async {
+    if (confirm.value != null || _arranging || _applying) {
+      return PsitoDisplaysResult.busy;
+    }
+    final names = {for (final head in heads.value) head.name};
+    final plan = _fromOrigin({
+      for (final display in displays)
+        if (names.contains(display.name))
+          display.name: OutputConfig(
+            enabled: display.enabled,
+            mode: display.mode?.toOutput(),
+            x: display.x,
+            y: display.y,
+            transform: display.transform,
+            scale: display.scale,
+          ),
+    });
+    if (!plan.values.any((c) => c.enabled && c.mode != null)) {
+      return PsitoDisplaysResult.failed;
+    }
+    if (heads.value.every((h) => plan[h.name]?.matches(h) ?? true)) {
+      return PsitoDisplaysResult.ok;
+    }
+    final before = {for (final head in heads.value) head.name: head.config};
+    _applying = true;
+    try {
+      if (await _apply(plan, test: true) != 'ok' ||
+          await _applyPinned(plan) != 'ok') {
+        return PsitoDisplaysResult.failed;
+      }
+    } finally {
+      _applying = false;
+    }
+    _askConfirm(plan, before);
+    return PsitoDisplaysResult.ok;
+  }
+
+  void _askConfirm(
+    Map<String, OutputConfig> plan,
+    Map<String, OutputConfig> before,
+  ) {
+    void revert() {
+      _closeConfirm();
+      unawaited(
+        _applyPinned(before).then((result) {
+          if (result != 'ok') {
+            debugPrint('🦜 Sem voltar a configuração dos monitores ($result)');
+          }
+        }),
+      );
+    }
+
+    final request = DisplaysConfirm(
+      keep: () {
+        _closeConfirm();
+        unawaited(
+          store.put({
+            for (final head in heads.value) head.key: ?plan[head.name],
+          }),
+        );
+      },
+      revert: revert,
+    );
+    confirm.value = request;
+    _confirmTimer = Timer.periodic(confirmTick, (_) {
+      request.tick();
+      if (request.secondsLeft <= 0) revert();
+    });
+  }
+
+  void _closeConfirm() {
+    _confirmTimer?.cancel();
+    _confirmTimer = null;
+    confirm.value = null;
+  }
+
   Monitor? _monitorOf(OutputHead head) => surfaces.monitors.value
-      .where(
-        (m) =>
-            m.rect.left == head.x.toDouble() && m.rect.top == head.y.toDouble(),
-      )
+      .where((m) => m.connector == head.name)
       .firstOrNull;
 
   OutputHead? _headOf(Monitor monitor) => heads.value
-      .where(
-        (h) =>
-            h.enabled &&
-            monitor.rect.left == h.x.toDouble() &&
-            monitor.rect.top == h.y.toDouble(),
-      )
+      .where((h) => h.enabled && h.name == monitor.connector)
       .firstOrNull;
 
   /// O principal guardado volta a ser o principal assim que estiver ligado. Sem
@@ -499,13 +665,14 @@ class Displays {
     }
   }
 
-  /// Escolhe o principal e guarda. False se o monitor não estiver ligado.
-  Future<bool> setPrimaryMonitor(int id) async {
-    final monitor = surfaces.monitors.value
-        .where((m) => m.id == id)
-        .firstOrNull;
-    if (monitor == null) return false;
-    if (_headOf(monitor) case final head?) await store.setPrimary(head.key);
-    return surfaces.setPrimary(id);
+  /// Escolhe o principal e guarda. Um monitor desligado não pode.
+  @override
+  Future<void> setPrimary(String name) async {
+    final head = heads.value.where((h) => h.name == name).firstOrNull;
+    if (head == null) return;
+    final monitor = _monitorOf(head);
+    if (monitor == null) return;
+    await store.setPrimary(head.key);
+    await surfaces.setPrimary(monitor.id);
   }
 }

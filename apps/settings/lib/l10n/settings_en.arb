@@ -228,5 +228,71 @@
     }
   },
   "storageFormatGone": "This disk is no longer connected.",
-  "storageFormatOk": "OK"
+  "storageFormatOk": "OK",
+  "sectionDisplays": "Displays",
+  "displaysUnavailable": "The display list is unavailable.",
+  "displaysHint": "Drag the displays to match how they sit on your desk.",
+  "displaysLayout": "Arrangement",
+  "displaysTile": "Display {number}: {label}",
+  "displaysPrimaryBadge": "Primary",
+  "displaysPrimary": "Primary display",
+  "displaysMakePrimary": "Make primary",
+  "displaysIsPrimary": "This is the primary display.",
+  "displaysEnabled": "Turned on",
+  "displaysResolution": "Resolution",
+  "displaysResolutionValue": "{width} × {height}",
+  "displaysRefresh": "Refresh rate",
+  "displaysRefreshValue": "{hertz} Hz",
+  "displaysRotation": "Rotation",
+  "displaysRotationNormal": "Normal",
+  "displaysRotationLeft": "90° to the left",
+  "displaysRotationInverted": "Upside down",
+  "displaysRotationRight": "90° to the right",
+  "displaysScale": "Scale",
+  "displaysScaleValue": "{percent}%",
+  "displaysMirror": "Mirror displays",
+  "displaysMirrorNote": "All displays show the same image.",
+  "displaysMirrorNone": "These displays have no resolution in common.",
+  "displaysMoveLeft": "Move to the left",
+  "displaysMoveRight": "Move to the right",
+  "displaysMoveUp": "Move up",
+  "displaysMoveDown": "Move down",
+  "displaysApply": "Apply",
+  "displaysDiscard": "Discard",
+  "displaysFailed": "The system did not accept this configuration.",
+  "displaysBusy": "Answer the question on the screen first.",
+  "@displaysTile": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "@displaysResolutionValue": {
+    "placeholders": {
+      "width": {
+        "type": "int"
+      },
+      "height": {
+        "type": "int"
+      }
+    }
+  },
+  "@displaysRefreshValue": {
+    "placeholders": {
+      "hertz": {
+        "type": "String"
+      }
+    }
+  },
+  "@displaysScaleValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

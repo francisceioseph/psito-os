@@ -54,6 +54,17 @@ add_custom_command(
   DEPENDS "${OUTPUTS_XML}"
 )
 
+# O do xdg-output diz o conector de cada GdkMonitor (o outputs.cc)
+set(XDG_OUTPUT_XML
+  "${CMAKE_CURRENT_SOURCE_DIR}/../protocols/xdg-output-unstable-v1.xml")
+set(XDG_OUTPUT_PROTOCOL "${CMAKE_CURRENT_BINARY_DIR}/xdg-output-unstable-v1")
+add_custom_command(
+  OUTPUT "${XDG_OUTPUT_PROTOCOL}-client-protocol.h" "${XDG_OUTPUT_PROTOCOL}-protocol.c"
+  COMMAND ${WAYLAND_SCANNER} client-header "${XDG_OUTPUT_XML}" "${XDG_OUTPUT_PROTOCOL}-client-protocol.h"
+  COMMAND ${WAYLAND_SCANNER} private-code "${XDG_OUTPUT_XML}" "${XDG_OUTPUT_PROTOCOL}-protocol.c"
+  DEPENDS "${XDG_OUTPUT_XML}"
+)
+
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
@@ -61,6 +72,8 @@ add_executable(${BINARY_NAME}
   "clipboard_keeper.cc"
   "idle.cc"
   "outputs.cc"
+  "${XDG_OUTPUT_PROTOCOL}-protocol.c"
+  "${XDG_OUTPUT_PROTOCOL}-client-protocol.h"
   "${OUTPUTS_PROTOCOL}-protocol.c"
   "${OUTPUTS_PROTOCOL}-client-protocol.h"
   "${IDLE_PROTOCOL}-protocol.c"

@@ -95,6 +95,8 @@ class FakeContext implements PsitoAppContext {
 
   @override
   PsitoStorage get storage => const PsitoNoStorage();
+  @override
+  PsitoDisplays get displays => const PsitoNoDisplays();
 
   @override
   PsitoNetworkConnections get networkConnections =>

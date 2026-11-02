@@ -328,4 +328,18 @@ class ShellLocalizationsEn extends ShellLocalizations {
   String windowOnScreen(String title, int screen) {
     return '$title (screen $screen)';
   }
+
+  @override
+  String get displaysConfirmTitle => 'Keep this display configuration?';
+
+  @override
+  String displaysConfirmBody(int seconds) {
+    return 'Going back to the previous one in $seconds s.';
+  }
+
+  @override
+  String get displaysConfirmKeep => 'Keep';
+
+  @override
+  String get displaysConfirmRevert => 'Go back';
 }

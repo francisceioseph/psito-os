@@ -54,6 +54,13 @@ void main() {
     expect(plan.proxy, contains('--talk=org.psito.Volumes'));
   });
 
+  test('só settings fala com o org.psito.Displays', () async {
+    final without = await _dryRun('network;files:home;notifications');
+    expect(without.proxy, isNot(contains('--talk=org.psito.Displays')));
+    final plan = await _dryRun('settings');
+    expect(plan.proxy, contains('--talk=org.psito.Displays'));
+  });
+
   group('acessibilidade', () {
     const bus = 'unix:path=/run/user/1000/at-spi/bus_0';
     const on = {'PSITO_A11Y_BUS': bus};
