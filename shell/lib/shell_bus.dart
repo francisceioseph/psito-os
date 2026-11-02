@@ -14,7 +14,11 @@ const _interface = 'org.psito.Shell';
 class ShellBusObject extends DBusObject {
   final void Function(ShellAction action) onRun;
 
-  ShellBusObject({required this.onRun})
+  /// Só até o `org.psito.Displays` (fase 12, etapa 4): nada do que fica no
+  /// sandbox fala com este nome.
+  final Future<bool> Function(int monitor)? onSetPrimary;
+
+  ShellBusObject({required this.onRun, this.onSetPrimary})
     : super(DBusObjectPath('/org/psito/Shell'));
 
   @override
@@ -34,6 +38,13 @@ class ShellBusObject extends DBusObject {
         }
         onRun(action);
         return DBusMethodSuccessResponse();
+      case 'SetPrimaryMonitor' when methodCall.signature == DBusSignature('i'):
+        final found = await onSetPrimary?.call(
+          methodCall.values.single.asInt32(),
+        );
+        return found ?? false
+            ? DBusMethodSuccessResponse()
+            : DBusMethodErrorResponse.invalidArgs('unknown monitor');
       default:
         return DBusMethodErrorResponse.unknownMethod();
     }
@@ -52,6 +63,16 @@ class ShellBusObject extends DBusObject {
               DBusSignature('s'),
               DBusArgumentDirection.in_,
               name: 'action',
+            ),
+          ],
+        ),
+        DBusIntrospectMethod(
+          'SetPrimaryMonitor',
+          args: [
+            DBusIntrospectArgument(
+              DBusSignature('i'),
+              DBusArgumentDirection.in_,
+              name: 'monitor',
             ),
           ],
         ),

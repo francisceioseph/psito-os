@@ -18,6 +18,9 @@ class Toplevel implements DockWindow {
   final bool minimized;
   final bool maximized;
 
+  /// Os ids dos monitores em que ela está (`Surfaces.monitors`).
+  final List<int> monitors;
+
   const Toplevel({
     required this.id,
     this.title = '',
@@ -25,6 +28,7 @@ class Toplevel implements DockWindow {
     this.activated = false,
     this.minimized = false,
     this.maximized = false,
+    this.monitors = const [],
   });
 
   @override
@@ -37,6 +41,7 @@ class Toplevel implements DockWindow {
     activated: map['activated'] as bool? ?? false,
     minimized: map['minimized'] as bool? ?? false,
     maximized: map['maximized'] as bool? ?? false,
+    monitors: [...?(map['monitors'] as List<Object?>?)?.cast<int>()],
   );
 }
 

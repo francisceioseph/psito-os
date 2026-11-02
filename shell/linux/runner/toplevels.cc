@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
 
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
@@ -18,6 +19,8 @@ struct Toplevel {
   bool activated = false;
   bool minimized = false;
   bool maximized = false;
+  // Só para comparar: um wl_output de monitor que saiu pode estar destruído
+  std::set<wl_output*> outputs;
 };
 
 FlMethodChannel* channel = nullptr;
@@ -26,6 +29,20 @@ wl_seat* seat = nullptr;
 zwlr_foreign_toplevel_manager_v1* manager = nullptr;
 std::map<int64_t, Toplevel*> toplevels;
 int64_t next_id = 1;
+
+// Os ids dos monitores em que a janela está, sem os que o GDK já não conhece
+FlValue* monitors_value(const Toplevel* t) {
+  FlValue* list = fl_value_new_list();
+  GdkDisplay* gdk_display = gdk_display_get_default();
+  for (int i = 0; i < gdk_display_get_n_monitors(gdk_display); i++) {
+    GdkMonitor* monitor = gdk_display_get_monitor(gdk_display, i);
+    int id = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(monitor), kMonitorIdKey));
+    if (id != 0 && t->outputs.count(gdk_wayland_monitor_get_wl_output(monitor))) {
+      fl_value_append_take(list, fl_value_new_int(id));
+    }
+  }
+  return list;
+}
 
 FlValue* to_value(const Toplevel* t) {
   FlValue* map = fl_value_new_map();
@@ -36,6 +53,7 @@ FlValue* to_value(const Toplevel* t) {
   fl_value_set_string_take(map, "activated", fl_value_new_bool(t->activated));
   fl_value_set_string_take(map, "minimized", fl_value_new_bool(t->minimized));
   fl_value_set_string_take(map, "maximized", fl_value_new_bool(t->maximized));
+  fl_value_set_string_take(map, "monitors", monitors_value(t));
   return map;
 }
 
@@ -55,8 +73,15 @@ void handle_app_id(void* data, zwlr_foreign_toplevel_handle_v1*,
   static_cast<Toplevel*>(data)->app_id = app_id;
 }
 
-void handle_output_enter(void*, zwlr_foreign_toplevel_handle_v1*, wl_output*) {}
-void handle_output_leave(void*, zwlr_foreign_toplevel_handle_v1*, wl_output*) {}
+void handle_output_enter(void* data, zwlr_foreign_toplevel_handle_v1*,
+                         wl_output* output) {
+  if (output != nullptr) static_cast<Toplevel*>(data)->outputs.insert(output);
+}
+
+void handle_output_leave(void* data, zwlr_foreign_toplevel_handle_v1*,
+                         wl_output* output) {
+  static_cast<Toplevel*>(data)->outputs.erase(output);
+}
 
 void handle_state(void* data, zwlr_foreign_toplevel_handle_v1*,
                   wl_array* state) {
@@ -187,6 +212,11 @@ void method_call_cb(FlMethodChannel*, FlMethodCall* call, gpointer) {
 }
 
 }  // namespace
+
+void toplevels_monitors_changed() {
+  if (channel == nullptr) return;
+  for (auto& [id, t] : toplevels) send("changed", to_value(t));
+}
 
 void toplevels_init(FlBinaryMessenger* messenger) {
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();

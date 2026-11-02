@@ -323,4 +323,9 @@ class ShellLocalizationsEn extends ShellLocalizations {
   String diskFullBody(String free) {
     return '$free left. Click to see what takes up space.';
   }
+
+  @override
+  String windowOnScreen(String title, int screen) {
+    return '$title (screen $screen)';
+  }
 }

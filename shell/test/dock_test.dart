@@ -219,6 +219,28 @@ void main() {
     expect(labels(const DockApp('foot'))[1], '- Abrir ao iniciar a sessão *');
   });
 
+  test('com dois monitores, o menu diz em qual está a janela', () async {
+    await state.toplevels.handle(
+      const MethodCall('changed', {
+        'id': 1,
+        'appId': 'gimp',
+        'title': 'x',
+        'monitors': [7],
+      }),
+    );
+    String first() => ui.menuItems(const DockApp('gimp')).first.label;
+    Monitor monitor(int id, double x) =>
+        Monitor(id: id, rect: Rect.fromLTWH(x, 0, 100, 100));
+
+    state.surfaces.monitors.value = [monitor(7, 0)];
+    expect(first(), 'x');
+    state.surfaces.monitors.value = [monitor(8, 0), monitor(7, 100)];
+    expect(first(), 'x (tela 2)');
+    // O monitor saiu, e o runner ainda não mandou a janela de novo
+    state.surfaces.monitors.value = [monitor(8, 0), monitor(9, 100)];
+    expect(first(), 'x');
+  });
+
   test('o menu abre na tela, e abrir um painel fecha o menu', () {
     ui.openMenu(const DockApp('foot'), const Rect.fromLTWH(30, 20, 52, 52));
     expect(ui.menu.value!.anchor, const Rect.fromLTWH(550, 820, 52, 52));

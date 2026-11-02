@@ -633,6 +633,18 @@ class DockController {
     DockLauncher() => state.l10n.apps,
   };
 
+  /// O título de uma janela no menu. Com mais de um monitor, diz em qual ela
+  /// está.
+  String _windowLabel(Toplevel window, String id) {
+    final name = window.title.isEmpty ? title(DockApp(id)) : window.title;
+    final surfaces = state.surfaces;
+    if (surfaces.monitors.value.length < 2) return name;
+    final screen = window.monitors.map(surfaces.screenNumber).nonNulls;
+    return screen.isEmpty
+        ? name
+        : state.l10n.windowOnScreen(name, screen.first);
+  }
+
   /// O menu de um app, em grupos: as janelas (a mais recente primeiro),
   /// abrir de novo, a sessão e a dock, e ocultar e fechar.
   List<DockMenuItem> _appMenu(String id, DockMenuItem keep) {
@@ -648,7 +660,7 @@ class DockController {
       [
         for (final window in windows)
           DockMenuItem(
-            window.title.isEmpty ? title(DockApp(id)) : window.title,
+            _windowLabel(window, id),
             () => unawaited(toplevels.activate(window.id)),
             checked: window.activated && !window.minimized ? true : null,
           ),

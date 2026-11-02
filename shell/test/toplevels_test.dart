@@ -28,6 +28,19 @@ void main() {
     expect(changes, 3);
   });
 
+  test('diz em que monitores a janela está', () async {
+    final list = ToplevelList();
+    await list.handle(MethodCall('changed', window(1)));
+    expect(list.windows.single.monitors, isEmpty);
+    await list.handle(
+      MethodCall('changed', {
+        ...window(1),
+        'monitors': [1, 2],
+      }),
+    );
+    expect(list.windows.single.monitors, [1, 2]);
+  });
+
   test('a janela que ganha o foco vai para o fim', () async {
     final list = ToplevelList();
     await list.handle(MethodCall('changed', window(1)));

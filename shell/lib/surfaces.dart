@@ -35,6 +35,37 @@ class SecondaryViews {
   );
 }
 
+/// Um monitor ligado. O [id] dura enquanto ele está ligado: voltar dá outro.
+@immutable
+class Monitor {
+  final int id;
+  final Rect rect;
+  final int scale;
+  final String model;
+  final bool primary;
+
+  const Monitor({
+    required this.id,
+    required this.rect,
+    this.scale = 1,
+    this.model = '',
+    this.primary = false,
+  });
+
+  factory Monitor.fromMap(Map<Object?, Object?> map) => Monitor(
+    id: map['id']! as int,
+    rect: Rect.fromLTWH(
+      (map['x']! as int).toDouble(),
+      (map['y']! as int).toDouble(),
+      (map['width']! as int).toDouble(),
+      (map['height']! as int).toDouble(),
+    ),
+    scale: map['scale'] as int? ?? 1,
+    model: map['model'] as String? ?? '',
+    primary: map['primary'] as bool? ?? false,
+  );
+}
+
 class Surfaces {
   Surfaces([this._channel = const MethodChannel('psito/surfaces')]);
 
@@ -44,6 +75,31 @@ class Surfaces {
   /// As views dos monitores além do principal. O runner cria quando um monitor
   /// liga, e guarda, escondidas, quando ele sai.
   final secondaries = ValueNotifier<List<SecondaryViews>>(const []);
+
+  /// Os monitores ligados, da esquerda para a direita, como estão no layout.
+  final monitors = ValueNotifier<List<Monitor>>(const []);
+
+  static List<Monitor> _parseMonitors(Object? list) => [
+    for (final map in (list as List<Object?>?) ?? const [])
+      Monitor.fromMap(map! as Map<Object?, Object?>),
+  ]..sort(_byPosition);
+
+  static int _byPosition(Monitor a, Monitor b) {
+    final x = a.rect.left.compareTo(b.rect.left);
+    return x != 0 ? x : a.rect.top.compareTo(b.rect.top);
+  }
+
+  /// O número de um monitor para quem usa, contado no layout, a partir de 1.
+  /// Null se ele não estiver ligado.
+  int? screenNumber(int id) {
+    final index = monitors.value.indexWhere((m) => m.id == id);
+    return index < 0 ? null : index + 1;
+  }
+
+  /// Leva a dock, a mesa e as sobreposições para o monitor [id]. O principal
+  /// de agora fica com o fundo e a top bar. False se ele não estiver ligado.
+  Future<bool> setPrimary(int id) async =>
+      await _channel.invokeMethod<bool>('setPrimary', id) ?? false;
 
   static List<SecondaryViews> _parse(Object? list) => [
     for (final map in (list as List<Object?>?) ?? const [])
@@ -58,9 +114,12 @@ class Surfaces {
           _backgroundFocus?.call(call.arguments as bool);
         case 'secondaries':
           secondaries.value = _parse(call.arguments);
+        case 'monitors':
+          monitors.value = _parseMonitors(call.arguments);
       }
     });
     secondaries.value = _parse(await _channel.invokeMethod('secondaries'));
+    monitors.value = _parseMonitors(await _channel.invokeMethod('monitors'));
   }
 
   /// O fundo ganhou ou perdeu o teclado.

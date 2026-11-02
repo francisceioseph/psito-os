@@ -9,4 +9,10 @@
 // Sem Wayland ou sem o protocolo no compositor, a lista fica vazia.
 void toplevels_init(FlBinaryMessenger* messenger);
 
+// Onde o runner guarda o id de cada GdkMonitor (g_object_set_data).
+constexpr char kMonitorIdKey[] = "psito-monitor-id";
+
+// Os monitores mudaram: manda de novo em quais está cada janela.
+void toplevels_monitors_changed();
+
 #endif  // RUNNER_TOPLEVELS_H_

@@ -58,6 +58,7 @@ struct _MyApplication {
   GdkMonitor* primary;
   std::vector<Secondary>* secondaries;
   int next_secondary;
+  int next_monitor;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
@@ -235,6 +236,61 @@ static void notify_secondaries(MyApplication* self) {
                                   nullptr, nullptr, nullptr);
 }
 
+// O monitor como o Dart vê: o id, que dura enquanto ele está ligado, e a
+// geometria. Um monitor sem id já saiu, mesmo que o GDK ainda liste
+static FlValue* monitors_value(MyApplication* self) {
+  GdkDisplay* display = gdk_display_get_default();
+  FlValue* list = fl_value_new_list();
+  for (int i = 0; i < gdk_display_get_n_monitors(display); i++) {
+    GdkMonitor* monitor = gdk_display_get_monitor(display, i);
+    int id = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(monitor), kMonitorIdKey));
+    if (id == 0) continue;
+    GdkRectangle rect;
+    gdk_monitor_get_geometry(monitor, &rect);
+    const char* model = gdk_monitor_get_model(monitor);
+    FlValue* map = fl_value_new_map();
+    fl_value_set_string_take(map, "id", fl_value_new_int(id));
+    fl_value_set_string_take(map, "x", fl_value_new_int(rect.x));
+    fl_value_set_string_take(map, "y", fl_value_new_int(rect.y));
+    fl_value_set_string_take(map, "width", fl_value_new_int(rect.width));
+    fl_value_set_string_take(map, "height", fl_value_new_int(rect.height));
+    fl_value_set_string_take(
+        map, "scale", fl_value_new_int(gdk_monitor_get_scale_factor(monitor)));
+    fl_value_set_string_take(map, "model",
+                             fl_value_new_string(model == nullptr ? "" : model));
+    fl_value_set_string_take(map, "primary",
+                             fl_value_new_bool(monitor == self->primary));
+    fl_value_append_take(list, map);
+  }
+  return list;
+}
+
+static void notify_monitors(MyApplication* self) {
+  if (self->surfaces_channel == nullptr) return;
+  g_autoptr(FlValue) list = monitors_value(self);
+  fl_method_channel_invoke_method(self->surfaces_channel, "monitors", list,
+                                  nullptr, nullptr, nullptr);
+  // Uma janela entra num monitor que o GDK ainda não conhecia, ou fica com um
+  // que já saiu: o id dela só se acerta aqui
+  toplevels_monitors_changed();
+}
+
+static void monitor_notify_cb(GdkMonitor*, GParamSpec*, gpointer user_data) {
+  notify_monitors(MY_APPLICATION(user_data));
+}
+
+static void monitor_track(MyApplication* self, GdkMonitor* monitor) {
+  int id = self->next_monitor++;
+  g_object_set_data(G_OBJECT(monitor), kMonitorIdKey, GINT_TO_POINTER(id));
+  g_message("monitor %d ligado: %s", id, gdk_monitor_get_model(monitor));
+  g_signal_connect_object(monitor, "notify::geometry",
+                          G_CALLBACK(monitor_notify_cb), self,
+                          G_CONNECT_DEFAULT);
+  g_signal_connect_object(monitor, "notify::scale-factor",
+                          G_CALLBACK(monitor_notify_cb), self,
+                          G_CONNECT_DEFAULT);
+}
+
 static void secondary_add(MyApplication* self, GdkMonitor* monitor) {
   Secondary* free_slot = nullptr;
   for (Secondary& secondary : *self->secondaries) {
@@ -284,19 +340,43 @@ static void primary_set(MyApplication* self, GdkMonitor* monitor) {
 static void monitor_added_cb(GdkDisplay*, GdkMonitor* monitor,
                              gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
-  g_message("monitor ligado: %s", gdk_monitor_get_model(monitor));
+  monitor_track(self, monitor);
   if (self->primary == nullptr) {
     primary_set(self, monitor);
   } else {
     secondary_add(self, monitor);
   }
   notify_secondaries(self);
+  notify_monitors(self);
+}
+
+// [monitor] passa a ter a dock, a mesa e as sobreposições, e troca de lugar
+// com o principal de agora: as views dele ficam com o outro.
+static bool primary_change(MyApplication* self, int id) {
+  GdkDisplay* display = gdk_display_get_default();
+  for (int i = 0; i < gdk_display_get_n_monitors(display); i++) {
+    GdkMonitor* monitor = gdk_display_get_monitor(display, i);
+    if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(monitor), kMonitorIdKey)) !=
+        id) {
+      continue;
+    }
+    if (monitor == self->primary) return true;
+    GdkMonitor* previous = self->primary;
+    secondary_remove(self, monitor);
+    primary_set(self, monitor);
+    if (previous != nullptr) secondary_add(self, previous);
+    notify_secondaries(self);
+    notify_monitors(self);
+    return true;
+  }
+  return false;
 }
 
 static void monitor_removed_cb(GdkDisplay* display, GdkMonitor* monitor,
                                gpointer user_data) {
   MyApplication* self = MY_APPLICATION(user_data);
   g_message("monitor desligado: %s", gdk_monitor_get_model(monitor));
+  g_object_set_data(G_OBJECT(monitor), kMonitorIdKey, nullptr);
   if (monitor != self->primary) {
     secondary_remove(self, monitor);
   } else {
@@ -311,6 +391,7 @@ static void monitor_removed_cb(GdkDisplay* display, GdkMonitor* monitor,
     primary_set(self, next);
   }
   notify_secondaries(self);
+  notify_monitors(self);
 }
 
 static gboolean background_focus_cb(GtkWidget* widget, GdkEventFocus* event,
@@ -340,6 +421,14 @@ static void surfaces_call_cb(FlMethodChannel*, FlMethodCall* call,
   } else if (strcmp(method, "secondaries") == 0) {
     g_autoptr(FlValue) list = secondaries_value(self);
     fl_method_call_respond_success(call, list, nullptr);
+  } else if (strcmp(method, "monitors") == 0) {
+    g_autoptr(FlValue) list = monitors_value(self);
+    fl_method_call_respond_success(call, list, nullptr);
+  } else if (strcmp(method, "setPrimary") == 0 && args != nullptr &&
+             fl_value_get_type(args) == FL_VALUE_TYPE_INT) {
+    g_autoptr(FlValue) found =
+        fl_value_new_bool(primary_change(self, fl_value_get_int(args)));
+    fl_method_call_respond_success(call, found, nullptr);
   } else if (strcmp(method, "showOverlay") == 0) {
     const gchar* mode = args != nullptr &&
                                 fl_value_get_type(args) == FL_VALUE_TYPE_STRING
@@ -527,6 +616,9 @@ static void my_application_activate(GApplication* application) {
   clipboard_keeper_init(messenger);
 
   GdkDisplay* display = gdk_display_get_default();
+  for (int i = 0; i < gdk_display_get_n_monitors(display); i++) {
+    monitor_track(self, gdk_display_get_monitor(display, i));
+  }
   primary_set(self, gdk_display_get_n_monitors(display) > 0
                         ? gdk_display_get_monitor(display, 0)
                         : nullptr);
@@ -615,6 +707,7 @@ static void my_application_class_init(MyApplicationClass* klass) {
 
 static void my_application_init(MyApplication* self) {
   self->secondaries = new std::vector<Secondary>();
+  self->next_monitor = 1;
 }
 
 MyApplication* my_application_new() {

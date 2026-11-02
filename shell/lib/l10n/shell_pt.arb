@@ -94,5 +94,6 @@
   "diskWriting": "Gravando no disco. Não tire ainda.",
   "diskPulledBody": "O disco foi tirado sem ejetar. Os arquivos mais recentes podem estar incompletos.",
   "diskFullTitle": "O disco está quase cheio",
-  "diskFullBody": "Restam {free}. Clique para ver o que ocupa espaço."
+  "diskFullBody": "Restam {free}. Clique para ver o que ocupa espaço.",
+  "windowOnScreen": "{title} (tela {screen})"
 }

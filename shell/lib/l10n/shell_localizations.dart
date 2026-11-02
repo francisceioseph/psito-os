@@ -667,6 +667,12 @@ abstract class ShellLocalizations {
   /// In en, this message translates to:
   /// **'{free} left. Click to see what takes up space.'**
   String diskFullBody(String free);
+
+  /// Window in the dock menu, when there are several monitors
+  ///
+  /// In en, this message translates to:
+  /// **'{title} (screen {screen})'**
+  String windowOnScreen(String title, int screen);
 }
 
 class _ShellLocalizationsDelegate

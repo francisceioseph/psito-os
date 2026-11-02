@@ -108,5 +108,13 @@
         "type": "String"
       }
     }
+  },
+  "windowOnScreen": "{title} (screen {screen})",
+  "@windowOnScreen": {
+    "description": "Window in the dock menu, when there are several monitors",
+    "placeholders": {
+      "title": {"type": "String"},
+      "screen": {"type": "int"}
+    }
   }
 }

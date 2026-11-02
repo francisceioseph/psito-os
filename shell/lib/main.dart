@@ -110,7 +110,9 @@ Future<void> main() async {
   unawaited(desk.start());
 
   try {
-    await publishShell(ShellBusObject(onRun: state.run));
+    await publishShell(
+      ShellBusObject(onRun: state.run, onSetPrimary: state.surfaces.setPrimary),
+    );
   } on Exception catch (e) {
     debugPrint('🦜 shell: sem o barramento da sessão ($e)');
     return;
