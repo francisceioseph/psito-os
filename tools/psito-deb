@@ -13,7 +13,9 @@
 # Os pacotes não levam o libflutter: o RUNPATH do binário passa a apontar
 # para /usr/lib/psito/flutter/<versão>/, e o data/icudtl.dat vira um link para
 # o do runtime. O manifesto de um app é o .desktop do projeto (X-Psito-App, a
-# cor e as permissões), e o ícone, o icon.svg.
+# cor e as permissões), e o ícone, o icon.svg. As dependências saem do NEEDED dos
+# arquivos; uma biblioteca aberta em tempo de execução, que o NEEDED não mostra,
+# vai no DEPENDS do psito-package do projeto (um app só precisa dessa linha).
 # Roda onde o bundle foi compilado (a VM): precisa do dpkg-deb, do patchelf e
 # do Flutter (FLUTTER, padrão ~/flutter/bin/flutter), de onde vem a versão.
 set -e
@@ -26,7 +28,7 @@ while [ $# -gt 0 ]; do
         --runtime) MODE=runtime; shift ;;
         --system) MODE=system; shift ;;
         --meta) MODE=meta; shift ;;
-        -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*) echo "psito-deb: opção desconhecida: $1" >&2; exit 2 ;;
         *) break ;;
     esac
@@ -230,6 +232,13 @@ BINARY="$(basename "${EXEC%% *}")"
 [[ "$(field X-Psito-Color)" =~ ^#[0-9A-Fa-f]{6}$ ]] ||
     die "o X-Psito-Color precisa ser #RRGGBB"
 
+# O psito-package de um app só diz o que o NEEDED não mostra
+DEPENDS=
+if [ -f "$PROJECT/psito-package" ]; then
+    # shellcheck source=/dev/null
+    . "$PROJECT/psito-package"
+fi
+
 PACKAGE="psito-app-$(echo "$SHORT_ID" | tr '_A-Z' '-a-z')"
 SUMMARY="$(pubspec_field description "$PUBSPEC")"
 NAME="$(field Name)"
@@ -239,7 +248,7 @@ install_bundle "$dest" "$BINARY"
 mkdir -p "$TMP/usr/share/applications" "$TMP/usr/share/icons/hicolor/scalable/apps"
 cp "$DESKTOP" "$TMP/usr/share/applications/$APP_ID.desktop"
 cp "$PROJECT/icon.svg" "$TMP/usr/share/icons/hicolor/scalable/apps/$APP_ID.svg"
-depends="$(bundle_depends "$dest/$BINARY" "${PLUGINS[@]}")"
+depends="$(bundle_depends "$dest/$BINARY" "${PLUGINS[@]}")${DEPENDS:+, $DEPENDS}"
 check_engine
 
 cat > "$TMP/DEBIAN/control" <<EOF

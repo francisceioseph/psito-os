@@ -54,6 +54,30 @@ void main() {
     expect(plan.proxy, contains('--talk=org.psito.Volumes'));
   });
 
+  test('audio dá um socket restrito do PipeWire, só deste app', () async {
+    final without = await _dryRun('network;files:home');
+    expect(without.bwrap.join(' '), isNot(contains('pipewire')));
+    expect(without.bwrap, isNot(contains('pw-container')));
+    final plan = await _dryRun('audio');
+    expect(_after(plan.bwrap, r'$PIPEWIRE_REMOTE'), [
+      '/run/user/1000/pipewire-0',
+    ]);
+    expect(
+      _after(plan.bwrap, 'pw-container').single,
+      allOf(
+        contains('"pipewire.access":"psito"'),
+        contains('"pipewire.sec.app-id":"org.psito.x"'),
+      ),
+    );
+    // O socket de verdade e o de gerência nunca entram
+    expect(plan.bwrap, isNot(contains('/run/user/1000/pipewire-0-manager')));
+    expect(
+      plan.bwrap.where((a) => a == '/run/user/1000/pipewire-0'),
+      hasLength(1),
+    );
+    expect(plan.bwrap.join(' '), isNot(contains('pulse')));
+  });
+
   test('só settings fala com o org.psito.Displays', () async {
     final without = await _dryRun('network;files:home;notifications');
     expect(without.proxy, isNot(contains('--talk=org.psito.Displays')));

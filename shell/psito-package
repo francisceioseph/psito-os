@@ -8,14 +8,17 @@ DESCRIPTION="Shell do Psito OS (cliente layer-shell do labwc)"
 # O dnsmasq-base e o nftables são o DHCP e o NAT do ponto de acesso, e o
 # at-spi2-core e o libatk-adaptor levam a árvore dos apps ao leitor de tela.
 # O udisks2 monta os discos externos, com o dosfstools e o exfatprogs para eles, e
-# o fuser (psmisc) diz quem está usando
-DEPENDS="labwc, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor, udisks2, dosfstools, exfatprogs, psmisc"
+# o fuser (psmisc) diz quem está usando. O pw-container (pipewire-bin) e o
+# WirePlumber são o socket de áudio dos apps
+DEPENDS="labwc, bubblewrap, xdg-dbus-proxy, xdg-desktop-portal, xdg-desktop-portal-gtk, gsettings-desktop-schemas, dconf-gsettings-backend, librsvg2-common, foot, xdg-user-dirs, polkitd, accountsservice, openssl, network-manager-config-connectivity-debian, network-manager-openvpn, dnsmasq-base, nftables, at-spi2-core, libatk-adaptor, udisks2, dosfstools, exfatprogs, psmisc, pipewire-bin, wireplumber"
 FILES=(
     session/psito-session:/usr/bin/psito-session
     session/psito-shell-start:/usr/bin/psito-shell-start
     session/psito-sandbox:/usr/bin/psito-sandbox
     session/psito-shell.service:/usr/lib/systemd/user/psito-shell.service
     session/psito-portals.conf:/usr/share/xdg-desktop-portal/psito-portals.conf
+    session/wireplumber/psito-no-capture.lua:/usr/share/wireplumber/scripts/psito-no-capture.lua
+    session/wireplumber/90-psito-no-capture.conf:/usr/share/wireplumber/wireplumber.conf.d/90-psito-no-capture.conf
     session/psito-mimeapps.list:/usr/share/applications/psito-mimeapps.list
     session/90_psito.gschema.override:/usr/share/glib-2.0/schemas/90_psito.gschema.override
     session/labwc:/usr/share/psito/labwc

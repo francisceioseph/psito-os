@@ -48,7 +48,7 @@ class DesktopEntry {
   final int? color;
 
   /// O `X-Psito-Permissions`: `network`, `settings`, `files:home`,
-  /// `notifications`.
+  /// `notifications`, `audio`.
   final List<String> permissions;
 
   /// O arquivo `.desktop` de onde veio.

@@ -11,7 +11,8 @@
 # com settings), settings (o Update do
 # org.psito.Settings, o org.psito.Storage, o org.psito.Displays e mudar o fuso e o nome), files:home (o $HOME de verdade),
 # files:removable (os discos externos: a /media e o org.psito.Volumes) e
-# notifications (o org.freedesktop.Notifications). Sem files:home, o $HOME é
+# notifications (o org.freedesktop.Notifications) e audio (tocar som: ver abaixo).
+# Sem files:home, o $HOME é
 # ~/.local/share/psito/apps/<app-id>/. Cada --file dá ao app um arquivo (ou
 # pasta) que ele não veria: o shell monta <fora> em <dentro>, que fica em
 # $XDG_RUNTIME_DIR/doc/ (a ideia do portal de documentos do Flatpak) e é o
@@ -22,6 +23,12 @@
 # por um proxy que só deixa ele se registrar, como no Flatpak: direto, ele leria
 # a tela dos outros apps e mandaria teclas para eles. Desligada, nada disso abre
 # ($PSITO_A11Y_BUS, para testar, é o endereço que o barramento responderia).
+#
+# O audio é um socket do PipeWire só deste app, que o pw-container abre e fecha.
+# O pipewire-0 de sempre deixaria o app mudar o volume do sistema e gravar o
+# microfone e o som dos outros apps. Com o pipewire.access=psito, o WirePlumber
+# (session/wireplumber/psito-no-capture.lua) só deixa tocar. O app ainda vê os nomes
+# dos outros clientes do PipeWire, como um app no Flatpak com o mesmo socket.
 # Vai no pacote psito-shell, em /usr/bin.
 set -e
 
@@ -173,6 +180,15 @@ sandbox=(bwrap
     --symlink ../run /var/run
 )
 has network && sandbox+=(--share-net)
+AUDIO_PROPS='{"pipewire.sec.engine":"org.psito","pipewire.sec.app-id":"'"$APP"'","pipewire.access":"psito"}'
+# Sem o PipeWire, o app abre mudo
+audio=0
+if has audio && { [ "$DRY_RUN" = 1 ] || { [ -S "$RUN/pipewire-0" ] && command -v pw-container >/dev/null; }; }; then
+    audio=1
+    # O pw-container só diz o caminho ao comando: vira o $PIPEWIRE_REMOTE no arquivo
+    # que roda o bwrap, lá embaixo
+    sandbox+=(--ro-bind '$PIPEWIRE_REMOTE' "$RUN/pipewire-0" --unsetenv PIPEWIRE_REMOTE)
+fi
 # A pasta inteira, que existe desde o boot: a de cada conta só nasce na primeira
 # montagem, e um disco montado depois aparece aqui dentro do mesmo jeito. O
 # UDisks2 protege a pasta de cada conta das outras
@@ -203,6 +219,7 @@ sandbox+=(--chdir "$HOME"
 if [ "$DRY_RUN" = 1 ]; then
     echo "proxy:"; printf '%s\n' "${proxy[@]}"
     echo "bwrap:"; printf '%s\n' "${sandbox[@]}"
+    [ "$audio" = 1 ] && printf 'pw-container\n%s\n' "$AUDIO_PROPS"
     exit 0
 fi
 
@@ -237,6 +254,23 @@ done
 
 # Filho, e não exec: quando o app sai, o proxy sai junto (o trap)
 set +e
-"${sandbox[@]}"
+if [ "$audio" = 1 ]; then
+    # O pw-container passa uma linha só ao sh, e não devolve o status do comando
+    {
+        printf 'exec'
+        for arg in "${sandbox[@]}"; do
+            # shellcheck disable=SC2016
+            if [ "$arg" = '$PIPEWIRE_REMOTE' ]; then
+                printf ' "$PIPEWIRE_REMOTE"'
+            else
+                printf ' %q' "$arg"
+            fi
+        done
+        echo
+    } > "$SOCKETS/run"
+    pw-container -P "$AUDIO_PROPS" "bash $SOCKETS/run"
+else
+    "${sandbox[@]}"
+fi
 status=$?
 exit $status

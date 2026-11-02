@@ -61,6 +61,8 @@ ssh -p "$VM_PORT" psito@localhost '
         sudo systemctl reset-failed greetd.service
         sudo systemctl restart greetd.service
     fi
+    # O script do socket de áudio dos apps (session/wireplumber/) só vale ao subir
+    systemctl --user try-restart wireplumber.service
     if systemctl --user is-active -q psito-shell.service; then
         systemctl --user restart psito-shell.service
     fi

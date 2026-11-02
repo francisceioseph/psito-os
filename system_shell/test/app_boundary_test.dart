@@ -89,6 +89,7 @@ void main() {
   test('as permissões são conhecidas, e settings só com canChangeSettings', () {
     const known = {
       'network',
+      'audio',
       'settings',
       'files:home',
       'files:removable',
