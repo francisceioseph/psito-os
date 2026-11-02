@@ -154,6 +154,9 @@ class StorageClient implements PsitoStorage {
       _send('OpenFolder', [DBusString(path)]);
 
   @override
+  Future<void> openFormat(String id) => _send('OpenFormat', [DBusString(id)]);
+
+  @override
   Future<PsitoDiskResult> format(
     String id,
     PsitoDiskFormat type,

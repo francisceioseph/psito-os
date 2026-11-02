@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'l10n/l10n.dart';
+import 'settings_ui.dart';
 
 /// O que o `useradd` aceita sem reclamar.
 bool isValidLogin(String login) =>
@@ -32,28 +33,32 @@ class _UsersSectionState extends State<UsersSection> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final user in users) ...[
-            ListTile(
-              key: ValueKey('user-${user.login}'),
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.person_outline),
-              title: Text(user.name.isEmpty ? user.login : user.name),
-              subtitle: Text(_role(context, user)),
-              trailing: Icon(
-                _open == user.uid ? Icons.expand_less : Icons.expand_more,
-              ),
-              onTap: () => setState(() {
-                _open = _open == user.uid ? null : user.uid;
-              }),
-            ),
-            if (_open == user.uid)
-              _EditUser(
-                key: ValueKey(user.uid),
-                accounts: widget.accounts,
-                user: user,
-              ),
-          ],
-          const SizedBox(height: 12),
+          SettingsGroup(
+            children: [
+              for (final user in users) ...[
+                ListTile(
+                  key: ValueKey('user-${user.login}'),
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(user.name.isEmpty ? user.login : user.name),
+                  subtitle: Text(_role(context, user)),
+                  trailing: Icon(
+                    _open == user.uid ? Icons.expand_less : Icons.expand_more,
+                  ),
+                  onTap: () => setState(() {
+                    _open = _open == user.uid ? null : user.uid;
+                  }),
+                ),
+                if (_open == user.uid)
+                  SettingsPad(
+                    child: _EditUser(
+                      key: ValueKey(user.uid),
+                      accounts: widget.accounts,
+                      user: user,
+                    ),
+                  ),
+              ],
+            ],
+          ),
           if (_adding)
             _AddUser(
               accounts: widget.accounts,

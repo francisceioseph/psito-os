@@ -82,4 +82,17 @@ void main() {
     await const AppWindow(_window).setSize(const Size(100, 500));
     expect(windowCalls.single.arguments, [240, 500]);
   });
+
+  test('os argumentos com marca chegam ao app, e as opções não', () {
+    final marked = [
+      '${psitoQuickLookPrefix}a',
+      '${psitoSettingsSectionPrefix}network',
+      '${psitoFormatDiskPrefix}sdb1',
+    ];
+    expect(openedPaths(['-x', 'solto', '/tmp/a', ...marked]), [
+      '/tmp/a',
+      ...marked,
+    ]);
+    expect(openedPaths(['file:///tmp/b%20c']), ['/tmp/b c']);
+  });
 }

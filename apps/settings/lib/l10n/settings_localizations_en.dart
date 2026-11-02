@@ -517,24 +517,34 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
   }
 
   @override
-  String get storageFormatType => 'Format';
+  String get storageFormatType => 'Format type';
 
   @override
-  String get storageFormatFat => 'FAT: works on any device, files up to 4 GB';
+  String get storageFormatFat => 'Works on any device, with files up to 4 GB.';
 
   @override
-  String get storageFormatExfat => 'exFAT: works on most devices, large files';
+  String get storageFormatExfat => 'Works on most devices, with large files.';
 
   @override
-  String get storageFormatExt4 => 'ext4: Linux only';
+  String get storageFormatExt4 => 'Only works on Linux.';
 
   @override
-  String get storageFormatLabel => 'New name';
+  String get storageFormatFatName => 'FAT';
 
   @override
-  String storageFormatConfirm(String name) {
-    return 'Type $name to confirm';
-  }
+  String get storageFormatExfatName => 'exFAT';
+
+  @override
+  String get storageFormatExt4Name => 'ext4';
+
+  @override
+  String get storageFormatLabel => 'Volume name';
+
+  @override
+  String get storageFormatCapacity => 'Capacity';
+
+  @override
+  String get storageFormatGo => 'Format';
 
   @override
   String get storageFormatAction => 'Erase and format';
@@ -550,5 +560,25 @@ class SettingsLocalizationsEn extends SettingsLocalizations {
   String get storageFormatFailed => 'Could not format the disk.';
 
   @override
-  String get storageFormatDone => 'Disk formatted.';
+  String get storageFormatDone => 'Formatting finished.';
+
+  @override
+  String get sectionGroupPersonal => 'Personal';
+
+  @override
+  String get sectionGroupSystem => 'System';
+
+  @override
+  String get sectionGroupMore => 'More';
+
+  @override
+  String storageFormatTitle(String name) {
+    return 'Format $name';
+  }
+
+  @override
+  String get storageFormatGone => 'This disk is no longer connected.';
+
+  @override
+  String get storageFormatOk => 'OK';
 }

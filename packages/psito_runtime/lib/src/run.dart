@@ -103,20 +103,21 @@ Future<void> runPsitoApp(PsitoApp app, {List<String> args = const []}) async {
     title = next;
     unawaited(context.window.setTitle(title));
   });
-  await context.window.setSize(app.defaultSize);
+  await context.window.setSize(app.sizeFor(context));
   runApp(PsitoAppHost(app: app, context: context));
   app.onOpen(context);
   unawaited(logFirstFrame());
 }
 
 /// Os caminhos dos argumentos: os absolutos, as URLs `file://` e os com as
-/// marcas [psitoQuickLookPrefix] e [psitoSettingsSectionPrefix]. As opções
-/// (`-x`) e o resto ficam de fora.
+/// marcas [psitoQuickLookPrefix], [psitoSettingsSectionPrefix] e
+/// [psitoFormatDiskPrefix]. As opções (`-x`) e o resto ficam de fora.
 List<String> openedPaths(List<String> args) => [
   for (final arg in args)
     if (arg.startsWith('/') ||
         arg.startsWith(psitoQuickLookPrefix) ||
-        arg.startsWith(psitoSettingsSectionPrefix))
+        arg.startsWith(psitoSettingsSectionPrefix) ||
+        arg.startsWith(psitoFormatDiskPrefix))
       arg
     else if (arg.startsWith('file://'))
       Uri.parse(arg).toFilePath(),

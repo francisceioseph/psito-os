@@ -60,6 +60,7 @@ class LocalStorage implements PsitoStorage {
   final Future<List<String>> Function() trashDirs;
   final VoidCallback onEmptyTrash;
   final Future<void> Function(String path) onOpen;
+  final void Function(String id) onOpenFormat;
   final RunProcess run;
 
   /// Quem formata. Sem ele, o serviço dos discos.
@@ -77,6 +78,7 @@ class LocalStorage implements PsitoStorage {
     required this.trashDirs,
     required this.onEmptyTrash,
     required this.onOpen,
+    required this.onOpenFormat,
     this.run = _run,
     this.formatter,
   }) : _service = disks {
@@ -176,6 +178,9 @@ class LocalStorage implements PsitoStorage {
   Future<void> openFolder(String path) => onOpen(path);
 
   @override
+  Future<void> openFormat(String id) async => onOpenFormat(id);
+
+  @override
   Future<PsitoDiskResult> format(
     String id,
     PsitoDiskFormat type,
@@ -234,6 +239,9 @@ class FakeStorage implements PsitoStorage {
 
   @override
   Future<void> openFolder(String path) async => opened.add(path);
+
+  @override
+  Future<void> openFormat(String id) async => opened.add('format:$id');
 
   @override
   Future<PsitoDiskResult> format(

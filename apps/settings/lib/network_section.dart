@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:psito_sdk/psito_sdk.dart';
 
 import 'l10n/l10n.dart';
+import 'settings_ui.dart';
 
 /// 192.168.0.10/24: um IPv4 com o tamanho da rede.
 bool isValidIpv4Cidr(String text) {
@@ -85,70 +86,69 @@ class _NetworkSectionState extends State<NetworkSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final device in widget.network.devices) ...[
-          _DeviceTile(
-            device,
-            open: _openDevice == device.interface,
-            onTap: () => setState(() {
-              _openDevice = _openDevice == device.interface
-                  ? null
-                  : device.interface;
-            }),
-          ),
-          if (_openDevice == device.interface) _DeviceDetails(device),
-        ],
+        SettingsGroup(
+          children: [
+            for (final device in widget.network.devices) ...[
+              _DeviceTile(
+                device,
+                open: _openDevice == device.interface,
+                onTap: () => setState(() {
+                  _openDevice = _openDevice == device.interface
+                      ? null
+                      : device.interface;
+                }),
+              ),
+              if (_openDevice == device.interface)
+                SettingsPad(child: _DeviceDetails(device)),
+            ],
+          ],
+        ),
         ValueListenableBuilder(
           valueListenable: widget.connections.connections,
-          builder: (context, connections, _) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (connections.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 4),
-                  child: Text(
-                    l.savedNetworks,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+          builder: (context, connections, _) => connections.isEmpty
+              ? const SizedBox.shrink()
+              : SettingsGroup(
+                  title: l.savedNetworks,
+                  children: [
+                    for (final connection in connections) ...[
+                      ListTile(
+                        key: ValueKey('connection-${connection.uuid}'),
+                        leading: Icon(_kindIcon(connection.kind)),
+                        title: Text(connection.name),
+                        subtitle: Text(
+                          connection.autoconnect
+                              ? l.connectionAuto
+                              : l.connectionManual,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.palette.textTertiary,
+                          ),
+                        ),
+                        trailing: Icon(
+                          _openConnection == connection.uuid
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                        ),
+                        onTap: () => setState(() {
+                          _openConnection = _openConnection == connection.uuid
+                              ? null
+                              : connection.uuid;
+                        }),
+                      ),
+                      if (_openConnection == connection.uuid)
+                        SettingsPad(
+                          child: _EditConnection(
+                            // Pelo uuid: gravar muda a conexão, e o aviso de que deu
+                            // certo fica no formulário
+                            key: ValueKey(connection.uuid),
+                            connections: widget.connections,
+                            connection: connection,
+                          ),
+                        ),
+                    ],
+                  ],
                 ),
-              for (final connection in connections) ...[
-                ListTile(
-                  key: ValueKey('connection-${connection.uuid}'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(_kindIcon(connection.kind)),
-                  title: Text(connection.name),
-                  subtitle: Text(
-                    connection.autoconnect
-                        ? l.connectionAuto
-                        : l.connectionManual,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.palette.textTertiary,
-                    ),
-                  ),
-                  trailing: Icon(
-                    _openConnection == connection.uuid
-                        ? Icons.expand_less
-                        : Icons.expand_more,
-                  ),
-                  onTap: () => setState(() {
-                    _openConnection = _openConnection == connection.uuid
-                        ? null
-                        : connection.uuid;
-                  }),
-                ),
-                if (_openConnection == connection.uuid)
-                  _EditConnection(
-                    // Pelo uuid: gravar muda a conexão, e o aviso de que deu
-                    // certo fica no formulário
-                    key: ValueKey(connection.uuid),
-                    connections: widget.connections,
-                    connection: connection,
-                  ),
-              ],
-            ],
-          ),
         ),
-        const SizedBox(height: 12),
         OutlinedButton.icon(
           key: const ValueKey('vpn-import'),
           icon: const Icon(Icons.vpn_key),
@@ -345,10 +345,7 @@ class _HotspotFormState extends State<_HotspotForm> {
           else if (note != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                note,
-                style: TextStyle(color: palette.textSecondary),
-              ),
+              child: Text(note, style: TextStyle(color: palette.textSecondary)),
             ),
         ],
       ),
@@ -388,7 +385,6 @@ class _DeviceTile extends StatelessWidget {
     ].join(' · ');
     return ListTile(
       key: ValueKey('device-${device.interface}'),
-      contentPadding: EdgeInsets.zero,
       leading: Icon(_kindIcon(device.kind)),
       title: Text(device.interface),
       subtitle: Text(

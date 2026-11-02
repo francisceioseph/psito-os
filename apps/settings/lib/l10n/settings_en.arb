@@ -201,22 +201,32 @@
       }
     }
   },
-  "storageFormatType": "Format",
-  "storageFormatFat": "FAT: works on any device, files up to 4 GB",
-  "storageFormatExfat": "exFAT: works on most devices, large files",
-  "storageFormatExt4": "ext4: Linux only",
-  "storageFormatLabel": "New name",
-  "storageFormatConfirm": "Type {name} to confirm",
-  "@storageFormatConfirm": {
+  "storageFormatType": "Format type",
+  "storageFormatFat": "Works on any device, with files up to 4 GB.",
+  "storageFormatExfat": "Works on most devices, with large files.",
+  "storageFormatExt4": "Only works on Linux.",
+  "storageFormatFatName": "FAT",
+  "storageFormatExfatName": "exFAT",
+  "storageFormatExt4Name": "ext4",
+  "storageFormatLabel": "Volume name",
+  "storageFormatCapacity": "Capacity",
+  "storageFormatGo": "Format",
+  "storageFormatAction": "Erase and format",
+  "storageFormatCancel": "Cancel",
+  "storageFormatBusy": "The disk is in use. Close what is using it and try again.",
+  "storageFormatFailed": "Could not format the disk.",
+  "storageFormatDone": "Formatting finished.",
+  "sectionGroupPersonal": "Personal",
+  "sectionGroupSystem": "System",
+  "sectionGroupMore": "More",
+  "storageFormatTitle": "Format {name}",
+  "@storageFormatTitle": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
   },
-  "storageFormatAction": "Erase and format",
-  "storageFormatCancel": "Cancel",
-  "storageFormatBusy": "The disk is in use. Close what is using it and try again.",
-  "storageFormatFailed": "Could not format the disk.",
-  "storageFormatDone": "Disk formatted."
+  "storageFormatGone": "This disk is no longer connected.",
+  "storageFormatOk": "OK"
 }

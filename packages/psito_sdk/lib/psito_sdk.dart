@@ -31,6 +31,9 @@ abstract class PsitoApp {
   /// Tamanho da janela ao abrir.
   Size get defaultSize => const Size(480, 360);
 
+  /// O tamanho nesta abertura: uma janela aberta para uma tarefa pode ser menor.
+  Size sizeFor(PsitoAppContext context) => defaultSize;
+
   /// Se true, abrir de novo foca a janela existente em vez de criar outra.
   bool get singleInstance => false;
 
@@ -308,6 +311,9 @@ const psitoQuickLookPrefix = 'quicklook:';
 /// Um argumento com esta marca abre as Configurações naquela seção (o "Mudar
 /// o papel de parede" da mesa).
 const psitoSettingsSectionPrefix = 'section:';
+
+/// O argumento que abre as Configurações só com o formatar de um disco.
+const psitoFormatDiskPrefix = 'format-disk:';
 
 List<PsitoShortcut> psitoShortcuts(SdkLocalizations l) => [
   PsitoShortcut(l.shortcutLauncher, 'Super', l.shortcutLauncherVm),
@@ -1164,6 +1170,9 @@ abstract class PsitoStorage {
   /// Abre a pasta nos Arquivos.
   Future<void> openFolder(String path);
 
+  /// Abre a janela de formatar o disco.
+  Future<void> openFormat(String id);
+
   /// Apaga tudo de um disco externo e formata. Nunca o do sistema.
   Future<PsitoDiskResult> format(String id, PsitoDiskFormat type, String label);
 }
@@ -1191,6 +1200,9 @@ class PsitoNoStorage implements PsitoStorage {
 
   @override
   Future<void> openFolder(String path) async {}
+
+  @override
+  Future<void> openFormat(String id) async {}
 
   @override
   Future<PsitoDiskResult> format(

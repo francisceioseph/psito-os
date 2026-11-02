@@ -3,7 +3,8 @@
 // O shell mede os discos e serve em org.psito.Storage:
 // - List() → aa{sv}, e o sinal Changed() quando muda; Refresh() mede de novo;
 // - LargestFolders(s pasta) → a(sx), TrashSize() → x;
-// - EmptyTrash(), em que o shell pergunta, e OpenFolder(s pasta);
+// - EmptyTrash(), em que o shell pergunta, OpenFolder(s pasta) e
+//   OpenFormat(s id), a janela de formatar;
 // - Format(s id, s tipo, s nome) → s: o PsitoDiskResult.
 // Quem passa é o filtro do sandbox (`settings`), e o que muda alguma coisa
 // confere também o cgroup de quem chama. O cliente é o StorageClient do
@@ -74,6 +75,15 @@ class StorageBusObject extends DBusObject {
           ],
         ),
         DBusIntrospectMethod(
+          'OpenFormat',
+          args: [
+            DBusIntrospectArgument(
+              DBusSignature('s'),
+              DBusArgumentDirection.in_,
+            ),
+          ],
+        ),
+        DBusIntrospectMethod(
           'Format',
           args: [
             for (final _ in [1, 2, 3])
@@ -135,6 +145,10 @@ class StorageBusObject extends DBusObject {
       case ('OpenFolder', 's'):
         if (!await _allowed(call)) return _denied;
         await storage.openFolder(call.values[0].asString());
+        return DBusMethodSuccessResponse();
+      case ('OpenFormat', 's'):
+        if (!await _allowed(call)) return _denied;
+        await storage.openFormat(call.values[0].asString());
         return DBusMethodSuccessResponse();
       case ('Format', 'sss'):
         if (!await _allowed(call)) return _denied;

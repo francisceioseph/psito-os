@@ -639,6 +639,7 @@ class ShellState {
     },
     onEmptyTrash: () => dockUi.askEmptyTrash.value = true,
     onOpen: (path) async => openPaths?.call([path]),
+    onOpenFormat: (id) => _launchSettings('$psitoFormatDiskPrefix$id'),
     formatter: formatDisk,
   );
 
@@ -689,7 +690,7 @@ class ShellState {
       body: l10n.diskFullBody(
         formatPsitoSize(system.free ?? 0, l10n.localeName),
       ),
-      onOpen: () => _openSettings('storage'),
+      onOpen: () => _launchSettings('${psitoSettingsSectionPrefix}storage'),
     );
   }
 
@@ -747,16 +748,17 @@ class ShellState {
   }
 
   /// Abre as Configurações na seção de rede, fechando o painel.
-  void openNetworkSettings() => _openSettings('network');
+  void openNetworkSettings() =>
+      _launchSettings('${psitoSettingsSectionPrefix}network');
 
-  void _openSettings(String section) {
+  void _launchSettings(String argument) {
     closeOverlay();
     final settings = installed('org.psito.settings');
     if (settings == null) return;
     unawaited(
       settings.launch(
         sandbox: sandbox,
-        command: [...settings.command, '$psitoSettingsSectionPrefix$section'],
+        command: [...settings.command, argument],
       ),
     );
   }

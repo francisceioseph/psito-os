@@ -74,6 +74,7 @@ void main() {
         trashDirs: () async => ['/nao/existe'],
         onEmptyTrash: () {},
         onOpen: (_) async {},
+        onOpenFormat: (_) {},
         run: (executable, arguments) async {
           calls.add([executable, ...arguments]);
           return executable == 'df'
@@ -120,6 +121,7 @@ void main() {
         trashDirs: () async => const [],
         onEmptyTrash: () {},
         onOpen: (_) async {},
+        onOpenFormat: (_) {},
         run: (_, _) async => _result('3\t/h/a\u0000', code: 1),
       );
       addTearDown(partial.dispose);
@@ -140,6 +142,7 @@ void main() {
         trashDirs: () async => [dir.path, '/nao/existe'],
         onEmptyTrash: () {},
         onOpen: (_) async {},
+        onOpenFormat: (_) {},
         run: (_, arguments) async {
           calls.add(arguments);
           return _result('5\t${dir.path}\n5\ttotal\n');

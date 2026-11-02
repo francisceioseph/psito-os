@@ -70,8 +70,9 @@ void main() {
   test('esvaziar só pede, e abrir vai ao shell', () async {
     await client.emptyTrash();
     await client.openFolder('/home/ana/x');
+    await client.openFormat('/a');
     expect(storage.asksToEmpty, 1);
-    expect(storage.opened, ['/home/ana/x']);
+    expect(storage.opened, ['/home/ana/x', 'format:/a']);
   });
 
   test('formatar leva o tipo e o nome, e devolve o resultado', () async {
@@ -91,6 +92,7 @@ void main() {
     );
     await client.emptyTrash();
     await client.openFolder('/x');
+    await client.openFormat('/a');
     expect(await client.largestFolders('/home/ana'), isEmpty);
     expect(storage.formatted, isEmpty);
     expect(storage.asksToEmpty, 0);

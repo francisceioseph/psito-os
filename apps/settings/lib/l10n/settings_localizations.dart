@@ -1040,38 +1040,62 @@ abstract class SettingsLocalizations {
   /// No description provided for @storageFormatType.
   ///
   /// In en, this message translates to:
-  /// **'Format'**
+  /// **'Format type'**
   String get storageFormatType;
 
   /// No description provided for @storageFormatFat.
   ///
   /// In en, this message translates to:
-  /// **'FAT: works on any device, files up to 4 GB'**
+  /// **'Works on any device, with files up to 4 GB.'**
   String get storageFormatFat;
 
   /// No description provided for @storageFormatExfat.
   ///
   /// In en, this message translates to:
-  /// **'exFAT: works on most devices, large files'**
+  /// **'Works on most devices, with large files.'**
   String get storageFormatExfat;
 
   /// No description provided for @storageFormatExt4.
   ///
   /// In en, this message translates to:
-  /// **'ext4: Linux only'**
+  /// **'Only works on Linux.'**
   String get storageFormatExt4;
+
+  /// No description provided for @storageFormatFatName.
+  ///
+  /// In en, this message translates to:
+  /// **'FAT'**
+  String get storageFormatFatName;
+
+  /// No description provided for @storageFormatExfatName.
+  ///
+  /// In en, this message translates to:
+  /// **'exFAT'**
+  String get storageFormatExfatName;
+
+  /// No description provided for @storageFormatExt4Name.
+  ///
+  /// In en, this message translates to:
+  /// **'ext4'**
+  String get storageFormatExt4Name;
 
   /// No description provided for @storageFormatLabel.
   ///
   /// In en, this message translates to:
-  /// **'New name'**
+  /// **'Volume name'**
   String get storageFormatLabel;
 
-  /// No description provided for @storageFormatConfirm.
+  /// No description provided for @storageFormatCapacity.
   ///
   /// In en, this message translates to:
-  /// **'Type {name} to confirm'**
-  String storageFormatConfirm(String name);
+  /// **'Capacity'**
+  String get storageFormatCapacity;
+
+  /// No description provided for @storageFormatGo.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get storageFormatGo;
 
   /// No description provided for @storageFormatAction.
   ///
@@ -1100,8 +1124,44 @@ abstract class SettingsLocalizations {
   /// No description provided for @storageFormatDone.
   ///
   /// In en, this message translates to:
-  /// **'Disk formatted.'**
+  /// **'Formatting finished.'**
   String get storageFormatDone;
+
+  /// No description provided for @sectionGroupPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get sectionGroupPersonal;
+
+  /// No description provided for @sectionGroupSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get sectionGroupSystem;
+
+  /// No description provided for @sectionGroupMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get sectionGroupMore;
+
+  /// No description provided for @storageFormatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Format {name}'**
+  String storageFormatTitle(String name);
+
+  /// No description provided for @storageFormatGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This disk is no longer connected.'**
+  String get storageFormatGone;
+
+  /// No description provided for @storageFormatOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get storageFormatOk;
 }
 
 class _SettingsLocalizationsDelegate
