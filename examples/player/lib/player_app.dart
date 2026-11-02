@@ -47,12 +47,15 @@ class PlayerView extends StatefulWidget {
 class _PlayerViewState extends State<PlayerView> {
   /// Abaixo disto, a barra lateral não cabe e fica só o player.
   static const _railMinWidth = 320.0;
-  static const _railMinHeight = 520.0;
+  static const _railMinHeight = 560.0;
   static const _barHeight = 80.0;
 
   PlayerEngine? _engine;
   String? _engineError;
+
+  /// O destino aberto: os da barra e, depois deles, Ajustes.
   int _destination = 0;
+  static const _settings = 5;
 
   @override
   void initState() {
@@ -84,7 +87,7 @@ class _PlayerViewState extends State<PlayerView> {
     NavigationRailDestination destination(IconData icon, String label) =>
         NavigationRailDestination(icon: Icon(icon), label: Text(label));
     return NavigationRail(
-      selectedIndex: _destination,
+      selectedIndex: _destination == _settings ? null : _destination,
       labelType: NavigationRailLabelType.all,
       onDestinationSelected: (i) => setState(() => _destination = i),
       leading: IconButton.filledTonal(
@@ -92,13 +95,22 @@ class _PlayerViewState extends State<PlayerView> {
         icon: const Icon(Icons.folder_open_rounded),
         onPressed: () => _pick(engine, l.openFile),
       ),
+      trailingAtBottom: true,
+      trailing: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: IconButton(
+          tooltip: l.settings,
+          isSelected: _destination == _settings,
+          icon: const Icon(Icons.settings_rounded),
+          onPressed: () => setState(() => _destination = _settings),
+        ),
+      ),
       destinations: [
-        destination(Icons.album_rounded, l.library),
-        destination(Icons.music_note_rounded, l.songs),
-        destination(Icons.person_rounded, l.artists),
+        destination(Icons.home_rounded, l.home),
+        destination(Icons.library_music_rounded, l.library),
         destination(Icons.queue_music_rounded, l.playlists),
         destination(Icons.folder_rounded, l.folders),
-        destination(Icons.category_rounded, l.genres),
+        destination(Icons.search_rounded, l.search),
       ],
     );
   }

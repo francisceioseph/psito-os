@@ -31,13 +31,10 @@ class PlayerLocalizationsPt extends PlayerLocalizations {
   String get volume => 'Volume';
 
   @override
+  String get home => 'Início';
+
+  @override
   String get library => 'Biblioteca';
-
-  @override
-  String get songs => 'Músicas';
-
-  @override
-  String get artists => 'Artistas';
 
   @override
   String get playlists => 'Playlists';
@@ -46,7 +43,10 @@ class PlayerLocalizationsPt extends PlayerLocalizations {
   String get folders => 'Pastas';
 
   @override
-  String get genres => 'Gêneros';
+  String get search => 'Buscar';
+
+  @override
+  String get settings => 'Ajustes';
 
   @override
   String engineUnavailable(Object error) {

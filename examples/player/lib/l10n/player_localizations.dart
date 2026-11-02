@@ -140,23 +140,17 @@ abstract class PlayerLocalizations {
   /// **'Volume'**
   String get volume;
 
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
   /// No description provided for @library.
   ///
   /// In en, this message translates to:
   /// **'Library'**
   String get library;
-
-  /// No description provided for @songs.
-  ///
-  /// In en, this message translates to:
-  /// **'Songs'**
-  String get songs;
-
-  /// No description provided for @artists.
-  ///
-  /// In en, this message translates to:
-  /// **'Artists'**
-  String get artists;
 
   /// No description provided for @playlists.
   ///
@@ -170,11 +164,17 @@ abstract class PlayerLocalizations {
   /// **'Folders'**
   String get folders;
 
-  /// No description provided for @genres.
+  /// No description provided for @search.
   ///
   /// In en, this message translates to:
-  /// **'Genres'**
-  String get genres;
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
 
   /// No description provided for @engineUnavailable.
   ///

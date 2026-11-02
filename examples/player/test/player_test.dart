@@ -88,19 +88,23 @@ void main() {
     await pump(tester, FakeEngine.new);
     expect(find.byType(NavigationRail), findsOneWidget);
     for (final label in [
+      'Início',
       'Biblioteca',
-      'Músicas',
-      'Artistas',
       'Playlists',
       'Pastas',
-      'Gêneros',
+      'Buscar',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
-    await tester.tap(find.text('Músicas'));
+    NavigationRail rail() =>
+        tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect(rail().selectedIndex, 0);
+    await tester.tap(find.text('Playlists'));
     await tester.pump();
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    expect(rail.selectedIndex, 1);
+    expect(rail().selectedIndex, 2);
+    await tester.tap(find.byTooltip('Ajustes'));
+    await tester.pump();
+    expect(rail().selectedIndex, isNull);
   });
 
   testWidgets('sem espaço, a barra lateral sai e o player fica', (

@@ -9,10 +9,10 @@
   "volume": "Volume",
   "engineUnavailable": "O motor de áudio não está disponível: {error}",
   "openFailed": "Não foi possível tocar este arquivo: {error}",
+  "home": "Início",
   "library": "Biblioteca",
-  "songs": "Músicas",
-  "artists": "Artistas",
   "playlists": "Playlists",
   "folders": "Pastas",
-  "genres": "Gêneros"
+  "search": "Buscar",
+  "settings": "Ajustes"
 }

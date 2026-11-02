@@ -7,12 +7,12 @@
   "pause": "Pause",
   "progress": "Progress",
   "volume": "Volume",
+  "home": "Home",
   "library": "Library",
-  "songs": "Songs",
-  "artists": "Artists",
   "playlists": "Playlists",
   "folders": "Folders",
-  "genres": "Genres",
+  "search": "Search",
+  "settings": "Settings",
   "engineUnavailable": "The audio engine is unavailable: {error}",
   "openFailed": "Could not play this file: {error}"
 }
